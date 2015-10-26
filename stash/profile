@@ -1,0 +1,147 @@
+#########################################################
+# Title; profile
+# Description; Custom /etc/profile for OS X
+# Credits; Diego Iaconelli
+# Source; https://github.com/matdotcx/
+# Initial Version; Mon 29 Aug 2013 03:12:04 BST
+#########################################################
+
+# System-wide .profile for sh(1)
+
+export LANG=en_GB.UTF-8
+
+###############################################################################
+
+# Declaration of the prompt, shell, paths, motd.
+# We're putting Brew's options before the system ones.
+
+export PATH=/usr/local/opt/ruby/bin:$PATH
+export PATH=$(brew --prefix coreutils)/libexec/gnubin:$PATH
+export PATH=/usr/local/bin:$HOME/bin:/usr/local/sbin:$PATH
+
+export PATH='/usr/local/sbin:$PATH'
+export PATH='/Library/Scripts/Automation:$PATH'
+
+if [ -x /usr/libexec/path_helper ]; then
+	eval `/usr/libexec/path_helper -s`
+fi
+
+if [ "${BASH-no}" != "no" ]; then
+	[ -r /etc/bashrc ] && . /etc/bashrc
+fi
+
+echo
+echo "» dominus illuminatio mea!"
+echo "Welcome to "`scutil --get ComputerName`"! | "`sw_vers -productName`"`if serverinfo -q --configured; then echo  " Server"; else echo " Client"; fi`" - `sw_vers -productVersion`"" "(`sw_vers -buildVersion`)"
+bash /etc/uptime.sh
+date "+%A, %B %d, %Y | %T %Z"
+echo
+export PS1="\e[1;31m→\e[m \e[0;31m\u\e[m @ \h  \]\n\e[1;31m→\e[m "
+
+
+# A collecton of useful aliases and widgets… 
+
+###############################################################################
+# System functions
+
+# Rebuild the Launch Services Database
+alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local\ -domain system -domain user'
+
+# Suspend current account - effectively go to sleep and present login window
+alias suspend='/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend'
+
+###############################################################################
+# File manipulation, navigation
+
+# Generates a tree of files from the current working directory
+alias filetree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
+
+# Opens the requested manpage in TextMate
+tman () {
+  MANWIDTH=160 MANPAGER='col -bx' man $@ | mate
+}
+
+# Bring up TextMate with the /profile as the open document
+alias profile='mate /etc/profile'
+
+# Show all invisible files…
+alias show='defaults write com.apple.finder AppleShowAllFiles TRUE; killall Finder'
+
+# Hide all invisible files…
+alias hide='defaults write com.apple.finder AppleShowAllFiles FALSE; killall Finder'
+
+# Print working directory after a cd.
+cd() {
+    if [[ $@ == '-' ]]; then
+        builtin cd "$@" > /dev/null  # We're going to display the new working directory ourselves.
+    else
+        builtin cd "$@"
+    fi
+    echo -e "   \033[1;30m"`pwd`"\033[0m"
+}
+
+# Change Directory to the active Finder window (else ~/Desktop)
+function cdf()
+   {
+      local fPath=`osascript -e '
+      tell app "finder"
+         try
+            set folderPath to (folder of the front window as alias)
+         on error
+            set folderPath to (path to desktop folder as alias)
+         end try
+         POSIX path of folderPath
+      end tell'
+      `;
+      echo "cd $fPath";
+      cd "$fPath" > /dev/null
+   }
+
+
+
+# Generate a password using haddock, length of 28 characters. 
+alias secret='ha-gen -l 28'
+
+# Change Directory to the current user's home directory
+alias cdh='cd ~/'
+
+# All files, long form, short file sizes, colorized, time-order, with inodes.
+alias ll='ls -AlhGti'
+
+## Color ls
+alias ls='ls --color=auto -hF'
+
+## Display the insides of a particular directory
+alias lv='ls -R'
+
+###############################################################################
+
+# Anything below this line is considered a work in progress; it may break shit.
+
+# Grab my exteral IP address
+alias ipx='curl -s http://checkip.dyndns.org/ | grep -o '[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*.[0-9]*''
+
+# Colourize man pages
+
+man() {
+	env \
+		LESS_TERMCAP_mb=$(printf "\e[1;31m") \
+		LESS_TERMCAP_md=$(printf "\e[1;31m") \
+		LESS_TERMCAP_me=$(printf "\e[0m") \
+		LESS_TERMCAP_se=$(printf "\e[0m") \
+		LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
+		LESS_TERMCAP_ue=$(printf "\e[0m") \
+		LESS_TERMCAP_us=$(printf "\e[1;32m") \
+			man "$@"
+}
+ 
+
+# Add colour various other places; requires 'brew install grc'
+source "`brew --prefix`/etc/grc.bashrc"
+
+
+###################################################################
+
+
+
+
