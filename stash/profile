@@ -118,7 +118,7 @@ alias lv='ls -R'
 
 # Anything below this line is considered a work in progress; it may break shit.
 
-# Grab my exteral IP address
+# Grab my external IP address
 alias ipx='curl -s http://checkip.dyndns.org/ | grep -o '[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*.[0-9]*''
 
 # Colourize man pages
