@@ -127,7 +127,6 @@ echo ""
 echo "Showing icons for hard drives, servers, and removable media on the desktop"
 defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
 
-
 echo ""
 echo "Showing status bar in Finder by default"
 defaults write com.apple.finder ShowStatusBar -bool true
@@ -160,6 +159,9 @@ echo "Enabling snap-to-grid for icons on the desktop and in other icon views"
 /usr/libexec/PlistBuddy -c "Set :FK_StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
 /usr/libexec/PlistBuddy -c "Set :StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
 
+echo ""
+echo "Setting the format for the menubar clock to 24 hour, with minutes and seconds"
+defaults write com.apple.menuextra.clock "DateFormat" 'H:mm:ss'
 
 ###############################################################################
 # Dock & Mission Control
