@@ -1,13 +1,10 @@
 #########################################################
-# Title; binaries
+# Title; homebrew
 # Description; Homebrew and binaries installer
 # Credits; Diego Iaconelli
 # Source; https://github.com/matdotcx/
 # Initial Version; Sun Oct 25 12:05:41 GMT 2015
 #########################################################
-
-# Call xcode-eula
-sh ~/.xcode-eula.sh
 
 # Check for Homebrew
 if test ! $(which brew); then
