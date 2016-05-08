@@ -293,7 +293,7 @@ end tell
 EOD
 
 echo ""
-echo "Installing a default `profile` and the supporting uptime script"
+echo "Installing a default profile and the supporting uptime script"
 sudo cp -r $HOME/workspace/sw18/bobblbee/init/uptime.sh /etc/uptime.sh > /dev/null
 sudo cp -r $HOME/workspace/sw18/bobblbee/init/profile /etc/profile > /dev/null
 sudo chmod +x /etc/uptime.sh
