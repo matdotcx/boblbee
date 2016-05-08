@@ -9,5 +9,5 @@
 
 
 # Run each program
-sh "$osx/defaults.sh"
-sh "$osx/binaries.sh"
+sh "defaults.sh"
+sh "homebrew.sh"
