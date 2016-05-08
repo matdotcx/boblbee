@@ -108,9 +108,6 @@ alias cdh='cd ~/'
 # All files, long form, short file sizes, colorized, time-order, with inodes.
 alias ll='ls -AlhGti'
 
-## Color ls
-alias ls='ls --color=auto -hF'
-
 ## Display the insides of a particular directory
 alias lv='ls -R'
 
