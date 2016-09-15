@@ -102,6 +102,12 @@ alias cdh='cd ~/'
 # All files, long form, short file sizes, colorized, time-order, with inodes.
 alias ll='ls -AlhGti'
 
+<<<<<<< HEAD
+=======
+## Display the insides of a particular directory
+alias lv='ls -R'
+
+>>>>>>> 191daa9654ab99f88b16a4c7d043e3b643e45332
 ###############################################################################
 
 # Anything below this line is considered a work in progress; it may break shit.
