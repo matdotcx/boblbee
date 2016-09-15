@@ -11,16 +11,9 @@
 export LANG=en_GB.UTF-8
 
 ###############################################################################
-
 # Declaration of the prompt, shell, paths, motd.
-# We're putting Brew's options before the system ones.
-
-export PATH=/usr/local/opt/ruby/bin:$PATH
-export PATH=$(brew --prefix coreutils)/libexec/gnubin:$PATH
-export PATH=/usr/local/bin:$HOME/bin:/usr/local/sbin:$PATH
 
 export PATH='/usr/local/sbin:$PATH'
-export PATH='/Library/Scripts/Automation:$PATH'
 
 if [ -x /usr/libexec/path_helper ]; then
 	eval `/usr/libexec/path_helper -s`
@@ -31,15 +24,16 @@ if [ "${BASH-no}" != "no" ]; then
 fi
 
 echo
-echo "» dominus illuminatio mea!"
+echo "» salva nos, stella maris!"
 echo "Welcome to "`scutil --get ComputerName`"! | "`sw_vers -productName`"`if serverinfo -q --configured; then echo  " Server"; else echo " Client"; fi`" - `sw_vers -productVersion`"" "(`sw_vers -buildVersion`)"
 bash /etc/uptime.sh
 date "+%A, %B %d, %Y | %T %Z"
 echo
-export PS1="\e[1;31m→\e[m \e[0;31m\u\e[m @ \h  \]\n\e[1;31m→\e[m "
-
+export PS1="\[\e[31m\]→\[\e[m\] \[\e[31m\]\u\[\e[m\] @ \h "
+export SUDO_PS1="\[\e[35m\]→\[\e[m\] \[\e[35m\]\u\[\e[m\] @ \h "
 
 # A collecton of useful aliases and widgets… 
+
 
 ###############################################################################
 # System functions
@@ -108,21 +102,14 @@ alias cdh='cd ~/'
 # All files, long form, short file sizes, colorized, time-order, with inodes.
 alias ll='ls -AlhGti'
 
-## Color ls
-alias ls='ls --color=auto -hF'
-
-## Display the insides of a particular directory
-alias lv='ls -R'
-
 ###############################################################################
 
 # Anything below this line is considered a work in progress; it may break shit.
 
-# Grab my external IP address
+# Grab my exteral IP address
 alias ipx='curl -s http://checkip.dyndns.org/ | grep -o '[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*.[0-9]*''
 
-# Colourize man pages
-
+# Colour man pages, baby! 
 man() {
 	env \
 		LESS_TERMCAP_mb=$(printf "\e[1;31m") \
@@ -136,12 +123,5 @@ man() {
 }
  
 
-# Add colour various other places; requires 'brew install grc'
+# Add colour in places, man! Requires 'brew install grc'
 source "`brew --prefix`/etc/grc.bashrc"
-
-
-###################################################################
-
-
-
-
