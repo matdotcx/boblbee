@@ -75,7 +75,7 @@ defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
 
 echo ""
 echo "Increasing sound quality for Bluetooth headphones/headsets"
-defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 40
+defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 60
 
 echo ""
 echo "Enabling full keyboard access for all controls (e.g. enable Tab in modal dialogs)"
@@ -87,7 +87,8 @@ defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
 
 echo ""
 echo "Setting a blazingly fast keyboard repeat rate (ain't nobody got time fo special chars while coding!)"
-defaults write NSGlobalDomain KeyRepeat -int 0
+defaults write NSGlobalDomain KeyRepeat -int 1
+defaults write NSGlobalDomain InitialKeyRepeat -int 10
 
 echo ""
 echo "Disabling auto-correct"
