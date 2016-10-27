@@ -29,8 +29,10 @@ echo "Welcome to "`scutil --get ComputerName`"! | "`sw_vers -productName`"`if se
 bash /etc/uptime.sh
 date "+%A, %B %d, %Y | %T %Z"
 echo
-export PS1="\[\e[31m\]→\[\e[m\] \[\e[31m\]\u\[\e[m\] @ \h "
-export SUDO_PS1="\[\e[35m\]→\[\e[m\] \[\e[35m\]\u\[\e[m\] @ \h "
+
+
+export PS1="\[\e[31m\]→\[\e[m\] \[\e[31m\]\u\[\e[m\] @ \H\n\e[31m\]→ \[\e[m\]"
+export SUDO_PS1="\[\e[35m\]→\[\e[m\] \[\e[35m\]\u\[\e[m\] @ \H\n\e[35m\]→ \[\e[m\] "
 
 # A collecton of useful aliases and widgets… 
 
@@ -65,14 +67,8 @@ alias show='defaults write com.apple.finder AppleShowAllFiles TRUE; killall Find
 alias hide='defaults write com.apple.finder AppleShowAllFiles FALSE; killall Finder'
 
 # Print working directory after a cd.
-cd() {
-    if [[ $@ == '-' ]]; then
-        builtin cd "$@" > /dev/null  # We're going to display the new working directory ourselves.
-    else
-        builtin cd "$@"
-    fi
-    echo -e "   \033[1;30m"`pwd`"\033[0m"
-}
+cd() { builtin cd "$@"; pwd; ls -AlhGti; }               # Always list directory contents upon 'cd'
+
 
 # Change Directory to the active Finder window (else ~/Desktop)
 function cdf()
@@ -102,12 +98,6 @@ alias cdh='cd ~/'
 # All files, long form, short file sizes, colorized, time-order, with inodes.
 alias ll='ls -AlhGti'
 
-<<<<<<< HEAD
-=======
-## Display the insides of a particular directory
-alias lv='ls -R'
-
->>>>>>> 191daa9654ab99f88b16a4c7d043e3b643e45332
 ###############################################################################
 
 # Anything below this line is considered a work in progress; it may break shit.
