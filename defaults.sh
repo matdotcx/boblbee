@@ -86,11 +86,6 @@ echo "Disabling press-and-hold for keys in favor of a key repeat"
 defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
 
 echo ""
-echo "Setting a blazingly fast keyboard repeat rate (ain't nobody got time fo special chars while coding!)"
-defaults write NSGlobalDomain KeyRepeat -int 1
-defaults write NSGlobalDomain InitialKeyRepeat -int 10
-
-echo ""
 echo "Disabling auto-correct"
 defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
@@ -174,8 +169,10 @@ defaults write com.apple.menuextra.clock "DateFormat" 'H:mm:ss'
 #defaults write com.apple.dock persistent-apps -array
 
 echo ""
-echo "Setting the icon size of Dock items to 36 pixels for optimal size/screen-realestate"
+echo "Setting the icon size of Dock items to 36 pixels for optimal size/screen-realestate, and magnifaction to 128, pinned to the right of the display."
+defaults write com.apple.dock orientation -string right
 defaults write com.apple.dock tilesize -int 36
+defaults write com.apple.dock largesize -float 128
 
 echo ""
 echo "Speeding up Mission Control animations and grouping windows by application"
