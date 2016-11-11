@@ -347,4 +347,6 @@ defaults write com.google.Chrome AppleEnableSwipeNavigateWithScrolls -bool false
 # Kill affected applications
 ###############################################################################
 
+
 echo "Done!"
+osascript -e 'tell application "loginwindow" to  «event aevtrlgo»'
