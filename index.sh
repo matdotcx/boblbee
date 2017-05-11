@@ -9,5 +9,5 @@
 
 
 # Run each program
-sh "defaults.sh"
 sh "homebrew.sh"
+sh "defaults.sh"
