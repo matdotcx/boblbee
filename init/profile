@@ -1,10 +1,10 @@
-#########################################################
+###############################################################################
 # Title; profile
 # Description; Custom /etc/profile for OS X
 # Credits; Diego Iaconelli
 # Source; https://github.com/matdotcx/
 # Initial Version; Mon 29 Aug 2013 03:12:04 BST
-#########################################################
+###############################################################################
 
 # System-wide .profile for sh(1)
 
@@ -12,6 +12,8 @@ export LANG=en_GB.UTF-8
 
 ###############################################################################
 # Declaration of the prompt, shell, paths, motd.
+###############################################################################
+
 
 export PATH='/usr/local/sbin:$PATH'
 
@@ -34,31 +36,40 @@ echo
 export PS1="\[\e[31m\]→\[\e[m\] \[\e[31m\]\u\[\e[m\] @ \H\n\[\e[31m\]→ \[\e[m\]"
 export SUDO_PS1="\[\e[35m\]→\[\e[m\] \[\e[35m\]\u\[\e[m\] @ \H\n\[\e[35m\]→ \[\e[m\]"
 
-# A collecton of useful aliases and widgets… 
-
 
 ###############################################################################
-# System functions
-
-# Rebuild the Launch Services Database
-alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local\ -domain system -domain user'
-
-# Suspend current account - effectively go to sleep and present login window
-alias suspend='/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend'
-
+# Shell % Navigation
 ###############################################################################
-# File manipulation, navigation
 
-# Generates a tree of files from the current working directory
-alias filetree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
+# Always use color output for `ls`
+alias ls="command ls ${colorflag}"
 
-# Opens the requested manpage in TextMate
-tman () {
-  MANWIDTH=160 MANPAGER='col -bx' man $@ | mate
+# Reload the shell (i.e. invoke as a login shell)
+alias reload="exec ${SHELL} -l"
+
+# Print each PATH entry on a separate line
+alias path='echo -e ${PATH//:/\\n}'
+
+# Always enable colored `grep` output
+# Note: `GREP_OPTIONS="--color=auto"` is deprecated, hence the alias usage.
+alias grep='grep --color=auto'
+
+# Colourize man pages 
+man() {
+	env \
+		LESS_TERMCAP_mb=$(printf "\e[1;31m") \
+		LESS_TERMCAP_md=$(printf "\e[1;31m") \
+		LESS_TERMCAP_me=$(printf "\e[0m") \
+		LESS_TERMCAP_se=$(printf "\e[0m") \
+		LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
+		LESS_TERMCAP_ue=$(printf "\e[0m") \
+		LESS_TERMCAP_us=$(printf "\e[1;32m") \
+			man "$@"
 }
-
-# Bring up TextMate with the /profile as the open document
-alias profile='mate /etc/profile'
+ 
+# Add colour - see https://github.com/garabik/grc
+# Requires 'brew install grc'
+source "`brew --prefix`/etc/grc.bashrc"
 
 # Show all invisible files…
 alias show='defaults write com.apple.finder AppleShowAllFiles TRUE; killall Finder'
@@ -68,7 +79,6 @@ alias hide='defaults write com.apple.finder AppleShowAllFiles FALSE; killall Fin
 
 # Print working directory and ls after a cd.
 cd() { builtin cd "$@"; pwd; ls -AlhGti; } 
-
 
 # Change Directory to the active Finder window (else ~/Desktop)
 function cdf()
@@ -87,37 +97,71 @@ function cdf()
       cd "$fPath" > /dev/null
    }
 
-
-
-# Generate a password using haddock, length of 28 characters. 
-alias secret='ha-gen -l 28'
-
 # Change Directory to the current user's home directory
 alias cdh='cd ~/'
 
 # All files, long form, short file sizes, colorized, time-order, with inodes.
 alias ll='ls -AlhGti'
 
+# Generates a tree of files from the current working directory
+alias filetree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
+
+# Bring up TextMate with the /profile as the open document
+alias profile='mate /etc/profile'
+
+###############################################################################
+# Network
 ###############################################################################
 
-# Anything below this line is considered a work in progress; it may break shit.
+# IP addresses
+alias ip="dig +short myip.opendns.com @resolver1.opendns.com"
+alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
 
-# Grab my exteral IP address
-alias ipx='curl -s http://checkip.dyndns.org/ | grep -o '[0-9][0-9]*.[0-9][0-9]*.[0-9][0-9]*.[0-9]*''
+# Show active network interfaces
+alias ifactive="ifconfig | pcregrep -M -o '^[^\t:]+:([^\n]|\n\t)*status: active'"
 
-# Colour man pages, baby! 
-man() {
-	env \
-		LESS_TERMCAP_mb=$(printf "\e[1;31m") \
-		LESS_TERMCAP_md=$(printf "\e[1;31m") \
-		LESS_TERMCAP_me=$(printf "\e[0m") \
-		LESS_TERMCAP_se=$(printf "\e[0m") \
-		LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
-		LESS_TERMCAP_ue=$(printf "\e[0m") \
-		LESS_TERMCAP_us=$(printf "\e[1;32m") \
-			man "$@"
+# Run `dig` and display the most useful info
+function digga() {
+	dig +nocmd "$1" any +multiline +noall +answer;
 }
- 
 
-# Add colour in places, man! Requires 'brew install grc'
-source "`brew --prefix`/etc/grc.bashrc"
+
+###############################################################################
+# System and Shortcuts
+###############################################################################
+
+# Flush Directory Service cache
+alias flush="dscacheutil -flushcache && killall -HUP mDNSResponder"
+
+# Clean up LaunchServices to remove duplicates in the “Open With” menu
+alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
+
+# Rebuild the Launch Services Database
+alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local\ -domain system -domain user'
+
+# Canonical hex dump; some systems have this symlinked
+command -v hd > /dev/null || alias hd="hexdump -C"
+
+# macOS has no `md5sum`, so use `md5` as a fallback
+command -v md5sum > /dev/null || alias md5sum="md5"
+
+# macOS has no `sha1sum`, so use `shasum` as a fallback
+command -v sha1sum > /dev/null || alias sha1sum="shasum"
+
+# Generate a password using haddock, length of 28 characters. 
+alias secret='ha-gen -l 28'
+
+# Get macOS Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
+alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm install npm -g; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'
+
+# Suspend current account - effectively go to sleep and present login window
+alias suspend='/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend'
+
+
+
+
+
+
+
+
+
