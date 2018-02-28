@@ -151,6 +151,9 @@ defaults write com.apple.frameworks.diskimages skip-verify-remote -bool true
 
 echo ""
 echo "Enabling snap-to-grid for icons on the desktop and in other icon views"
+
+/usr/libexec/PlistBuddy -c "Add :FK_StandardViewSettings:IconViewSettings:showItemInfo bool true" ~/Library/Preferences/com.apple.finder.plist
+
 /usr/libexec/PlistBuddy -c "Set :DesktopViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
 /usr/libexec/PlistBuddy -c "Set :FK_StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
 /usr/libexec/PlistBuddy -c "Set :StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
@@ -169,7 +172,7 @@ defaults write com.apple.menuextra.clock "DateFormat" 'H:mm:ss'
 #defaults write com.apple.dock persistent-apps -array
 
 echo ""
-echo "Setting the icon size of Dock items to 36 pixels for optimal size/screen-realestate, and magnifaction to 128, pinned to the right of the display."
+echo "Setting the icon size of Dock items to 36 pixels for optimal size/screen-real-estate, and magnification to 128, pinned to the right of the display."
 defaults write com.apple.dock orientation -string right
 defaults write com.apple.dock tilesize -int 36
 defaults write com.apple.dock largesize -float 128
