@@ -64,7 +64,7 @@ echo "Check for software updates daily, not just once per week"
 defaults write com.apple.SoftwareUpdate ScheduleFrequency -int 1
 
 echo ""
-echo "Disable smart quotes and smart dashes as theyâ€™re annoying when typing code"
+echo "Disable smart quotes and smart dashes as they are annoying when typing code"
 defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
 defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
 
@@ -164,7 +164,7 @@ defaults write com.apple.menuextra.clock "DateFormat" 'H:mm:ss'
 ###############################################################################
 
 # Wipe all (default) app icons from the Dock
-# This is only really useful when setting up a new Mac, or if you donâ€™t use
+# This is only really useful when setting up a new Mac, or if you dont use
 # the Dock to launch apps.
 #defaults write com.apple.dock persistent-apps -array
 
@@ -186,27 +186,27 @@ defaults write com.apple.dock "expose-group-by-app" -bool true
 ###############################################################################
 
 echo ""
-echo "Hiding Safariâ€™s bookmarks bar by default"
+echo "Hiding Safari bookmarks bar by default"
 defaults write com.apple.Safari ShowFavoritesBar -bool false
 
 echo ""
-echo "Hiding Safariâ€™s sidebar in Top Sites"
+echo "Hiding Safari sidebar in Top Sites"
 defaults write com.apple.Safari ShowSidebarInTopSites -bool false
 
 echo ""
-echo "Disabling Safariâ€™s thumbnail cache for History and Top Sites"
+echo "Disabling Safari thumbnail cache for History and Top Sites"
 defaults write com.apple.Safari DebugSnapshotsUpdatePolicy -int 2
 
 echo ""
-echo "Enabling Safariâ€™s debug menu"
+echo "Enabling Safari debug menu"
 defaults write com.apple.Safari IncludeInternalDebugMenu -bool true
 
 echo ""
-echo "Making Safariâ€™s search banners default to Contains instead of Starts With"
+echo "Making Safari search banners default to Contains instead of Starts With"
 defaults write com.apple.Safari FindOnPageMatchesWordStartsOnly -bool false
 
 echo ""
-echo "Removing useless icons from Safariâ€™s bookmarks bar"
+echo "Removing useless icons from Safari bookmarks bar"
 defaults write com.apple.Safari ProxiesInBookmarksBar "()"
 
 echo ""
