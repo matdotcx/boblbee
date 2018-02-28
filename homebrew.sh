@@ -12,10 +12,14 @@ if test ! $(which brew); then
   ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
 fi
 
-# Update homebrew
-brew update && brew upgrade brew-cask
+# Make sure we’re using the latest Homebrew.
+brew update
 
-# Install GNU core utilities (those that come with OS X are outdated)
+# Upgrade any already-installed formulae.
+brew upgrade
+
+# Install GNU core utilities (those that come with macOS are outdated).
+# Don’t forget to add `$(brew --prefix coreutils)/libexec/gnubin` to `$PATH`.
 brew install coreutils
 
 # Install GNU `find`, `locate`, `updatedb`, and `xargs`, g-prefixed
@@ -24,35 +28,30 @@ brew install findutils
 # Install Bash 4
 brew install bash
 
-# Install more recent versions of some OS X tools
-brew tap homebrew/dupes
-brew install homebrew/dupes/grep
+# Switch to using brew-installed bash as default shell
+if ! fgrep -q '/usr/local/bin/bash' /etc/shells; then
+  echo '/usr/local/bin/bash' | sudo tee -a /etc/shells;
+  chsh -s /usr/local/bin/bash;
+fi;
+
+# Install more recent versions of some macOS tools.
+brew install vim --with-override-system-vi
+brew install grep
+brew install openssh
+brew install screen
+brew install homebrew/php/php56 --with-gmp
 
 # Install other useful binaries
-binaries=(
-  graphicsmagick
-  webkit2png
-  phantomjs
-  rename
-  zopfli
-  ffmpeg
-  python
-  mongo
-  sshfs
-  trash
-  tree
-  ack
-  git
-  hub
-  htop-osx
-  pkg-config
-  whatmask
-  mtr
-  grc
-)
-
-# Install the binaries
-brew install ${binaries[@]}
+brew install ack
+brew install git
+brew install git-lfs
+brew install lynx
+brew install p7zip
+brew install pv
+brew install rename
+brew install ssh-copy-id
+brew install tree
+brew install grc
 
 # Remove outdated versions from the cellar
 brew cleanup
