@@ -1,6 +1,6 @@
 #########################################################
 # Title; defaults
-# Description; Sane dots and defaults for OS X
+# Description; Sane dots and defaults for macOS
 # Credits; Diego Iaconelli
 # Source; https://github.com/matdotcx/
 # Initial Version; Sun Oct 25 12:08:09 GMT 2015
@@ -19,6 +19,20 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 ###############################################################################
 # General UI/UX
 ###############################################################################
+
+echo ""
+echo "Setting UI to Dark Mode"
+defaults write NSGlobalDomain AppleInterfaceStyle -string Dark
+
+
+echo ""
+echo "Setting the sidebar icon size to medium"
+defaults write NSGlobalDomain NSTableViewDefaultSizeMode -int 2
+
+echo ""
+echo " Set highlight and accent color to Orange"
+defaults write NSGlobalDomain AppleHighlightColor -string "1.000000 0.874510 0.701961"
+defaults write  NSGlobalDomain AppleHighlightColor -string 6
 
 echo ""
 echo "Increasing the window resize speed for Cocoa applications"
@@ -97,6 +111,17 @@ defaults write -g com.apple.mouse.scaling 2.5
 echo ""
 echo "Turn off keyboard illumination when computer is not used for 5 minutes"
 defaults write com.apple.BezelServices kDimTime -int 300
+
+echo ""
+echo "Setting Language and Text formats"
+defaults write NSGlobalDomain AppleLanguages -array "en" "gb"
+defaults write NSGlobalDomain AppleLocale -string "en_GB@currency=GBP"
+defaults write NSGlobalDomain AppleMeasurementUnits -string "Centimeters"
+defaults write NSGlobalDomain AppleMetricUnits -bool true
+
+echo ""
+echo "Setting timezone to London, Europe"
+sudo systemsetup -settimezone "Europe/London" > /dev/null
 
 ###############################################################################
 # Screen
@@ -295,9 +320,9 @@ EOD
 
 echo ""
 echo "Installing a default profile and the supporting uptime script"
-sudo cp -r $HOME/workspace/gl52/bobblbee/init/uptime.sh /etc/uptime.sh > /dev/null
-sudo cp -r $HOME/workspace/gl52/bobblbee/init/profile /etc/profile > /dev/null
-sudo chmod +x /etc/uptime.sh
+sudo cp -r $HOME/workspace/gl52/bobblbee/init/uptime.sh /usr/local/etc/uptime.sh > /dev/null
+sudo cp -r $HOME/workspace/gl52/bobblbee/init/zshrc /usr/local/etc/zshrc > /dev/null
+sudo chmod +x /usr/local/etc/uptime.sh
 
 
 ###############################################################################
@@ -319,8 +344,8 @@ echo "Disable smart quotes as it is annoying for messages that contain code"
 defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "automaticQuoteSubstitutionEnabled" -bool false
 
 echo ""
-echo "Disable continuous spell checking"
-defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "continuousSpellCheckingEnabled" -bool false
+echo "Enable continuous spell checking"
+defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "continuousSpellCheckingEnabled" -bool true
 
 ###############################################################################
 # Personal Additions
