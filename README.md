@@ -6,4 +6,4 @@ mkdir -p workspace/gl52/bobblbee && git clone https://github.com/matdotcx/bobblb
 
 * To run
 
-cd ~/workspace/sw18/bobblbee $$ ./index.sh
+cd ~/workspace/gl52/bobblbee $$ ./index.sh
