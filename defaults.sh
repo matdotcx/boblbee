@@ -321,7 +321,7 @@ EOD
 echo ""
 echo "Installing a default profile and the supporting uptime script"
 sudo cp -r $HOME/workspace/gl52/bobblbee/init/uptime.sh /usr/local/etc/uptime.sh > /dev/null
-sudo cp -r $HOME/workspace/gl52/bobblbee/init/zshrc /usr/local/etc/zshrc > /dev/null
+sudo cp -r $HOME/workspace/gl52/bobblbee/init/zshrc $HOME/.zshrc > /dev/null
 sudo chmod +x /usr/local/etc/uptime.sh
 
 

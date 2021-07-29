@@ -2,6 +2,7 @@
 # Credits; Diego Iaconelli
 # Source; https://github.com/matdotcx/
 # Initial Version; Mon 29 Aug 2013 03:12:04 BST
+# Current Version; Thurs 29 Jul 2013 17:31:18 BST
 ###############################################################################
 
 #!/bin/zsh
@@ -83,7 +84,7 @@ git_info() {
 echo
 echo "» salva nos, stella maris!"
 echo "Welcome to "`scutil --get ComputerName`"! | "`sw_vers -productName`"`if serverinfo -q --configured; then echo  " Server"; else echo " Client"; fi`" - `sw_vers -productVersion`"" "(`sw_vers -buildVersion`)"
-zsh /etc/uptime.sh
+zsh /usr/local/etc/uptime.sh
 date "+%A, %B %d, %Y | %T %Z"
 echo
 
