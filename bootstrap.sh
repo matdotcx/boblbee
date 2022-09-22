@@ -1,6 +1,6 @@
 #########################################################
 # Title; bootstrap
-# Description; initial setup for bobblbee
+# Description; initial setup for boblbee
 # Credits; Diego Iaconelli
 # Source; https://github.com/matdotcx/
 # Initial Version; Sun May 8 11:38:45 BST 2016
@@ -10,7 +10,7 @@
 
 cd "$(dirname "${BASH_SOURCE}")";
 
-git pull origin master;
+git pull origin gold;
 
 function doIt() {
 	rsync --exclude ".git/" --exclude ".DS_Store" --exclude "bootstrap.sh" \
