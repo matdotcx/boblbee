@@ -1,0 +1,225 @@
+############################################################################### 
+# Title; zshrc
+# Description; A zshrc for me and mine.
+# Source; https://github.com/matdotcx/
+###############################################################################
+
+#!/bin/zsh
+
+export LANG=en_GB.UTF-8
+
+###############################################################################
+# zsh specifics
+###############################################################################
+
+HISTFILE=~/.zsh_history
+HISTSIZE=1000
+SAVEHIST=1000
+setopt autocd beep nomatch prompt_subst correct inc_append_history interactivecomments share_history
+unsetopt notify
+zstyle :compinstall filename "$HOME/.zshrc"
+autoload -Uz compinit && compinit
+autoload -U colors && colors # Enable colors in prompt
+
+###############################################################################
+# Prompt & motd 
+###############################################################################
+
+# Echoes information about Git repository status when inside a Git repository
+git_info() {
+
+  # Exit if not inside a Git repository
+  ! git rev-parse --is-inside-work-tree > /dev/null 2>&1 && return
+
+  # Git branch/tag, or name-rev if on detached head
+  local GIT_LOCATION=${$(git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD)#(refs/heads/|tags/)}
+
+  local AHEAD="%{$fg[red]%}⇡NUM%{$reset_color%}"
+  local BEHIND="%{$fg[cyan]%}⇣NUM%{$reset_color%}"
+  local MERGING="%{$fg[magenta]%}⚡︎%{$reset_color%}"
+  local UNTRACKED="%{$fg[red]%}●%{$reset_color%}"
+  local MODIFIED="%{$fg[yellow]%}●%{$reset_color%}"
+  local STAGED="%{$fg[green]%}●%{$reset_color%}"
+
+  local -a DIVERGENCES
+  local -a FLAGS
+
+  local NUM_AHEAD="$(git log --oneline @{u}.. 2> /dev/null | wc -l | tr -d ' ')"
+  if [ "$NUM_AHEAD" -gt 0 ]; then
+    DIVERGENCES+=( "${AHEAD//NUM/$NUM_AHEAD}" )
+  fi
+
+  local NUM_BEHIND="$(git log --oneline ..@{u} 2> /dev/null | wc -l | tr -d ' ')"
+  if [ "$NUM_BEHIND" -gt 0 ]; then
+    DIVERGENCES+=( "${BEHIND//NUM/$NUM_BEHIND}" )
+  fi
+
+  local GIT_DIR="$(git rev-parse --git-dir 2> /dev/null)"
+  if [ -n $GIT_DIR ] && test -r $GIT_DIR/MERGE_HEAD; then
+    FLAGS+=( "$MERGING" )
+  fi
+
+  if [[ -n $(git ls-files --other --exclude-standard 2> /dev/null) ]]; then
+    FLAGS+=( "$UNTRACKED" )
+  fi
+
+  if ! git diff --quiet 2> /dev/null; then
+    FLAGS+=( "$MODIFIED" )
+  fi
+
+  if ! git diff --cached --quiet 2> /dev/null; then
+    FLAGS+=( "$STAGED" )
+  fi
+
+  local -a GIT_INFO
+  GIT_INFO+=( "\033[38;5;15m±" )
+  [[ ${#DIVERGENCES[@]} -ne 0 ]] && GIT_INFO+=( "${(j::)DIVERGENCES}" )
+  [[ ${#FLAGS[@]} -ne 0 ]] && GIT_INFO+=( "${(j::)FLAGS}" )
+  GIT_INFO+=( "\033[38;5;15m$GIT_LOCATION%{$reset_color%}" )
+  echo "${(j: :)GIT_INFO}"
+
+}
+
+echo
+echo "» salva nos, stella maris!"
+echo "Welcome to "`scutil --get ComputerName`"! | "`sw_vers -productName`"`if serverinfo -q --configured; then echo  " Server"; else echo " Client"; fi`" - `sw_vers -productVersion`"" "(`sw_vers -buildVersion`)"
+zsh /usr/local/etc/uptime.sh
+date "+%A, %B %d, %Y | %T %Z"
+echo
+
+# Use → as the non-root prompt character; # for root
+# Change the prompt character color if the last command had a nonzero exit code
+
+PS1='
+%{$fg[magenta]%}%~%u $(git_info)%{$reset_color%}
+%(?.%{$fg[red]%}.%{$fg[blue]%})%(!.#.→ %n)%{$reset_color%} @ %M 
+%{$fg[red]%}% → $reset_color%}'
+
+# LSCOLORS - Default except for normal directories (first character) to replace hard-to-read blue
+# For details, see manpage for ls
+export LSCOLORS=Gxfxcxdxbxegedabagacad
+
+# Set up diff-highlight
+export PATH=$GIT_DIFF_HIGHLIGHT_PATH:$PATH
+
+###############################################################################
+# Shell & Navigation
+###############################################################################
+
+# Always use color output for `ls`
+alias ls="command ls ${colorflag}"
+
+# Reload the shell (i.e. invoke as a login shell)
+alias reload="exec ${SHELL} -l"
+
+# Print each PATH entry on a separate line
+alias path='echo -e ${PATH//:/\\n}'
+
+# Always enable colored `grep` output
+# Note: `GREP_OPTIONS="--color=auto"` is deprecated, hence the alias usage.
+alias grep='grep --color=auto'
+
+# Colourize man pages 
+man() {
+	env \
+		LESS_TERMCAP_mb=$(printf "\e[1;31m") \
+		LESS_TERMCAP_md=$(printf "\e[1;31m") \
+		LESS_TERMCAP_me=$(printf "\e[0m") \
+		LESS_TERMCAP_se=$(printf "\e[0m") \
+		LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
+		LESS_TERMCAP_ue=$(printf "\e[0m") \
+		LESS_TERMCAP_us=$(printf "\e[1;32m") \
+			man "$@"
+}
+
+# Show all invisible files…
+alias show='defaults write com.apple.finder AppleShowAllFiles TRUE; killall Finder'
+
+# Hide all invisible files…
+alias hide='defaults write com.apple.finder AppleShowAllFiles FALSE; killall Finder'
+
+# Print working directory and ls after a cd.
+cd() { builtin cd "$@"; pwd; ls -AlhGti; } 
+
+# Change Directory to the active Finder window (else ~/Desktop)
+function cdf()
+   {
+      local fPath=`osascript -e '
+      tell app "finder"
+         try
+            set folderPath to (folder of the front window as alias)
+         on error
+            set folderPath to (path to desktop folder as alias)
+         end try
+         POSIX path of folderPath
+      end tell'
+      `;
+      echo "cd $fPath";
+      cd "$fPath" > /dev/null
+   }
+
+# Change Directory to the current user's home directory
+alias cdh='cd ~/'
+
+# All files, long form, short file sizes, colorized, time-order, with inodes.
+alias ll='ls -AlhGti'
+
+# Generates a tree of files from the current working directory
+alias tree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
+
+
+###############################################################################
+# Network
+###############################################################################
+
+# IP addresses
+alias ip="dig +short myip.opendns.com @resolver1.opendns.com"
+alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
+
+# Show active network interfaces
+alias ifactive="ifconfig | pcregrep -M -o '^[^\t:]+:([^\n]|\n\t)*status: active'"
+
+# Run `dig` and display the most useful info
+function digga() {
+	dig +nocmd "$1" any +multiline +noall +answer;
+}
+
+###############################################################################
+# System and Shortcuts
+###############################################################################
+
+# Flush Directory Service cache
+alias flush="dscacheutil -flushcache "
+
+# Clean up LaunchServices to remove duplicates in the “Open With” menu
+alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
+
+# Rebuild the Launch Services Database
+alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local\ -domain system -domain user'
+
+# Canonical hex dump; some systems have this symlinked
+command -v hd > /dev/null || alias hd="hexdump -C"
+
+# macOS has no `md5sum`, so use `md5` as a fallback
+command -v md5sum > /dev/null || alias md5sum="md5"
+
+# macOS has no `sha1sum`, so use `shasum` as a fallback
+command -v sha1sum > /dev/null || alias sha1sum="shasum"
+
+# Generate a password using haddock, length of 28 characters. 
+# sudo gem install haddock -n /usr/local/bin
+alias secret='ha-gen -l 28'
+
+# Get macOS Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
+alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm install npm -g; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'
+
+# Suspend current account - effectively go to sleep and present login window
+# This is currently commented out due to performance issues in Catalina
+# alias suspend='/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend'
+
+# Locks current account - present the Screensaver and User Login.
+alias lock='/System/Library/CoreServices/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine'
+
+# Add colour - see https://github.com/garabik/grc
+# Requires `sudo port install grc`, presuming grc is installed to usr/local/etc/
+[[ -s "/usr/local/etc/grc.zsh" ]] && source /usr/local/etc/grc.zsh
