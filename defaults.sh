@@ -1,14 +1,11 @@
 #########################################################
 # Title; defaults
 # Description; Sane dots and defaults for macOS
-# Credits; Diego Iaconelli
 # Source; https://github.com/matdotcx/
-# Initial Version; Sun Oct 25 12:08:09 GMT 2015
 #########################################################
 # Forked from;
 # https://github.com/mathiasbynens/dotfiles/
 #########################################################
-
 
 # Ask for the administrator password upfront
 sudo -v
@@ -23,7 +20,6 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 echo ""
 echo "Setting UI to Dark Mode"
 defaults write NSGlobalDomain AppleInterfaceStyle -string Dark
-
 
 echo ""
 echo "Setting the sidebar icon size to medium"
@@ -120,8 +116,8 @@ defaults write NSGlobalDomain AppleMeasurementUnits -string "Centimeters"
 defaults write NSGlobalDomain AppleMetricUnits -bool true
 
 echo ""
-echo "Setting timezone to London, Europe"
-sudo systemsetup -settimezone "Europe/London" > /dev/null
+echo "Setting timezone to Bristol, Europe"
+sudo systemsetup -settimezone "Europe/Bristol" > /dev/null
 
 ###############################################################################
 # Screen
@@ -178,7 +174,6 @@ echo ""
 echo "Enabling snap-to-grid for icons on the desktop and in other icon views"
 
 /usr/libexec/PlistBuddy -c "Add :FK_StandardViewSettings:IconViewSettings:showItemInfo bool true" ~/Library/Preferences/com.apple.finder.plist
-
 /usr/libexec/PlistBuddy -c "Set :DesktopViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
 /usr/libexec/PlistBuddy -c "Set :FK_StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
 /usr/libexec/PlistBuddy -c "Set :StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
@@ -206,8 +201,6 @@ echo ""
 echo "Speeding up Mission Control animations and grouping windows by application"
 defaults write com.apple.dock expose-animation-duration -float 0.1
 defaults write com.apple.dock "expose-group-by-app" -bool true
-
-
 
 ###############################################################################
 # Safari & WebKit
@@ -250,7 +243,6 @@ defaults write com.apple.Safari "com.apple.Safari.ContentPageGroupIdentifier.Web
 echo ""
 echo "Adding a context menu item for showing the Web Inspector in web views"
 defaults write NSGlobalDomain WebKitDeveloperExtras -bool true
-
 
 ###############################################################################
 # Mail
@@ -320,10 +312,9 @@ EOD
 
 echo ""
 echo "Installing a default profile and the supporting uptime script"
-sudo cp -r $HOME/workspace/gl52/bobblbee/init/uptime.sh /usr/local/etc/uptime.sh > /dev/null
-sudo cp -r $HOME/workspace/gl52/bobblbee/init/zshrc $HOME/.zshrc > /dev/null
-sudo chmod +x /usr/local/etc/uptime.sh
-
+sudo cp -r $HOME/workspace/gl52/boblbee/init/uptime.sh /opt/local/uptime.sh > /dev/null
+sudo cp -r $HOME/workspace/gl52/boblbee/init/zshrc $HOME/.zshrc > /dev/null
+sudo chmod +x /opt/local/uptime.sh
 
 ###############################################################################
 # Time Machine
@@ -332,8 +323,6 @@ sudo chmod +x /usr/local/etc/uptime.sh
 echo ""
 echo "Preventing Time Machine from prompting to use new hard drives as backup volume"
 defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
-
-
 
 ###############################################################################
 # Messages                                                                    #
@@ -355,7 +344,6 @@ echo ""
 echo "Disable hibernation (speeds up entering sleep mode)"
 sudo pmset -a hibernatemode 0
 
-
 echo ""
 echo "Speeding up wake from sleep to 24 hours from an hour"
 # http://www.cultofmac.com/221392/quick-hack-speeds-up-retina-macbooks-wake-from-sleep-os-x-tips/
@@ -370,11 +358,9 @@ echo ""
 echo "Disable annoying backswipe in Chrome"
 defaults write com.google.Chrome AppleEnableSwipeNavigateWithScrolls -bool false
 
-
 ###############################################################################
 # Kill affected applications
 ###############################################################################
 
-
-echo "Done!"
-osascript -e 'tell application "loginwindow" to  «event aevtrlgo»'
+echo "Done - Logging out the current user"
+sudo pkill loginwindow

@@ -1,8 +1,7 @@
 ############################################################################### 
-# Credits; Diego Iaconelli
+# Title; zshrc
+# Description; A zshrc for me and mine.
 # Source; https://github.com/matdotcx/
-# Initial Version; Mon 29 Aug 2013 03:12:04 BST
-# Current Version; Thurs 29 Jul 2013 17:31:18 BST
 ###############################################################################
 
 #!/bin/zsh
@@ -185,7 +184,6 @@ function digga() {
 	dig +nocmd "$1" any +multiline +noall +answer;
 }
 
-
 ###############################################################################
 # System and Shortcuts
 ###############################################################################
@@ -223,5 +221,5 @@ alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup
 alias lock='/System/Library/CoreServices/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine'
 
 # Add colour - see https://github.com/garabik/grc
-# Requires `brew install grc`, presuming grc is installed to usr/local/etc/
+# Requires `sudo port install grc`, presuming grc is installed to usr/local/etc/
 [[ -s "/usr/local/etc/grc.zsh" ]] && source /usr/local/etc/grc.zsh

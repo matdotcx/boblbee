@@ -1,9 +1,7 @@
 #########################################################
 # Title; uptime
-# Description; Fancy uptime script for bash prompt
-# Credits; Diego Iaconelli
+# Description; Fancy uptime script for bash & zsh prompt
 # Source; https://github.com/matdotcx/
-# Initial Version; Sun Oct 25 12:19:27 GMT 2015
 #########################################################
 
 #!/bin/bash

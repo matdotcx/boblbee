@@ -1,9 +1,7 @@
 #########################################################
 # Title; bootstrap
 # Description; initial setup for boblbee
-# Credits; Diego Iaconelli
 # Source; https://github.com/matdotcx/
-# Initial Version; Sun May 8 11:38:45 BST 2016
 #########################################################
 
 #!/usr/bin/env bash

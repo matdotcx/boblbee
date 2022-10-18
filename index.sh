@@ -4,8 +4,6 @@
 # Source; https://github.com/matdotcx/
 #########################################################
 
-
-
 # Run each program
 sh "xcode.sh"
 sh "macports.sh"

@@ -1,5 +1,9 @@
-#!/bin/zsh
-# Installing MacPorts from source
+#########################################################
+# Title; macports
+# Description; Building macports from source
+# Source; https://github.com/matdotcx/
+#########################################################
+
 # Create a working directory to build from
 echo "Creating MacPorts source location"
 mkdir -p /opt/mports
