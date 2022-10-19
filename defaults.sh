@@ -279,7 +279,7 @@ tell application "Terminal"
 	(* Open the custom theme so that it gets added to the list
 	   of available terminal themes (note: this will open two
 	   additional terminal windows). *)
-	do shell script "open '$HOME/workspace/gl52/bobblbee/init/" & themeName & ".terminal'"
+	do shell script "open '$HOME/workspace/gl52/bobblbee/assets/" & themeName & ".terminal'"
 
 	(* Wait a little bit to ensure that the custom theme is added. *)
 	delay 1
@@ -312,8 +312,8 @@ EOD
 
 echo ""
 echo "Installing a default profile and the supporting uptime script"
-sudo cp -r $HOME/workspace/gl52/boblbee/init/uptime.sh /opt/local/uptime.sh > /dev/null
-sudo cp -r $HOME/workspace/gl52/boblbee/init/zshrc $HOME/.zshrc > /dev/null
+sudo cp -r $HOME/workspace/gl52/boblbee/assets/uptime.sh /opt/local/uptime.sh > /dev/null
+sudo cp -r $HOME/workspace/gl52/boblbee/assets/zshrc $HOME/.zshrc > /dev/null
 sudo chmod +x /opt/local/uptime.sh
 
 ###############################################################################
