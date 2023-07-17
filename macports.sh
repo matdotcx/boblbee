@@ -24,7 +24,7 @@ if [ -d "/opt/mports" ]; then
 fi
 
 # Create a new mports folder in /opt/ and cd into it
-mkdir /opt/mports
+sudo mkdir /opt/mports
 cd /opt/mports
 
 # Clone the macports-base repo
