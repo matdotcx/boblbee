@@ -83,7 +83,7 @@ git_info() {
 echo
 echo "» salva nos, stella maris!"
 echo "Welcome to "`scutil --get ComputerName`"! | "`sw_vers -productName`"`if serverinfo -q --configured; then echo  " Server"; else echo " Client"; fi`" - `sw_vers -productVersion`"" "(`sw_vers -buildVersion`)"
-zsh /usr/local/etc/uptime.sh
+zsh /opt/local/uptime.sh
 date "+%A, %B %d, %Y | %T %Z"
 echo
 
