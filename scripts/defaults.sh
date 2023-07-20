@@ -7,6 +7,8 @@
 # https://github.com/mathiasbynens/dotfiles/
 #########################################################
 
+#!/bin/zsh
+
 # Ask for the administrator password upfront
 sudo -v
 
