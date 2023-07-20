@@ -11,7 +11,11 @@ sudo -v
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
 # Run each program
-sh sudo "touchid-sudo.sh"
-sh sudo "xcode.sh"
-sh sudo "macports.sh"
-sh sudo "defaults.sh"
+sudo sh touchid-sudo.sh
+sleep 3
+sudo sh xcode.sh
+sleep 3
+sudo sh macports.sh
+sleep 3
+sudo sh defaults.sh
+sleep 3

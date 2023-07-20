@@ -1,5 +1,5 @@
 #########################################################
-# Title; defaults
+# Title; defaults (new)
 # Description; Sane dots and defaults for macOS
 # Source; https://github.com/matdotcx/
 #########################################################
@@ -364,5 +364,4 @@ defaults write com.google.Chrome AppleEnableSwipeNavigateWithScrolls -bool false
 # Kill affected applications
 ###############################################################################
 
-echo "Done - Logging out the current user"
-sudo pkill loginwindow
+echo "Done - Please consider logging out the current user"
