@@ -38,3 +38,12 @@ echo "Building MacPorts"
 make
 sudo make install
 make distclean
+
+
+#########################################################
+
+# Adds the apropriate path for MacPorts to the working profile
+
+echo ""
+echo "Adding /opt/local as a local path"
+export PATH=/opt/local/bin:/opt/local/sbin:$PATH
