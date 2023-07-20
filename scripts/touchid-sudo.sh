@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-
+#!/bin/zsh
 # Enables touchID for sudo authentication
 
 if ls /usr/lib/pam/pam_tid.so*; then
