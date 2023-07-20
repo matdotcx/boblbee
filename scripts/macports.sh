@@ -4,6 +4,7 @@
 # Source; https://github.com/matdotcx/
 #########################################################
 
+#!/bin/zsh
 # Ask for the administrator password upfront
 sudo -v
 
