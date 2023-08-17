@@ -16,9 +16,9 @@ Don't use this if you're not at ease reading basic shell scripts, interpreting A
 
 ## Using `boblbee`
 
-I like to keep my repos in a local workspace. Given that this is the very first thing I'll install, I'll create the path at the time I clone the repo.
+I like to keep my repos in a local workspace. Given that this is the very first thing I'll install, I'll create the path at the time I curl the repo. Given that I don't have any tooling installed yet, I use `curl` to grab things, rather than clone to repo directly with `git`
 
-    mkdir -p workspace/gl52/boblbee && git clone https://github.com/matdotcx/boblbee.git ~/workspace/gl52/boblbee
+    mkdir -p workspace/gl52/ && cd workspace/gl52 && curl -L http://github.com/matdotcx/boblbee/archive/gold.tar.gz | tar zxf - &&  mv boblbee-gold boblbee
 
 Once the clone has completed, you can then initialise boblebee with the following command
 
