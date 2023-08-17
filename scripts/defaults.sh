@@ -259,6 +259,11 @@ defaults write com.apple.mail AddressesIncludeNameOnPasteboard -bool false
 # Terminal
 ###############################################################################
 
+
+echo ""
+echo "Adding /opt/local as a local path to suport MacPorts"
+export PATH=/opt/local/bin:/opt/local/sbin:$PATH
+
 echo ""
 echo "Enabling UTF-8 ONLY in Terminal.app"
 defaults write com.apple.terminal StringEncodings -array 4
