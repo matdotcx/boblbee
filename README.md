@@ -22,6 +22,6 @@ I like to keep my repos in a local workspace. Given that this is the very first 
 
 Once the clone has completed, you can then initialise boblebee with the following command
 
-    cd ~/workspace/gl52/boblbee $$ ./index.sh
+    cd ~/workspace/gl52/boblbee/scripts $$ ./index.sh
 
 Follow the instructions, and remember, never run code you've not read and understood.
