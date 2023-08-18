@@ -10,18 +10,19 @@ Feel free to fork, submit PRs, and open issues.
 
 ## What it's not
 
-`boblbee` is not a one-stop shop for everyone and their dog; it's not intended to be something you run once, having not read the contentns and understood the changes.
+`boblbee` is not a one-stop shop for everyone and their dog; it's not intended to be something you run once, having not read the contents and understood the changes.
 
 Don't use this if you're not at ease reading basic shell scripts, interpreting Apple's `defaults write` commands, or if you're unwilling to blast your machine config away and start over if something breaks.
 
 ## Using `boblbee`
 
-I like to keep my repos in a local workspace. Given that this is the very first thing I'll install, I'll create the path at the time I curl the repo. Given that I don't have any tooling installed yet, I use `curl` to grab things, rather than clone to repo directly with `git`
+I like to keep my repos in a local workspace. Given that this is the very first thing I'll install, I'll create the path at the time I curl the repo. Because I don't have any tooling installed yet, I use `curl` to grab things, rather than clone to repo directly with `git`
 
-    mkdir -p workspace/gl52/ && cd workspace/gl52 && curl -L http://github.com/matdotcx/boblbee/archive/gold.tar.gz | tar zxf - &&  mv boblbee-gold boblbee
+    $ mkdir -p workspace/gl52/ && cd workspace/gl52 && curl -L http://github.com/matdotcx/boblbee/archive/gold.tar.gz | tar zxf - &&  mv boblbee-gold boblbee
 
 Once the clone has completed, you can then initialise boblebee with the following command
 
-    cd ~/workspace/gl52/boblbee/scripts $$ ./index.sh
+    $ cd ~/workspace/gl52/boblbee/scripts
+    $ ./index.sh
 
 Follow the instructions, and remember, never run code you've not read and understood.
