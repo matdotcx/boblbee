@@ -42,8 +42,11 @@ make distclean
 
 #########################################################
 
-# Adds the apropriate path for MacPorts to the working profile
+# Adds the apropriate path for MacPorts to /etc/paths.d
 
 echo ""
 echo "Adding /opt/local as a local path"
-export PATH=/opt/local/bin:/opt/local/sbin:$PATH
+
+sudo touch /etc/paths.d/macports
+echo '/opt/local/bin' | sudo tee -a /etc/paths.d/macports
+echo '/opt/local/sbin' | sudo tee -a /etc/paths.d/macports
