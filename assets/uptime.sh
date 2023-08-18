@@ -1,7 +1,7 @@
 #########################################################
 # Title; uptime
 # Description; Fancy uptime script for bash & zsh prompt
-# Source; https://github.com/matdotcx/
+# Source; https://github.com/matdotcx/boblbee
 #########################################################
 
 #!/bin/bash
