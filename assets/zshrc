@@ -1,45 +1,143 @@
-############################################################################### 
-# Title; zshrc
-# Description; A zshrc for me and mine.
-# Source; https://github.com/matdotcx/boblbee
+###############################################################################
+# Title: zshrc
+# Description: An improved zshrc with Solarized Dark colors,
+# enhanced prompt with consistent symbols, and modern macOS compatibility
+# Source: Based on https://github.com/matdotcx/ with modifications
+# Edition: Wed 14 Aug 2024 11:53:57 BST
 ###############################################################################
 
 #!/bin/zsh
-
+export TERM="xterm-256color"
 export LANG=en_GB.UTF-8
+
+# Solarized Dark ANSI colors
+
+# Reset
+export ANSI_RESET="\033[0m"
+
+# Regular Colors
+export ANSI_BLACK="\033[0;30m"
+export ANSI_RED="\033[0;31m"
+export ANSI_GREEN="\033[0;32m"
+export ANSI_YELLOW="\033[0;33m"
+export ANSI_BLUE="\033[0;34m"
+export ANSI_PURPLE="\033[0;35m"
+export ANSI_CYAN="\033[0;36m"
+export ANSI_WHITE="\033[0;37m"
+
+# Bold
+export ANSI_BOLD_BLACK="\033[1;30m"
+export ANSI_BOLD_RED="\033[1;31m"
+export ANSI_BOLD_GREEN="\033[1;32m"
+export ANSI_BOLD_YELLOW="\033[1;33m"
+export ANSI_BOLD_BLUE="\033[1;34m"
+export ANSI_BOLD_PURPLE="\033[1;35m"
+export ANSI_BOLD_CYAN="\033[1;36m"
+export ANSI_BOLD_WHITE="\033[1;37m"
+
+# Background
+export ANSI_BG_BLACK="\033[40m"
+export ANSI_BG_RED="\033[41m"
+export ANSI_BG_GREEN="\033[42m"
+export ANSI_BG_YELLOW="\033[43m"
+export ANSI_BG_BLUE="\033[44m"
+export ANSI_BG_PURPLE="\033[45m"
+export ANSI_BG_CYAN="\033[46m"
+export ANSI_BG_WHITE="\033[47m"
+
+# Solarized Dark color codes
+export SD_BASE03="\033[1;30m"
+export SD_BASE02="\033[0;30m"
+export SD_BASE01="\033[1;32m"
+export SD_BASE00="\033[1;33m"
+export SD_BASE0="\033[1;34m"
+export SD_BASE1="\033[1;36m"
+export SD_BASE2="\033[0;37m"
+export SD_BASE3="\033[1;37m"
+export SD_YELLOW="\033[0;33m"
+export SD_ORANGE="\033[1;31m"
+export SD_RED="\033[0;31m"
+export SD_MAGENTA="\033[0;35m"
+export SD_VIOLET="\033[1;35m"
+export SD_BLUE="\033[0;34m"
+export SD_CYAN="\033[0;36m"
+export SD_GREEN="\033[0;32m"
+
+# Function to set the ANSI colors
+set_ansi_colors() {
+    echo -ne "\033]4;0;#073642\007"   # black
+    echo -ne "\033]4;1;#dc322f\007"   # red
+    echo -ne "\033]4;2;#859900\007"   # green
+    echo -ne "\033]4;3;#b58900\007"   # yellow
+    echo -ne "\033]4;4;#268bd2\007"   # blue
+    echo -ne "\033]4;5;#d33682\007"   # magenta
+    echo -ne "\033]4;6;#2aa198\007"   # cyan
+    echo -ne "\033]4;7;#eee8d5\007"   # white
+    echo -ne "\033]4;8;#002b36\007"   # bright black
+    echo -ne "\033]4;9;#cb4b16\007"   # bright red
+    echo -ne "\033]4;10;#586e75\007"  # bright green
+    echo -ne "\033]4;11;#657b83\007"  # bright yellow
+    echo -ne "\033]4;12;#839496\007"  # bright blue
+    echo -ne "\033]4;13;#6c71c4\007"  # bright magenta
+    echo -ne "\033]4;14;#93a1a1\007"  # bright cyan
+    echo -ne "\033]4;15;#fdf6e3\007"  # bright white
+    echo -ne "\033]10;#839496\007"    # foreground
+    echo -ne "\033]11;#002b36\007"    # background
+    echo -ne "\033]12;#93a1a1\007"    # cursor
+}
+
+# Call the function to set the colors
+set_ansi_colors
 
 ###############################################################################
 # zsh specifics
 ###############################################################################
 
 HISTFILE=~/.zsh_history
-HISTSIZE=1000
-SAVEHIST=1000
-setopt autocd beep nomatch prompt_subst correct inc_append_history interactivecomments share_history
-unsetopt notify
+HISTSIZE=1000000
+SAVEHIST=1000000
+setopt autocd nomatch correct inc_append_history share_history interactivecomments
+unsetopt notify beep
 zstyle :compinstall filename "$HOME/.zshrc"
 autoload -Uz compinit && compinit
 autoload -U colors && colors # Enable colors in prompt
 
 ###############################################################################
-# Prompt & motd 
+# Prompt & motd
 ###############################################################################
+
+# Solarized Dark colors
+SOLARIZED_BASE03="%F{8}"    # Bright Black
+SOLARIZED_BASE02="%F{0}"    # Black
+SOLARIZED_BASE01="%F{10}"   # Bright Green
+SOLARIZED_BASE00="%F{11}"   # Bright Yellow
+SOLARIZED_BASE0="%F{12}"    # Bright Blue
+SOLARIZED_BASE1="%F{14}"    # Bright Cyan
+SOLARIZED_BASE2="%F{7}"     # White
+SOLARIZED_BASE3="%F{15}"    # Bright White
+SOLARIZED_YELLOW="%F{3}"    # Yellow
+SOLARIZED_ORANGE="%F{9}"    # Bright Red (used as Orange in Solarized)
+SOLARIZED_RED="%F{1}"       # Red
+SOLARIZED_MAGENTA="%F{5}"   # Magenta
+SOLARIZED_VIOLET="%F{13}"   # Bright Magenta
+SOLARIZED_BLUE="%F{4}"      # Blue
+SOLARIZED_CYAN="%F{6}"      # Cyan
+SOLARIZED_GREEN="%F{2}"     # Green
 
 # Echoes information about Git repository status when inside a Git repository
 git_info() {
-
   # Exit if not inside a Git repository
   ! git rev-parse --is-inside-work-tree > /dev/null 2>&1 && return
 
   # Git branch/tag, or name-rev if on detached head
   local GIT_LOCATION=${$(git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD)#(refs/heads/|tags/)}
 
-  local AHEAD="%{$fg[red]%}⇡NUM%{$reset_color%}"
-  local BEHIND="%{$fg[cyan]%}⇣NUM%{$reset_color%}"
-  local MERGING="%{$fg[magenta]%}⚡︎%{$reset_color%}"
-  local UNTRACKED="%{$fg[red]%}●%{$reset_color%}"
-  local MODIFIED="%{$fg[yellow]%}●%{$reset_color%}"
-  local STAGED="%{$fg[green]%}●%{$reset_color%}"
+  local AHEAD="${SOLARIZED_YELLOW}↑NUM%f"
+  local BEHIND="${SOLARIZED_BLUE}↓NUM%f"
+  local MERGING="${SOLARIZED_MAGENTA}⧂%f"
+  local UNTRACKED="${SOLARIZED_RED}⊕%f"
+  local MODIFIED="${SOLARIZED_ORANGE}∆%f"
+  local STAGED="${SOLARIZED_GREEN}∙%f"
 
   local -a DIVERGENCES
   local -a FLAGS
@@ -72,42 +170,212 @@ git_info() {
   fi
 
   local -a GIT_INFO
-  GIT_INFO+=( "\033[38;5;15m±" )
+  GIT_INFO+=( "${SOLARIZED_BLUE}[%f" )
   [[ ${#DIVERGENCES[@]} -ne 0 ]] && GIT_INFO+=( "${(j::)DIVERGENCES}" )
   [[ ${#FLAGS[@]} -ne 0 ]] && GIT_INFO+=( "${(j::)FLAGS}" )
-  GIT_INFO+=( "\033[38;5;15m$GIT_LOCATION%{$reset_color%}" )
-  echo "${(j: :)GIT_INFO}"
-
+  GIT_INFO+=( "${SOLARIZED_CYAN}$GIT_LOCATION%f" )
+  GIT_INFO+=( "${SOLARIZED_BLUE}]%f" )
+  echo "${(j::)GIT_INFO}"
 }
 
-echo
-echo "» salva nos, stella maris!"
-echo "Welcome to "`scutil --get ComputerName`"! | "`sw_vers -productName`"`if serverinfo -q --configured; then echo  " Server"; else echo " Client"; fi`" - `sw_vers -productVersion`"" "(`sw_vers -buildVersion`)"
-zsh /opt/local/uptime.sh
-date "+%A, %B %d, %Y | %T %Z"
-echo
+# Calculate and format system uptime in a human-readable string
+# Displays days, hours, minutes, and seconds with appropriate pluralization
+# and grammatically correct conjunctions (e.g., "2 days, 3 hours, and 1 minute")
+calculate_uptime() {
+    local UPTIME=$(( $(date +%s) - $(sysctl -n kern.boottime | cut -d' ' -f4 | cut -d',' -f1) ))
+    local d=$((UPTIME / 86400))
+    local h=$(( (UPTIME % 86400) / 3600 ))
+    local m=$(( (UPTIME % 3600) / 60 ))
+    local s=$((UPTIME % 60))
 
-# Use → as the non-root prompt character; # for root
-# Change the prompt character color if the last command had a nonzero exit code
+    local result="System Uptime:"
+    local components=()
 
-PS1='
-%{$fg[magenta]%}%~%u $(git_info)%{$reset_color%}
-%(?.%{$fg[red]%}.%{$fg[blue]%})%(!.#.→ %n)%{$reset_color%} @ %M 
-%{$fg[red]%}% → $reset_color%}'
+    if [ $d -gt 0 ]; then
+        if [ $d -eq 1 ]; then
+            components+=("$d day")
+        else
+            components+=("$d days")
+        fi
+    fi
+    if [ $h -gt 0 ]; then
+        if [ $h -eq 1 ]; then
+            components+=("$h hour")
+        else
+            components+=("$h hours")
+        fi
+    fi
+    if [ $m -gt 0 ]; then
+        if [ $m -eq 1 ]; then
+            components+=("$m minute")
+        else
+            components+=("$m minutes")
+        fi
+    fi
+    if [ $s -gt 0 ] || [ ${#components[@]} -eq 0 ]; then
+        if [ $s -eq 1 ]; then
+            components+=("$s second")
+        else
+            components+=("$s seconds")
+        fi
+    fi
+
+    local output=""
+    local count=${#components[@]}
+
+    for ((i = 1; i <= count; i++)); do
+        if [ $i -eq 1 ]; then
+            output="${components[$i]}"
+        elif [ $i -eq $count ] && [ $count -gt 1 ]; then
+            output+=" and ${components[$i]}"
+        else
+            output+=", ${components[$i]}"
+        fi
+    done
+
+    echo "$result $output"
+}
+
+# Function to determine if the current directory is git-tracked
+is_git_directory() {
+  git rev-parse --is-inside-work-tree 2> /dev/null
+}
+
+# Function to truncate the path if it's too long
+truncated_pwd() {
+    local pwd_length=30
+    local pwd_symbol="..."
+    local pwd_format="%${pwd_length}<${pwd_symbol}<%~%<<"
+    echo ${(%)pwd_format}
+}
+
+# Function to set the color of the path based on git status
+colored_path() {
+  local pwd_with_slash="$(truncated_pwd)/"
+  if is_git_directory; then
+    echo "${SOLARIZED_GREEN}${pwd_with_slash}%f"
+  else
+    echo "${SOLARIZED_BLUE}${pwd_with_slash}%f"
+  fi
+}
+
+# Function to determine if the session is remote
+is_ssh() {
+  [[ -n $SSH_CLIENT ]] || [[ -n $SSH_TTY ]]
+}
+
+# Function to set the appropriate color for the host
+host_color() {
+  if is_ssh; then
+    echo $SOLARIZED_ORANGE  # Orange for remote sessions
+  else
+    echo $SOLARIZED_CYAN    # Cyan for local sessions
+  fi
+}
+
+# Function to determine the appropriate arrow color and symbol
+arrow_prompt() {
+    if [ $? -eq 0 ]; then
+        echo "${SOLARIZED_GREEN}"
+    else
+        echo "${SOLARIZED_ORANGE}"
+    fi
+    if [ $UID -eq 0 ]; then
+        echo "#"
+    else
+        echo "➜"
+    fi
+}
+
+# Function to be executed before each prompt
+precmd() {
+  # Get git information
+  git_status=$(git_info)
+
+  # Use the same color for both text and the vertical bar
+  PROMPT_COLOR="${SOLARIZED_BASE0}"
+
+  # Print system information only once when the shell starts
+  if [ -z "$MOTD_SHOWN" ]; then
+    print -P "\n${SOLARIZED_YELLOW}» salva nos, stella maris!%f"
+    print -P ""
+    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}You are connected to $(scutil --get ComputerName) | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)%f"
+    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}All access is logged. If you are not an authorised user, disconnect now.%f"
+    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}$(calculate_uptime)%f"
+    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}$(date "+%A, %B %d, %Y | %T %Z")%f\n"
+    MOTD_SHOWN=1
+  fi
+}
+
+# Set the prompt
+setopt prompt_subst
+
+# Main prompt (left side, showing arrow, user @ host, path, git status, and prompt character)
+PROMPT='$(arrow_prompt)%f ${SOLARIZED_YELLOW}%n @ $(host_color)%M%f $(colored_path) ${git_status}%{$'\n'%}$(arrow_prompt)%f '
+
+# Continuation prompt for multiline commands
+PROMPT2="${SOLARIZED_YELLOW}▶%f "
+
+# Selection prompt used within a select loop
+PROMPT3="${SOLARIZED_YELLOW}?#%f "
+
+# Execution trace prompt (setopt xtrace)
+PROMPT4="${SOLARIZED_RED}+%N:%i>%f "
+
+###############################################################################
+# Terminal settings
+###############################################################################
+
+# Customize the way history is displayed and saved
+setopt HIST_EXPIRE_DUPS_FIRST
+setopt HIST_IGNORE_DUPS
+setopt HIST_IGNORE_ALL_DUPS
+setopt HIST_FIND_NO_DUPS
+setopt HIST_SAVE_NO_DUPS
+setopt HIST_VERIFY
+
+# Enable case-insensitive globbing
+setopt NO_CASE_GLOB
+
+# Enable extended globbing
+setopt EXTENDED_GLOB
+
+# Enable command auto-correction
+setopt CORRECT
+setopt CORRECT_ALL
 
 # LSCOLORS - Default except for normal directories (first character) to replace hard-to-read blue
-# For details, see manpage for ls
 export LSCOLORS=Gxfxcxdxbxegedabagacad
 
-# Set up diff-highlight
-export PATH=$GIT_DIFF_HIGHLIGHT_PATH:$PATH
+###############################################################################
+# Key bindings
+###############################################################################
+
+# Use emacs key bindings
+bindkey -e
+
+# Configure key bindings for command history navigation
+bindkey '^[[A' up-line-or-search
+bindkey '^[[B' down-line-or-search
+bindkey '^R' history-incremental-search-backward
+
+# Enable menu-style completion
+zstyle ':completion:*' menu select
+
+# Configure history search
+autoload -U up-line-or-beginning-search
+autoload -U down-line-or-beginning-search
+zle -N up-line-or-beginning-search
+zle -N down-line-or-beginning-search
+bindkey "^[[A" up-line-or-beginning-search
+bindkey "^[[B" down-line-or-beginning-search
 
 ###############################################################################
 # Shell & Navigation
 ###############################################################################
 
-# Always use color output for `ls`
-alias ls="command ls ${colorflag}"
+# Use colors in ls
+alias ls="ls -G"
 
 # Reload the shell (i.e. invoke as a login shell)
 alias reload="exec ${SHELL} -l"
@@ -116,58 +384,69 @@ alias reload="exec ${SHELL} -l"
 alias path='echo -e ${PATH//:/\\n}'
 
 # Always enable colored `grep` output
-# Note: `GREP_OPTIONS="--color=auto"` is deprecated, hence the alias usage.
 alias grep='grep --color=auto'
 
-# Colourize man pages 
-man() {
-	env \
-		LESS_TERMCAP_mb=$(printf "\e[1;31m") \
-		LESS_TERMCAP_md=$(printf "\e[1;31m") \
-		LESS_TERMCAP_me=$(printf "\e[0m") \
-		LESS_TERMCAP_se=$(printf "\e[0m") \
-		LESS_TERMCAP_so=$(printf "\e[1;44;33m") \
-		LESS_TERMCAP_ue=$(printf "\e[0m") \
-		LESS_TERMCAP_us=$(printf "\e[1;32m") \
-			man "$@"
-}
+# Colorize man pages using less
+export MANPAGER="less -R --use-color -Dd+r -Du+b"
+export LESS_TERMCAP_mb=$'\E[1;31m'     # begin blink
+export LESS_TERMCAP_md=$'\E[1;36m'     # begin bold
+export LESS_TERMCAP_me=$'\E[0m'        # reset bold/blink
+export LESS_TERMCAP_so=$'\E[01;44;33m' # begin reverse video
+export LESS_TERMCAP_se=$'\E[0m'        # reset reverse video
+export LESS_TERMCAP_us=$'\E[1;32m'     # begin underline
+export LESS_TERMCAP_ue=$'\E[0m'        # reset underline
 
-# Show all invisible files…
-alias show='defaults write com.apple.finder AppleShowAllFiles TRUE; killall Finder'
+# Show/Hide hidden files in Finder
+alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES; killall Finder"
+alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO; killall Finder"
 
-# Hide all invisible files…
-alias hide='defaults write com.apple.finder AppleShowAllFiles FALSE; killall Finder'
-
-# Print working directory and ls after a cd.
-cd() { builtin cd "$@"; pwd; ls -AlhGti; } 
+# Print working directory and ls after a cd
+cd() { builtin cd "$@" && pwd && ls -AlhGti; }
 
 # Change Directory to the active Finder window (else ~/Desktop)
-function cdf()
-   {
-      local fPath=`osascript -e '
-      tell app "finder"
-         try
+cdf() {
+    local fPath=$(osascript -e '
+    tell app "finder"
+        try
             set folderPath to (folder of the front window as alias)
-         on error
+        on error
             set folderPath to (path to desktop folder as alias)
-         end try
-         POSIX path of folderPath
-      end tell'
-      `;
-      echo "cd $fPath";
-      cd "$fPath" > /dev/null
-   }
+        end try
+        POSIX path of folderPath
+    end tell')
+    echo "cd $fPath"
+    cd "$fPath"
+}
 
 # Change Directory to the current user's home directory
 alias cdh='cd ~/'
 
-# All files, long form, short file sizes, colorized, time-order, with inodes.
+# All files, long form, short file sizes, colorized, time-order, with inodes
 alias ll='ls -AlhGti'
 
 # Generates a tree of files from the current working directory
-alias tree="ls -R | grep ":$" | sed -e 's/:$//' -e 's/[^-][^\/]*\//--/g' -e 's/^/ /' -e 's/-/|/'"
+alias tree="find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'"
 
+# Alias to display prompt symbol meanings
+alias prompthelp='echo "Prompt Symbol Meanings:
+  ↑  : Commits ahead of remote
+  ↓  : Commits behind remote
+  ⧂  : Merge in progress
+  ⊕  : Untracked files present
+  ∆  : Modified files present
+  ∙  : Staged files present
+  ➜  : Normal prompt (green if last command succeeded, orange if it failed)
+  #  : Root user prompt
+  ▶  : Continuation prompt for multiline commands
 
+Color Meanings:
+  Yellow : Username
+  Cyan   : Hostname (for local sessions)
+  Orange : Hostname (for remote/SSH sessions)
+  Green  : Path (for git repositories)
+  Blue   : Path (for non-git directories)
+  Cyan   : Git branch name
+"'
 ###############################################################################
 # Network
 ###############################################################################
@@ -180,46 +459,32 @@ alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[
 alias ifactive="ifconfig | pcregrep -M -o '^[^\t:]+:([^\n]|\n\t)*status: active'"
 
 # Run `dig` and display the most useful info
-function digga() {
-	dig +nocmd "$1" any +multiline +noall +answer;
+digga() {
+    dig +nocmd "$1" any +multiline +noall +answer
 }
-
 ###############################################################################
 # System and Shortcuts
 ###############################################################################
 
-# Flush Directory Service cache
-alias flush="dscacheutil -flushcache "
+# Flush DNS cache
+alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
 
-# Clean up LaunchServices to remove duplicates in the “Open With” menu
+# Clean up LaunchServices to remove duplicates in the "Open With" menu
 alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
 
 # Rebuild the Launch Services Database
-alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local\ -domain system -domain user'
+alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -user'
 
-# Canonical hex dump; some systems have this symlinked
+# Fallback for hd, md5sum, and sha1sum
 command -v hd > /dev/null || alias hd="hexdump -C"
-
-# macOS has no `md5sum`, so use `md5` as a fallback
 command -v md5sum > /dev/null || alias md5sum="md5"
-
-# macOS has no `sha1sum`, so use `shasum` as a fallback
 command -v sha1sum > /dev/null || alias sha1sum="shasum"
 
-# Generate a password using haddock, length of 28 characters. 
-# sudo gem install haddock -n /usr/local/bin
+# Generate a password using haddock, length of 28 characters
 alias secret='ha-gen -l 28'
 
-# Get macOS Software Updates, and update installed Ruby gems, Homebrew, npm, and their installed packages
-alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm install npm -g; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'
+# Update system and packages
+alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'
 
-# Suspend current account - effectively go to sleep and present login window
-# This is currently commented out due to performance issues in Catalina
-# alias suspend='/System/Library/CoreServices/Menu\ Extras/User.menu/Contents/Resources/CGSession -suspend'
-
-# Locks current account - present the Screensaver and User Login.
-alias lock='/System/Library/CoreServices/ScreenSaverEngine.app/Contents/MacOS/ScreenSaverEngine'
-
-# Add colour - see https://github.com/garabik/grc
-# Requires `sudo port install grc`, presuming grc is installed to usr/local/etc/
-[[ -s "/usr/local/etc/grc.zsh" ]] && source /usr/local/etc/grc.zsh
+# Lock current account - activate screensaver (which requires password on wake)
+alias lock="osascript -e 'tell application \"System Events\" to keystroke \"q\" using {command down,control down}'"
