@@ -460,7 +460,23 @@ alias ip="dig +short myip.opendns.com @resolver1.opendns.com"
 alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
 
 # Show active network interfaces
-alias ifactive="ifconfig | pcregrep -M -o '^[^\t:]+:([^\n]|\n\t)*status: active'"
+
+alias ifactive="list_active_interfaces"
+list_active_interfaces() {
+    networksetup -listallhardwareports | awk '/Hardware Port/,/^$/' | while read line
+    do
+        if [[ $line =~ "Hardware Port" ]]; then
+            printf "\n%s\n" "$line"
+        elif [[ $line =~ "Device" ]]; then
+            device=$(echo $line | awk '{print $2}')
+            status=$(ifconfig $device 2>/dev/null | grep "status" | awk '{print $2}')
+            if [[ "$status" == "active" ]]; then
+                echo "$line"
+                echo "Status: active"
+            fi
+        fi
+    done
+}
 
 # Run `dig` and display the most useful info
 digga() {
