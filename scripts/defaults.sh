@@ -1,372 +1,274 @@
+#!/bin/zsh
+
 #########################################################
-# Title; defaults (new)
-# Description; Sane dots and defaults for macOS
-# Source; https://github.com/matdotcx/
-#########################################################
-# Forked from;
-# https://github.com/mathiasbynens/dotfiles/
+# Title; defaults
+# Description; "Sane" (oppinionated) dots and defaults
+#               for macOS usability.
+# Source; https://github.com/matdotcx/boblbee/
+# Edition: Tue 17 Sep 2024 20:41:26 BST
 #########################################################
 
-#!/bin/zsh
+# Set up logging
+LOG_FILE=~/boblbee.log
+exec > >(tee -a "$LOG_FILE") 2>&1
+
+echo "Starting macOS setup script at $(date)"
 
 # Ask for the administrator password upfront
 sudo -v
 
-# Keep-alive: update existing `sudo` time stamp until we have finished
+# Keep-alive: update existing `sudo` time stamp until script has finished
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
-###############################################################################
-# General UI/UX
-###############################################################################
+# Get current Username and User ID
+CURRENT_USER=$(stat -f %Su /dev/console)
+USER_ID=$(id -u "$CURRENT_USER")
+
+echo "Current user: $CURRENT_USER (ID: $USER_ID)"
+
+#########################################################
+# User-Configurable Variables
+#########################################################
+
+COMPUTER_NAME="Bloodhound" # Set your desired computer name here
+MACOS_UI_COLOR="orange" # Set your desired UI color here
+
+echo "Computer name set to: $COMPUTER_NAME"
+echo "UI color set to: $MACOS_UI_COLOR"
+
+#########################################################
+# Color Definitions
+#########################################################
+
+# Color codes
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+#########################################################
+# Helper Functions
+#########################################################
+
+run_command() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - Running: $1"
+    if eval "$1"; then
+        echo -e "${GREEN}[OK]${NC} Success: $2"
+    else
+        echo -e "${RED}[ERROR]${NC} Failed: $2"
+    fi
+}
+
+is_portable() {
+    if system_profiler SPHardwareDataType | grep -q "MacBook"; then
+        echo "Machine type: Portable"
+        return 0
+    else
+        echo "Machine type: Desktop"
+        return 1
+    fi
+}
+
+get_macos_color_values() {
+    local color=${1:-$MACOS_UI_COLOR}
+
+    local -A ACCENT_COLORS=(
+        [blue]=4 [purple]=5 [pink]=6 [red]=0 [orange]=1 [yellow]=2 [green]=3 [graphite]=-1
+    )
+    local -A HIGHLIGHT_COLORS=(
+        [blue]="0.698039 0.843137 1.000000 Blue"
+        [purple]="0.968627 0.831373 1.000000 Purple"
+        [pink]="1.000000 0.749020 0.823529 Pink"
+        [red]="1.000000 0.733333 0.721569 Red"
+        [orange]="1.000000 0.874510 0.701961 Orange"
+        [yellow]="1.000000 0.937255 0.690196 Yellow"
+        [green]="0.752941 0.964706 0.678431 Green"
+        [graphite]="0.847059 0.847059 0.862745 Graphite"
+    )
+
+    if [[ -v ACCENT_COLORS[$color] ]]; then
+        accent_color=${ACCENT_COLORS[$color]}
+        highlight_color="${HIGHLIGHT_COLORS[$color]}"
+        echo "Color values set for $color"
+        return 0
+    else
+        echo "Invalid color specified. Valid colors are: ${(k)ACCENT_COLORS}" >&2
+        return 1
+    fi
+}
+
+#########################################################
+# System Configuration
+#########################################################
+
+echo "Configuring system settings…"
 
 echo ""
-echo "Setting UI to Dark Mode"
-defaults write NSGlobalDomain AppleInterfaceStyle -string Dark
+echo "Setting computer name…"
+run_command "sudo scutil --set ComputerName '$COMPUTER_NAME'" "Set computer name"
+run_command "sudo scutil --set HostName '$COMPUTER_NAME'" "Set host name"
+run_command "sudo scutil --set LocalHostName '$COMPUTER_NAME'" "Set local host name"
+run_command "sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string '$COMPUTER_NAME'" "Set NetBIOS name"
 
 echo ""
-echo "Setting the sidebar icon size to medium"
-defaults write NSGlobalDomain NSTableViewDefaultSizeMode -int 2
+echo "Setting macOS UI color…"
+if get_macos_color_values; then
+    run_command "sudo -u \"$CURRENT_USER\" defaults write -g AppleAccentColor -int $accent_color" "Set accent color"
+    run_command "sudo -u \"$CURRENT_USER\" defaults write -g AppleHighlightColor -string '$highlight_color'" "Set highlight color"
+    echo "UI color changes applied. A logout/login or restart is required for all changes to take effect."
+else
+    echo "Failed to set macOS UI color"
+fi
 
 echo ""
-echo " Set highlight and accent color to Orange"
-defaults write NSGlobalDomain AppleHighlightColor -string "1.000000 0.874510 0.701961"
-defaults write  NSGlobalDomain AppleHighlightColor -string 6
+echo "Configuring Finder…"
+run_command "/usr/libexec/PlistBuddy -c \"Set DesktopViewSettings:IconViewSettings:labelOnBottom false\" ~/Library/Preferences/com.apple.finder.plist" "Set desktop icon labels to side"
+run_command "/usr/libexec/PlistBuddy -c \"Set :DesktopViewSettings:IconViewSettings:arrangeBy grid\" ~/Library/Preferences/com.apple.finder.plist" "Arrange desktop icons by grid"
+run_command "/usr/libexec/PlistBuddy -c \"Set :FK_StandardViewSettings:IconViewSettings:arrangeBy grid\" ~/Library/Preferences/com.apple.finder.plist" "Arrange standard view icons by grid"
+run_command "/usr/libexec/PlistBuddy -c \"Set :StandardViewSettings:IconViewSettings:arrangeBy grid\" ~/Library/Preferences/com.apple.finder.plist" "Arrange all view icons by grid"
+run_command "/usr/libexec/PlistBuddy -c \"Set :DesktopViewSettings:IconViewSettings:gridSpacing 100\" ~/Library/Preferences/com.apple.finder.plist" "Set desktop icon grid spacing"
+run_command "/usr/libexec/PlistBuddy -c \"Set :FK_StandardViewSettings:IconViewSettings:gridSpacing 100\" ~/Library/Preferences/com.apple.finder.plist" "Set standard view icon grid spacing"
+run_command "/usr/libexec/PlistBuddy -c \"Set :StandardViewSettings:IconViewSettings:gridSpacing 100\" ~/Library/Preferences/com.apple.finder.plist" "Set all view icon grid spacing"
+run_command "/usr/libexec/PlistBuddy -c \"Set :DesktopViewSettings:IconViewSettings:iconSize 80\" ~/Library/Preferences/com.apple.finder.plist" "Set desktop icon size"
+run_command "/usr/libexec/PlistBuddy -c \"Set :FK_StandardViewSettings:IconViewSettings:iconSize 80\" ~/Library/Preferences/com.apple.finder.plist" "Set standard view icon size"
+run_command "/usr/libexec/PlistBuddy -c \"Set :StandardViewSettings:IconViewSettings:iconSize 80\" ~/Library/Preferences/com.apple.finder.plist" "Set all view icon size"
+run_command "/usr/libexec/PlistBuddy -c \"Set :DesktopViewSettings:IconViewSettings:showItemInfo true\" ~/Library/Preferences/com.apple.finder.plist" "Show item info on desktop icons"
+run_command "/usr/libexec/PlistBuddy -c \"Set :FK_StandardViewSettings:IconViewSettings:showItemInfo true\" ~/Library/Preferences/com.apple.finder.plist" "Show item info in standard Finder views"
+run_command "defaults write NSGlobalDomain AppleShowAllExtensions -bool true" "Show all file extensions"
+run_command "defaults write com.apple.finder ShowPathbar -bool true" "Show Finder path bar"
+run_command "defaults write com.apple.finder ShowStatusBar -bool true" "Show Finder status bar"
+run_command "defaults write com.apple.finder NewWindowTarget -string \"PfHm\"" "Set new Finder windows to home folder"
+run_command "defaults write com.apple.finder ShowHardDrivesOnDesktop -bool false" "Hide hard drives on desktop"
+run_command "defaults write com.apple.finder ShowMountedServersOnDesktop -bool true" "Show mounted servers on desktop"
+run_command "defaults write com.apple.finder ShowRemovableMediaOnDesktop -bool true" "Show removable media on desktop"
 
 echo ""
-echo "Increasing the window resize speed for Cocoa applications"
-defaults write NSGlobalDomain NSWindowResizeTime -float 0.001
+echo "Configuring UI/UX settings…"
+run_command "defaults write com.apple.universalaccess \"showWindowTitlebarIcons\" -bool \"true\"" "Show window titlebar icons"
+run_command "defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true" "Expand save panel by default"
+run_command "defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode2 -bool true" "Expand save panel by default (v2)"
+run_command "defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true" "Expand print panel by default"
+run_command "defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -bool true" "Expand print panel by default (v2)"
+run_command "defaults write NSGlobalDomain com.apple.springing.enabled -bool true" "Enable spring loading for directories"
+run_command "defaults write NSGlobalDomain com.apple.springing.delay -float 0" "Remove the spring loading delay for directories"
+run_command "defaults write NSGlobalDomain AppleShowScrollBars -string \"Always\"" "Always show scrollbars"
+run_command "defaults write com.apple.AppleMultitouchTrackpad ForceSuppressed -int 1" "Disable force click"
+run_command "defaults write com.apple.AppleMultitouchMouse MouseButtonMode -string \"TwoButton\"" "Enable two-button mouse"
+run_command "defaults write com.apple.driver.AppleBluetoothMultitouch.mouse MouseButtonMode -string \"TwoButton\"" "Enable two-button Bluetooth mouse"
+run_command "defaults write NSGlobalDomain com.apple.sound.beep.feedback -integer 1" "Enable sound feedback"
+run_command "defaults write com.apple.PowerChime ChimeOnAllHardware -bool true" "Enable power chime"
+run_command "defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true" "Disable Time Machine new disk prompt"
 
 echo ""
-echo "Expanding the save panel by default"
-defaults write NSGlobalDomain NSNavPanelExpandedStateForSaveMode -bool true
-defaults write NSGlobalDomain PMPrintingExpandedStateForPrint -bool true
-defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -bool true
+echo "Configuring Dock…"
+run_command "defaults write com.apple.dock orientation -string right" "Set Dock to right side"
+run_command "defaults write com.apple.dock mineffect -string scale" "Set Dock minimize effect to scale"
 
 echo ""
-echo "Automatically quit printer app once the print jobs complete"
-defaults write com.apple.print.PrintingPrefs "Quit When Finished" -bool true
-
-# Try e.g. `cd /tmp; unidecode "\x{0000}" > cc.txt; open -e cc.txt`
-echo ""
-echo "Displaying ASCII control characters using caret notation in standard text views"
-defaults write NSGlobalDomain NSTextShowsControlCharacters -bool true
-
-echo ""
-echo "Disabling system-wide resume"
-defaults write NSGlobalDomain NSQuitAlwaysKeepsWindows -bool false
+echo "Configuring Menu Bar…"
+run_command "defaults -currentHost write com.apple.controlcenter BatteryShowPercentage -bool true" "Show battery percentage"
+run_command "defaults write com.apple.menuextra.clock IsAnalog -int 0" "Enable digital clock"
+run_command "defaults write com.apple.menuextra.clock Show24Hour -int 1" "Enable 24-hour clock"
+run_command "defaults write com.apple.menuextra.clock ShowDayOfWeek -int 1" "Show day of week in clock"
+run_command "defaults write com.apple.menuextra.clock ShowSeconds -int 1" "Show seconds in clock"
+run_command "defaults write com.apple.menuextra.clock FlashDateSeparators -bool true" "Enable flashing clock separators"
+run_command "defaults -currentHost write com.apple.controlcenter Bluetooth -int 18" "Show Bluetooth in menu bar"
+run_command "defaults -currentHost write com.apple.controlcenter Sound -int 18" "Show sound in menu bar"
 
 echo ""
-echo "Disabling automatic termination of inactive apps"
-defaults write NSGlobalDomain NSDisableAutomaticTermination -bool true
+echo "Configuring Safari…"
+run_command "defaults write com.apple.Safari ShowFavoritesBar-v2 -bool true" "Enable Safari favorites bar"
+run_command "defaults write com.apple.Safari ShowOverlayStatusBar -bool true" "Enable Safari status bar"
+run_command "defaults write com.apple.Safari \"ShowFullURLInSmartSearchField\" -bool \"true\"" "Show full URL in Safari search field"
 
 echo ""
-echo "Saving to disk (not to iCloud) by default"
-defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
+echo "Configuring system behavior…"
+run_command "defaults write com.apple.loginwindow TALLogoutSavesState -bool false" "Disable reopening windows on login"
+run_command "sudo defaults write /Library/Preferences/com.apple.timezone.auto Active -bool YES" "Enable automatic timezone"
+run_command "sudo defaults write /private/var/db/timed/Library/Preferences/com.apple.timed.plist TMAutomaticTimeOnlyEnabled -bool YES" "Enable automatic time"
+run_command "sudo defaults write /private/var/db/timed/Library/Preferences/com.apple.timed.plist TMAutomaticTimeZoneEnabled -bool YES" "Enable automatic timezone"
+run_command "sudo nvram StartupMute=%00" "Enable startup chime"
 
 echo ""
-echo "Reveal IP address, hostname, OS version, etc. when clicking the clock in the login window"
-sudo defaults write /Library/Preferences/com.apple.loginwindow AdminHostInfo HostName
+echo "Enabling automatic updates…"
+run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticallyInstallMacOSUpdates -bool true" "Enable automatic macOS updates"
+run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticCheckEnabled -bool true" "Enable automatic update check"
+run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticDownload -bool true" "Enable automatic update download"
+run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist CriticalUpdateInstall -bool true" "Enable critical update installation"
+run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist ConfigDataInstall -bool true" "Enable config data installation"
+run_command "sudo defaults write /Library/Preferences/com.apple.commerce.plist AutoUpdate -bool true" "Enable App Store automatic updates"
 
 echo ""
-echo "Never go into computer sleep mode"
-systemsetup -setcomputersleep Off > /dev/null
-
-echo ""
-echo "Check for software updates daily, not just once per week"
-defaults write com.apple.SoftwareUpdate ScheduleFrequency -int 1
-
-echo ""
-echo "Disable smart quotes and smart dashes as they are annoying when typing code"
-defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
-defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
-
-
-###############################################################################
-# Trackpad, mouse, keyboard, Bluetooth accessories, and input
-###############################################################################
-
-echo ""
-echo "Increasing sound quality for Bluetooth headphones/headsets"
-defaults write com.apple.BluetoothAudioAgent "Apple Bitpool Min (editable)" -int 60
-
-echo ""
-echo "Enabling full keyboard access for all controls (e.g. enable Tab in modal dialogs)"
-defaults write NSGlobalDomain AppleKeyboardUIMode -int 3
-
-echo ""
-echo "Disabling press-and-hold for keys in favor of a key repeat"
-defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
-
-echo ""
-echo "Disabling auto-correct"
-defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
-
-echo ""
-echo "Setting trackpad & mouse speed to a reasonable number"
-defaults write -g com.apple.trackpad.scaling 2
-defaults write -g com.apple.mouse.scaling 2.5
-
-echo ""
-echo "Turn off keyboard illumination when computer is not used for 5 minutes"
-defaults write com.apple.BezelServices kDimTime -int 300
-
-echo ""
-echo "Setting Language and Text formats"
-defaults write NSGlobalDomain AppleLanguages -array "en" "gb"
-defaults write NSGlobalDomain AppleLocale -string "en_GB@currency=GBP"
-defaults write NSGlobalDomain AppleMeasurementUnits -string "Centimeters"
-defaults write NSGlobalDomain AppleMetricUnits -bool true
-
-echo ""
-echo "Setting timezone to Bristol, Europe"
-sudo systemsetup -settimezone "Europe/Bristol" > /dev/null
-
-###############################################################################
-# Screen
-###############################################################################
-
-echo ""
-echo "Requiring password immediately after sleep or screen saver begins"
-defaults write com.apple.screensaver askForPassword -int 1
-defaults write com.apple.screensaver askForPasswordDelay -int 0
-
-echo ""
-echo "Enabling subpixel font rendering on non-Apple LCDs"
-defaults write NSGlobalDomain AppleFontSmoothing -int 2
-
-echo ""
-echo "Enable HiDPI display modes (requires restart)"
-sudo defaults write /Library/Preferences/com.apple.windowserver DisplayResolutionEnabled -bool true
-
-###############################################################################
-# Finder
-###############################################################################
-
-echo ""
-echo "Showing icons for hard drives, servers, and removable media on the desktop"
-defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
-
-echo ""
-echo "Showing status bar in Finder by default"
-defaults write com.apple.finder ShowStatusBar -bool true
-
-echo ""
-echo "Allowing text selection in Quick Look/Preview in Finder by default"
-defaults write com.apple.finder QLEnableTextSelection -bool true
-
-echo ""
-echo "Displaying full POSIX path as Finder window title"
-defaults write com.apple.finder _FXShowPosixPathInTitle -bool true
-
-echo ""
-echo "Disabling the warning when changing a file extension"
-defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
-
-echo ""
-echo "Use column view in all Finder windows by default"
-defaults write com.apple.finder FXPreferredViewStyle Clmv
-
-echo ""
-echo "Disabling disk image verification"
-defaults write com.apple.frameworks.diskimages skip-verify -bool true
-defaults write com.apple.frameworks.diskimages skip-verify-locked -bool true
-defaults write com.apple.frameworks.diskimages skip-verify-remote -bool true
-
-echo ""
-echo "Enabling snap-to-grid for icons on the desktop and in other icon views"
-
-/usr/libexec/PlistBuddy -c "Add :FK_StandardViewSettings:IconViewSettings:showItemInfo bool true" ~/Library/Preferences/com.apple.finder.plist
-/usr/libexec/PlistBuddy -c "Set :DesktopViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
-/usr/libexec/PlistBuddy -c "Set :FK_StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
-/usr/libexec/PlistBuddy -c "Set :StandardViewSettings:IconViewSettings:arrangeBy grid" ~/Library/Preferences/com.apple.finder.plist
-
-echo ""
-echo "Setting the format for the menubar clock to 24 hour, with minutes and seconds"
-defaults write com.apple.menuextra.clock "DateFormat" 'H:mm:ss'
-
-###############################################################################
-# Dock & Mission Control
-###############################################################################
-
-# Wipe all (default) app icons from the Dock
-# This is only really useful when setting up a new Mac, or if you dont use
-# the Dock to launch apps.
-#defaults write com.apple.dock persistent-apps -array
-
-echo ""
-echo "Setting the icon size of Dock items to 36 pixels for optimal size/screen-real-estate, and magnification to 128, pinned to the right of the display."
-defaults write com.apple.dock orientation -string right
-defaults write com.apple.dock tilesize -int 36
-defaults write com.apple.dock largesize -float 128
-
-echo ""
-echo "Speeding up Mission Control animations and grouping windows by application"
-defaults write com.apple.dock expose-animation-duration -float 0.1
-defaults write com.apple.dock "expose-group-by-app" -bool true
-
-###############################################################################
-# Safari & WebKit
-###############################################################################
-
-echo ""
-echo "Hiding Safari bookmarks bar by default"
-defaults write com.apple.Safari ShowFavoritesBar -bool false
-
-echo ""
-echo "Hiding Safari sidebar in Top Sites"
-defaults write com.apple.Safari ShowSidebarInTopSites -bool false
-
-echo ""
-echo "Disabling Safari thumbnail cache for History and Top Sites"
-defaults write com.apple.Safari DebugSnapshotsUpdatePolicy -int 2
-
-echo ""
-echo "Enabling Safari debug menu"
-defaults write com.apple.Safari IncludeInternalDebugMenu -bool true
-
-echo ""
-echo "Making Safari search banners default to Contains instead of Starts With"
-defaults write com.apple.Safari FindOnPageMatchesWordStartsOnly -bool false
-
-echo ""
-echo "Removing useless icons from Safari bookmarks bar"
-defaults write com.apple.Safari ProxiesInBookmarksBar "()"
-
-echo ""
-echo "Allow hitting the Backspace key to go to the previous page in history"
-defaults write com.apple.Safari com.apple.Safari.ContentPageGroupIdentifier.WebKit2BackspaceKeyNavigationEnabled -bool true
-
-echo ""
-echo "Enabling the Develop menu and the Web Inspector in Safari"
-defaults write com.apple.Safari IncludeDevelopMenu -bool true
-defaults write com.apple.Safari WebKitDeveloperExtrasEnabledPreferenceKey -bool true
-defaults write com.apple.Safari "com.apple.Safari.ContentPageGroupIdentifier.WebKit2DeveloperExtrasEnabled" -bool true
-
-echo ""
-echo "Adding a context menu item for showing the Web Inspector in web views"
-defaults write NSGlobalDomain WebKitDeveloperExtras -bool true
-
-###############################################################################
-# Mail
-###############################################################################
-
-echo ""
-echo "Setting email addresses to copy as 'foo@example.com' instead of 'Foo Bar <foo@example.com>' in Mail.app"
-defaults write com.apple.mail AddressesIncludeNameOnPasteboard -bool false
-
-
-###############################################################################
-# Terminal
-###############################################################################
-
-
-echo ""
-echo "Adding /opt/local as a local path to suport MacPorts"
-export PATH=/opt/local/bin:/opt/local/sbin:$PATH
-
-echo ""
-echo "Enabling UTF-8 ONLY in Terminal.app"
-defaults write com.apple.terminal StringEncodings -array 4
-
-echo ""
-echo "Install a custom version of the Pencil Dark theme in Terminal.app"
-
-osascript <<EOD
-
-tell application "Terminal"
-
-	local allOpenedWindows
-	local initialOpenedWindows
-	local windowID
-	set themeName to "PencilDark"
-
-	(* Store the IDs of all the open terminal windows. *)
-	set initialOpenedWindows to id of every window
-
-	(* Open the custom theme so that it gets added to the list
-	   of available terminal themes (note: this will open two
-	   additional terminal windows). *)
-	do shell script "open '$HOME/workspace/gl52/bobblbee/assets/" & themeName & ".terminal'"
-
-	(* Wait a little bit to ensure that the custom theme is added. *)
-	delay 1
-
-	(* Set the custom theme as the default terminal theme. *)
-	set default settings to settings set themeName
-
-	(* Get the IDs of all the currently opened terminal windows. *)
-	set allOpenedWindows to id of every window
-
-	repeat with windowID in allOpenedWindows
-
-		(* Close the additional windows that were opened in order
-		   to add the custom theme to the list of terminal themes. *)
-		if initialOpenedWindows does not contain windowID then
-			close (every window whose id is windowID)
-
-		(* Change the theme for the initial opened terminal windows
-		   to remove the need to close them in order for the custom
-		   theme to be applied. *)
-		else
-			set current settings of tabs of (every window whose id is windowID) to settings set themeName
-		end if
-
-	end repeat
-
-end tell
-
-EOD
-
-echo ""
-echo "Installing a default profile and the supporting uptime script"
-sudo cp -r $HOME/workspace/gl52/boblbee/assets/uptime.sh /opt/local/uptime.sh > /dev/null
-sudo cp -r $HOME/workspace/gl52/boblbee/assets/zshrc $HOME/.zshrc > /dev/null
-sudo chmod +x /opt/local/uptime.sh
-
-###############################################################################
-# Time Machine
-###############################################################################
-
-echo ""
-echo "Preventing Time Machine from prompting to use new hard drives as backup volume"
-defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true
-
-###############################################################################
-# Messages                                                                    #
-###############################################################################
-
-echo ""
-echo "Disable smart quotes as it is annoying for messages that contain code"
-defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "automaticQuoteSubstitutionEnabled" -bool false
-
-echo ""
-echo "Enable continuous spell checking"
-defaults write com.apple.messageshelper.MessageController SOInputLineSettings -dict-add "continuousSpellCheckingEnabled" -bool true
-
-###############################################################################
-# Personal Additions
-###############################################################################
-
-echo ""
-echo "Disable hibernation (speeds up entering sleep mode)"
-sudo pmset -a hibernatemode 0
-
-echo ""
-echo "Speeding up wake from sleep to 24 hours from an hour"
-# http://www.cultofmac.com/221392/quick-hack-speeds-up-retina-macbooks-wake-from-sleep-os-x-tips/
-sudo pmset -a standbydelay 86400
-
-echo ""
-echo "Disable computer sleep and stop the display from shutting off"
-sudo pmset -a sleep 0
-sudo pmset -a displaysleep 0
-
-echo ""
-echo "Disable annoying backswipe in Chrome"
-defaults write com.google.Chrome AppleEnableSwipeNavigateWithScrolls -bool false
-
-###############################################################################
-# Kill affected applications
-###############################################################################
-
-echo "Done - Please consider logging out the current user"
+echo "Disabling Siri…"
+run_command "defaults write com.apple.Siri StatusMenuVisible -bool false" "Hide Siri menu bar icon"
+run_command "defaults write com.apple.assistant.support \"Assistant Enabled\" -bool false" "Disable Siri"
+
+#########################################################
+# Machine-Specific Settings
+#########################################################
+
+if is_portable; then
+    echo ""
+    echo "Applying settings for portable machines…"
+    if ! sudo systemsetup -setdisplaysleep 3; then
+        echo -e "${YELLOW}[WARNING]${NC} Failed to set display sleep. You may need to set this manually."
+    else
+        echo -e "${GREEN}[OK]${NC} Set display sleep to 3 minutes"
+    fi
+
+    if ! sudo systemsetup -setcomputersleep 10; then
+        echo -e "${YELLOW}[WARNING]${NC} Failed to set computer sleep. You may need to set this manually."
+    else
+        echo -e "${GREEN}[OK]${NC} Set computer sleep to 10 minutes"
+    fi
+
+    run_command "sudo nvram AutoBoot=%00" "Disable AutoBoot"
+else
+    echo ""
+    echo "Applying settings for desktop machines…"
+    if ! sudo systemsetup -setdisplaysleep never; then
+        echo -e "${YELLOW}[WARNING]${NC} Failed to disable display sleep. You may need to set this manually."
+    else
+        echo -e "${GREEN}[OK]${NC} Disabled display sleep"
+    fi
+
+    if ! sudo systemsetup -setcomputersleep never; then
+        echo -e "${YELLOW}[WARNING]${NC} Failed to disable computer sleep. You may need to set this manually."
+    else
+        echo -e "${GREEN}[OK]${NC} Disabled computer sleep"
+    fi
+
+    run_command "sudo systemsetup -setrestartpowerfailure on" "Enable restart on power failure"
+    run_command "sudo systemsetup -setwaitforstartupafterpowerfaile"
+        run_command "sudo systemsetup -setwaitforstartupafterpowerfailure 30" "Set wait for startup after power failure to 30 seconds"
+    fi
+
+    #########################################################
+    # Cleanup and Finalization
+    #########################################################
+
+    echo ""
+    echo "Restarting affected applications…"
+    killall Finder Dock SystemUIServer
+    echo "FLushing DNS…"
+    dscacheutil -flushcache
+    echo "Waiting for applications to restart…"
+    sleep 5  # Give applications time to restart
+
+    echo ""
+    echo "Verifying critical settings…"
+    current_color=$(defaults read -g AppleAccentColor)
+    if [ "$current_color" != "$accent_color" ]; then
+        echo -e "${YELLOW}[WARNING]${NC} Accent color may not have been set correctly."
+    else
+        echo -e "${GREEN}[OK]${NC} Accent color verified successfully."
+    fi
+
+    echo ""
+    echo "#########################################################"
+    echo "Setup complete at $(date)."
+    echo "Please log out and log back in, or restart your Mac"
+    echo "to ensure all changes are applied."
+    echo "#########################################################"
+    echo ""
+    echo "Log file has been saved to $LOG_FILE"
