@@ -3,7 +3,7 @@
 # Description: An improved zshrc with Solarized Dark colors,
 # enhanced prompt with consistent symbols, and modern macOS compatibility
 # Source: Based on https://github.com/matdotcx/ with modifications
-# Edition: Wed 14 Aug 2024 11:53:57 BST
+# Edition: Tue 17 Sep 2024 21:04:42 BST
 ###############################################################################
 
 #!/bin/zsh
@@ -101,6 +101,9 @@ unsetopt notify beep
 zstyle :compinstall filename "$HOME/.zshrc"
 autoload -Uz compinit && compinit
 autoload -U colors && colors # Enable colors in prompt
+
+# Preload keys to the ssh agent; passwords are pulled from the keychain.
+ssh-add --apple-load-keychain
 
 ###############################################################################
 # Prompt & motd
