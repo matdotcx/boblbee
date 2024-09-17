@@ -103,7 +103,8 @@ autoload -Uz compinit && compinit
 autoload -U colors && colors # Enable colors in prompt
 
 # Preload keys to the ssh agent; passwords are pulled from the keychain.
-ssh-add --apple-load-keychain
+# Supress stderr, leave errors to come through to the term.
+ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
 
 ###############################################################################
 # Prompt & motd
