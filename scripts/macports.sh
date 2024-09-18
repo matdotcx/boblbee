@@ -39,14 +39,16 @@ make
 sudo make install
 make distclean
 
-
-#########################################################
-
 # Adds the apropriate path for MacPorts to /etc/paths.d
-
 echo ""
 echo "Adding /opt/local as a local path"
 
 sudo touch /etc/paths.d/macports
 echo '/opt/local/bin' | sudo tee -a /etc/paths.d/macports
 echo '/opt/local/sbin' | sudo tee -a /etc/paths.d/macports
+
+#########################################################
+# Runs a `port -v selfupdate` to set up for the first port installation.
+
+echo "Port Self-update"
+sudo port -v selfupdate
