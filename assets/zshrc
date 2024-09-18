@@ -456,32 +456,93 @@ Color Meanings:
 ###############################################################################
 
 # IP addresses
-alias ip="dig +short myip.opendns.com @resolver1.opendns.com"
-alias ips="ifconfig -a | grep -o 'inet6\? \(addr:\)\?\s\?\(\(\([0-9]\+\.\)\{3\}[0-9]\+\)\|[a-fA-F0-9:]\+\)' | awk '{ sub(/inet6? (addr:)? ?/, \"\"); print }'"
+alias ip="get_public_ip"
+alias ips="list_ip_addresses"
+
+get_public_ip() {
+    curl -s https://api.ipify.org; echo
+}
+
+list_ip_addresses() {
+    echo "IPv4 Addresses:"
+    ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}'
+
+    echo "\nIPv6 Addresses:"
+    ifconfig | grep "inet6 " | grep -v "fe80" | awk '{print $2}'
+}
+
 
 # Show active network interfaces
 
 alias ifactive="list_active_interfaces"
 list_active_interfaces() {
-    networksetup -listallhardwareports | awk '/Hardware Port/,/^$/' | while read line
-    do
-        if [[ $line =~ "Hardware Port" ]]; then
-            printf "\n%s\n" "$line"
-        elif [[ $line =~ "Device" ]]; then
-            device=$(echo $line | awk '{print $2}')
-            status=$(ifconfig $device 2>/dev/null | grep "status" | awk '{print $2}')
-            if [[ "$status" == "active" ]]; then
-                echo "$line"
-                echo "Status: active"
-            fi
-        fi
+    networksetup -listallhardwareports | awk '
+    function get_ip(dev) {
+        cmd = "ifconfig " dev " 2>/dev/null | awk \"/inet /{print \\$2}\""
+        cmd | getline ip
+        close(cmd)
+        return ip
+    }
+    function get_mac(dev) {
+        cmd = "ifconfig " dev " 2>/dev/null | awk \"/ether /{print \\$2}\""
+        cmd | getline mac
+        close(cmd)
+        return mac
+    }
+    /Hardware Port/,/^$/ {
+        if ($0 ~ /Hardware Port/) {
+            if (device != "" && active == 1) {
+                print hardware_port
+                print "Device: " device
+                print "Status: active"
+                ip = get_ip(device)
+                if (ip != "") print "IP Address: " ip
+                mac = get_mac(device)
+                if (mac != "") print "MAC Address: " mac
+                print ""
+            }
+            hardware_port = $0
+            device = ""
+            active = 0
+        } else if ($0 ~ /Device/) {
+            device = $2
+            cmd = "ifconfig " device " 2>/dev/null | grep status"
+            cmd | getline ifconfig_status
+            close(cmd)
+            if (ifconfig_status ~ /active/) {
+                active = 1
+            }
+        }
+    }
+    END {
+        if (device != "" && active == 1) {
+            print hardware_port
+            print "Device: " device
+            print "Status: active"
+            ip = get_ip(device)
+            if (ip != "") print "IP Address: " ip
+            mac = get_mac(device)
+            if (mac != "") print "MAC Address: " mac
+            print ""
+        }
+    }'
+}
+
+# Run `nslookup` and display the most useful info
+dns() {
+    local domain="$1"
+    local record_types=("A" "AAAA" "CNAME" "MX" "NS" "TXT")
+
+    echo "DNS lookup for $domain"
+    echo "----------------------------------------"
+
+    for type in "${record_types[@]}"; do
+        echo "Record type: $type"
+        nslookup -type=$type "$domain" | grep -v "Server:" | grep -v "Address:" | sed '/^$/d'
+        echo "----------------------------------------"
     done
 }
 
-# Run `dig` and display the most useful info
-digga() {
-    dig +nocmd "$1" any +multiline +noall +answer
-}
 ###############################################################################
 # System and Shortcuts
 ###############################################################################
