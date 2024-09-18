@@ -163,6 +163,10 @@ echo ""
 echo "Configuring Dock…"
 run_command "defaults write com.apple.dock orientation -string right" "Set Dock to right side"
 run_command "defaults write com.apple.dock mineffect -string scale" "Set Dock minimize effect to scale"
+run_command "defaults write com.apple.dock tilesize -int 22" "Set Dock tile size to 22px"
+run_command "defaults write com.apple.dock magnification -bool true" "Set Dock Magnifcation to on"
+run_command "defaults write com.apple.dock largesize -int 96" "Set Dock tile max size to 96px"
+
 
 echo ""
 echo "Configuring Menu Bar…"
