@@ -159,11 +159,19 @@ Don't use this if you're not at ease reading basic shell scripts, interpreting A
 
 ## Contributing
 
-Feel free to fork, submit PRs, and open issues.
+I welcome contributions that improve the project. If you've found a bug, have an idea for a feature, or want to improve the documentation:
+
+1. Fork the repository
+2. Test your changes on both iCloud and non-iCloud systems
+3. Make sure the upgrade path works for existing users
+4. Update the documentation if needed
+5. Submit a pull request with a clear description
+
+The best contributions are often the simplest ones - fixing typos, clarifying documentation, or adding error handling where it's missing.
 
 ## License
 
-This project is open source. Feel free to fork, modify, and share.
+This project is open source and available under the MIT License. Use it, modify it, learn from it, make it your own. If you build something cool with it, I'd love to hear about it.
 
 ---
 
