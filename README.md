@@ -1,12 +1,12 @@
 # boblbee
 
-A smart dotfiles management system for macOS that adapts to your environment.
+## What is this?
 
-## Overview
+`boblbee` is a collection of dotfiles, scripts, and widgets that I use to set up my Mac, to my own taste and specification. There are many dotfiles, but these are mine.
 
-`boblbee` is an intelligent dotfiles framework that automatically handles synchronization across machines with or without iCloud Drive. It includes comprehensive macOS system configuration, development environment setup, and seamless integration with modern tools like Claude Code.
+The name `boblbee` comes from [Point 65](https://boblbee.point65.com/pages/about-us-point-65-sweden) - a Swedish company founded in the late 90s to produce hard-case backpacks with spine protection, lumbar support, and loud colourways. I've used and loved them since the early 2000s, and carried my life in them, so it made sense to carry my digital detritus in one, too.
 
-The name comes from [Boblbee backpacks](https://boblbee.point65.com) - Swedish hardshell backpacks designed to protect and carry your essentials. Just like the backpack, this project protects and carries your digital essentials across all your Macs.
+What makes this particular collection special is its intelligent sync system - it automatically adapts to machines with or without iCloud Drive, includes comprehensive macOS system configuration, and seamlessly integrates with modern tools like Claude Code. But at its heart, it's still just my dotfiles.
 
 ## Key Features
 
@@ -144,6 +144,12 @@ For detailed information, see [DOCUMENTATION.md](DOCUMENTATION.md):
 - Architecture details
 - Contributing guidelines
 
+## What it's not
+
+`boblbee` is not a one-stop shop for everyone and their dog; it's not intended to be something you run once, having not read the contents and understood the changes.
+
+Don't use this if you're not at ease reading basic shell scripts, interpreting Apple's `defaults write` commands, or if you're unwilling to blast your machine config away and start over if something breaks.
+
 ## Important Notes
 
 - **Read before running**: Understand what each script does
@@ -153,10 +159,7 @@ For detailed information, see [DOCUMENTATION.md](DOCUMENTATION.md):
 
 ## Contributing
 
-1. Fork the repository
-2. Test changes on both iCloud and non-iCloud systems
-3. Update documentation
-4. Submit a pull request
+Feel free to fork, submit PRs, and open issues.
 
 ## License
 
