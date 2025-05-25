@@ -3,7 +3,7 @@
 # Description: An improved ~/.zshrc
 # Enhanced prompt with consistent symbols, and modern macOS compatibility
 # Source: Based on https://github.com/matdotcx/ with modifications
-# Edition: Tue 17 Sep 2024 21:04:42 BST
+# Edition: Sun 25 May 2025 23:38:12 BST
 ###############################################################################
 
 #!/bin/zsh
@@ -577,7 +577,7 @@ bb-sync() {
 bb-status() {
   echo "=== Boblbee Status ==="
   echo ""
-  
+
   # Check boblbee directory
   if [ -d "$HOME/Developer/workspace/gl52/boblbee" ]; then
     echo "✓ Boblbee directory found"
@@ -586,14 +586,14 @@ bb-status() {
   else
     echo "✗ Boblbee directory not found"
   fi
-  
+
   # Check iCloud
   if [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
     echo "✓ iCloud Drive available"
   else
     echo "✗ iCloud Drive not available"
   fi
-  
+
   # Check symlinks
   echo ""
   echo "Configuration status:"
@@ -602,13 +602,13 @@ bb-status() {
   else
     echo "  .zshrc: regular file"
   fi
-  
+
   if [ -L "$HOME/.ssh" ]; then
     echo "  .ssh: symlinked to $(readlink $HOME/.ssh)"
   else
     echo "  .ssh: regular directory"
   fi
-  
+
   if [ -L "$HOME/.config/claude/memory/user.md" ]; then
     echo "  Claude: symlinked to dotfiles"
   else
