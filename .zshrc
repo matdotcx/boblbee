@@ -500,6 +500,9 @@ alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup
 # Lock current account - activate screensaver (which requires password on wake)
 alias lock="osascript -e 'tell application \"System Events\" to keystroke \"q\" using {command down,control down}'"
 
+# Set default editor
+export EDITOR="zed"
+
 # npm global path
 export PATH="/Users/diego/.npm-global/bin:$PATH"
 
@@ -618,6 +621,8 @@ bb-edit() {
   cd "$HOME/Developer/workspace/gl52/boblbee"
   if [ -n "$EDITOR" ]; then
     $EDITOR .
+  elif command -v zed >/dev/null; then
+    zed .
   elif command -v code >/dev/null; then
     code .
   elif command -v subl >/dev/null; then
@@ -625,7 +630,7 @@ bb-edit() {
   elif command -v vim >/dev/null; then
     vim .
   else
-    echo "No editor found. Set EDITOR environment variable or install VS Code/Sublime/Vim"
+    echo "No editor found. Set EDITOR environment variable or install Zed/VS Code/Sublime/Vim"
     echo "Current directory: $(pwd)"
   fi
 }
