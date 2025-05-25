@@ -20,11 +20,16 @@ echo "to support the new intelligent sync features."
 echo ""
 
 # Get the directory where this script is located
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -n "${BASH_SOURCE[0]}" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+else
+  # Fallback for when script is run via alias
+  SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+fi
 DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Check if we're in the right place
-if [ ! -f "$DOTFILES_DIR/bootstrap.sh" ]; then
+if [ ! -f "$DOTFILES_DIR/README.md" ] || [ ! -d "$DOTFILES_DIR/scripts" ]; then
   echo -e "${RED}Error: This doesn't appear to be a boblbee directory${NC}"
   echo "Please run this from within your boblbee/scripts directory"
   exit 1
