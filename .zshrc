@@ -614,7 +614,21 @@ bb-status() {
 }
 
 # Utilities
-alias bb-edit="cd $HOME/Developer/workspace/gl52/boblbee && $EDITOR ."
+bb-edit() {
+  cd "$HOME/Developer/workspace/gl52/boblbee"
+  if [ -n "$EDITOR" ]; then
+    $EDITOR .
+  elif command -v code >/dev/null; then
+    code .
+  elif command -v subl >/dev/null; then
+    subl .
+  elif command -v vim >/dev/null; then
+    vim .
+  else
+    echo "No editor found. Set EDITOR environment variable or install VS Code/Sublime/Vim"
+    echo "Current directory: $(pwd)"
+  fi
+}
 
 ###############################################################################
 # Git Shortcuts
