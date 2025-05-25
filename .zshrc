@@ -310,7 +310,7 @@ bindkey "^[[B" down-line-or-beginning-search
 alias ls="ls -G"
 
 # Reload the shell (i.e. invoke as a login shell)
-alias reload="exec ${SHELL} -l"
+alias bb-reload="exec ${SHELL} -l"
 
 # Print each PATH entry on a separate line
 alias path='echo -e ${PATH//:/\\n}'
@@ -535,7 +535,7 @@ SYNC COMMANDS:
 
 UTILITIES:
   bb-edit       : Edit boblbee scripts directory
-  bb-reload     : Reload shell configuration
+  bb-reload     : Reload shell (restarts with fresh prompt)
 
 HELP:
   bb-help       : Show this help message
@@ -615,4 +615,28 @@ bb-status() {
 
 # Utilities
 alias bb-edit="cd $HOME/Developer/workspace/gl52/boblbee && $EDITOR ."
-alias bb-reload="source ~/.zshrc && echo '✓ Shell configuration reloaded'"
+
+###############################################################################
+# Git Shortcuts
+###############################################################################
+
+# Essential git aliases - save your fingers!
+alias gs='git status'                # Instead of: git status
+alias ga='git add'                   # Instead of: git add
+alias gaa='git add -A'               # Instead of: git add -A (add all)
+alias gc='git commit -m'             # Instead of: git commit -m "message"
+alias gp='git push'                  # Instead of: git push
+alias gpo='git push origin'          # Instead of: git push origin
+alias gl='git pull'                  # Instead of: git pull
+alias gd='git diff'                  # Instead of: git diff
+alias gco='git checkout'             # Instead of: git checkout
+alias gb='git branch'                # Instead of: git branch
+alias glog='git log --oneline --graph --decorate'  # Pretty git log
+
+# Useful git combinations
+alias gac='git add -A && git commit -m'  # Add all and commit: gac "message"
+alias gst='git stash'                     # Stash changes
+alias gsp='git stash pop'                 # Pop stash
+
+# Git status shortcuts
+alias g='git'                        # Even shorter git commands: g status
