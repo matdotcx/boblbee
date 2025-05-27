@@ -12,7 +12,7 @@ DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Paths
 ICLOUD_ZSHRC="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Ark/Sync/System/.zshrc"
-DOTFILES_ZSHRC="$DOTFILES_DIR/.zshrc"
+DOTFILES_ZSHRC="$DOTFILES_DIR/assets/.zshrc"
 HOME_ZSHRC="$HOME/.zshrc"
 
 # Color codes
@@ -24,6 +24,13 @@ NC='\033[0m' # No Color
 
 echo "=== Smart .zshrc Sync Setup ==="
 echo ""
+
+# Check if source .zshrc exists
+if [ ! -f "$DOTFILES_ZSHRC" ]; then
+  echo -e "${RED}✗ Source file not found: $DOTFILES_ZSHRC${NC}"
+  echo "Please ensure the .zshrc file exists in the assets directory"
+  exit 1
+fi
 
 # Function to check if iCloud Drive is available
 check_icloud() {
@@ -39,8 +46,22 @@ backup_zshrc() {
   if [ -f "$HOME_ZSHRC" ] && [ ! -L "$HOME_ZSHRC" ]; then
     local backup_file="$HOME_ZSHRC.backup.$(date +%Y%m%d_%H%M%S)"
     echo -e "${YELLOW}Backing up existing .zshrc to $backup_file${NC}"
-    cp "$HOME_ZSHRC" "$backup_file"
+    if cp "$HOME_ZSHRC" "$backup_file" 2>/dev/null; then
+      echo -e "${GREEN}✓ Backup created successfully${NC}"
+    else
+      echo -e "${RED}✗ Backup failed, continuing anyway${NC}"
+    fi
   fi
+}
+
+# Function to check write permissions
+check_permissions() {
+  local target_dir="$(dirname "$1")"
+  if [ ! -w "$target_dir" ]; then
+    echo -e "${RED}✗ No write permission for $target_dir${NC}"
+    return 1
+  fi
+  return 0
 }
 
 # Main logic
@@ -48,16 +69,22 @@ if check_icloud; then
   echo -e "${BLUE}iCloud Drive detected${NC}"
   
   # Ensure iCloud directory structure exists
-  mkdir -p "$(dirname "$ICLOUD_ZSHRC")"
+  if ! mkdir -p "$(dirname "$ICLOUD_ZSHRC")" 2>/dev/null; then
+    echo -e "${RED}✗ Failed to create iCloud directory${NC}"
+    exit 1
+  fi
   
   # If iCloud .zshrc doesn't exist, copy from dotfiles
   if [ ! -f "$ICLOUD_ZSHRC" ]; then
     echo -e "${YELLOW}Creating .zshrc in iCloud Drive${NC}"
-    cp "$DOTFILES_ZSHRC" "$ICLOUD_ZSHRC"
+    if ! check_permissions "$ICLOUD_ZSHRC" || ! cp "$DOTFILES_ZSHRC" "$ICLOUD_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}✗ Failed to copy .zshrc to iCloud Drive${NC}"
+      exit 1
+    fi
   fi
   
   # Check if home .zshrc is already correctly symlinked
-  if [ -L "$HOME_ZSHRC" ] && [ "$(readlink "$HOME_ZSHRC")" = "$ICLOUD_ZSHRC" ]; then
+  if [ -L "$HOME_ZSHRC" ] && [ "$(realpath "$HOME_ZSHRC" 2>/dev/null)" = "$(realpath "$ICLOUD_ZSHRC" 2>/dev/null)" ]; then
     echo -e "${GREEN}✓ .zshrc is already correctly symlinked to iCloud${NC}"
   else
     # Backup existing .zshrc if needed
@@ -67,15 +94,21 @@ if check_icloud; then
     rm -f "$HOME_ZSHRC"
     
     # Create symlink to iCloud
-    ln -s "$ICLOUD_ZSHRC" "$HOME_ZSHRC"
+    if ! check_permissions "$HOME_ZSHRC" || ! ln -s "$ICLOUD_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}✗ Failed to create symlink to iCloud Drive${NC}"
+      exit 1
+    fi
     echo -e "${GREEN}✓ Created symlink: ~/.zshrc → iCloud Drive${NC}"
   fi
   
   # Keep dotfiles version in sync
   if ! diff -q "$ICLOUD_ZSHRC" "$DOTFILES_ZSHRC" >/dev/null 2>&1; then
     echo -e "${YELLOW}Syncing iCloud version to dotfiles${NC}"
-    cp "$ICLOUD_ZSHRC" "$DOTFILES_ZSHRC"
-    echo -e "${GREEN}✓ Dotfiles .zshrc updated${NC}"
+    if ! check_permissions "$DOTFILES_ZSHRC" || ! cp "$ICLOUD_ZSHRC" "$DOTFILES_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}✗ Failed to sync to dotfiles, continuing anyway${NC}"
+    else
+      echo -e "${GREEN}✓ Dotfiles .zshrc updated${NC}"
+    fi
   fi
   
   echo ""
@@ -94,13 +127,19 @@ else
     else
       # Backup and update
       backup_zshrc
-      cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC"
+      if ! check_permissions "$HOME_ZSHRC" || ! cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+        echo -e "${RED}✗ Failed to update .zshrc from dotfiles${NC}"
+        exit 1
+      fi
       echo -e "${GREEN}✓ Updated .zshrc from dotfiles${NC}"
     fi
   else
     # Remove any symlink and copy from dotfiles
     rm -f "$HOME_ZSHRC"
-    cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC"
+    if ! check_permissions "$HOME_ZSHRC" || ! cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}✗ Failed to install .zshrc from dotfiles${NC}"
+      exit 1
+    fi
     echo -e "${GREEN}✓ Installed .zshrc from dotfiles${NC}"
   fi
   

@@ -1,93 +1,23 @@
 ###############################################################################
 # Title: zshrc
-# Description: An improved zshrc with Solarized Dark colors,
-# enhanced prompt with consistent symbols, and modern macOS compatibility
+# Description: An improved ~/.zshrc
+# Enhanced prompt with consistent symbols, and modern macOS compatibility
 # Source: Based on https://github.com/matdotcx/ with modifications
-# Edition: Tue 17 Sep 2024 21:04:42 BST
+# Edition: Sun 25 May 2025 23:38:12 BST
 ###############################################################################
 
 #!/bin/zsh
 export TERM="xterm-256color"
 export LANG=en_GB.UTF-8
 
-# Solarized Dark ANSI colors
-
-# Reset
-export ANSI_RESET="\033[0m"
-
-# Regular Colors
-export ANSI_BLACK="\033[0;30m"
-export ANSI_RED="\033[0;31m"
-export ANSI_GREEN="\033[0;32m"
-export ANSI_YELLOW="\033[0;33m"
-export ANSI_BLUE="\033[0;34m"
-export ANSI_PURPLE="\033[0;35m"
-export ANSI_CYAN="\033[0;36m"
-export ANSI_WHITE="\033[0;37m"
-
-# Bold
-export ANSI_BOLD_BLACK="\033[1;30m"
-export ANSI_BOLD_RED="\033[1;31m"
-export ANSI_BOLD_GREEN="\033[1;32m"
-export ANSI_BOLD_YELLOW="\033[1;33m"
-export ANSI_BOLD_BLUE="\033[1;34m"
-export ANSI_BOLD_PURPLE="\033[1;35m"
-export ANSI_BOLD_CYAN="\033[1;36m"
-export ANSI_BOLD_WHITE="\033[1;37m"
-
-# Background
-export ANSI_BG_BLACK="\033[40m"
-export ANSI_BG_RED="\033[41m"
-export ANSI_BG_GREEN="\033[42m"
-export ANSI_BG_YELLOW="\033[43m"
-export ANSI_BG_BLUE="\033[44m"
-export ANSI_BG_PURPLE="\033[45m"
-export ANSI_BG_CYAN="\033[46m"
-export ANSI_BG_WHITE="\033[47m"
-
-# Solarized Dark color codes
-export SD_BASE03="\033[1;30m"
-export SD_BASE02="\033[0;30m"
-export SD_BASE01="\033[1;32m"
-export SD_BASE00="\033[1;33m"
-export SD_BASE0="\033[1;34m"
-export SD_BASE1="\033[1;36m"
-export SD_BASE2="\033[0;37m"
-export SD_BASE3="\033[1;37m"
-export SD_YELLOW="\033[0;33m"
-export SD_ORANGE="\033[1;31m"
-export SD_RED="\033[0;31m"
-export SD_MAGENTA="\033[0;35m"
-export SD_VIOLET="\033[1;35m"
-export SD_BLUE="\033[0;34m"
-export SD_CYAN="\033[0;36m"
-export SD_GREEN="\033[0;32m"
-
-# Function to set the ANSI colors
-set_ansi_colors() {
-    echo -ne "\033]4;0;#073642\007"   # black
-    echo -ne "\033]4;1;#dc322f\007"   # red
-    echo -ne "\033]4;2;#859900\007"   # green
-    echo -ne "\033]4;3;#b58900\007"   # yellow
-    echo -ne "\033]4;4;#268bd2\007"   # blue
-    echo -ne "\033]4;5;#d33682\007"   # magenta
-    echo -ne "\033]4;6;#2aa198\007"   # cyan
-    echo -ne "\033]4;7;#eee8d5\007"   # white
-    echo -ne "\033]4;8;#002b36\007"   # bright black
-    echo -ne "\033]4;9;#cb4b16\007"   # bright red
-    echo -ne "\033]4;10;#586e75\007"  # bright green
-    echo -ne "\033]4;11;#657b83\007"  # bright yellow
-    echo -ne "\033]4;12;#839496\007"  # bright blue
-    echo -ne "\033]4;13;#6c71c4\007"  # bright magenta
-    echo -ne "\033]4;14;#93a1a1\007"  # bright cyan
-    echo -ne "\033]4;15;#fdf6e3\007"  # bright white
-    echo -ne "\033]10;#839496\007"    # foreground
-    echo -ne "\033]11;#002b36\007"    # background
-    echo -ne "\033]12;#93a1a1\007"    # cursor
-}
-
-# Call the function to set the colors
-set_ansi_colors
+# Basic ANSI colors for prompts
+export ANSI_RESET="%f"
+export ANSI_GREEN="%F{2}"
+export ANSI_YELLOW="%F{3}"
+export ANSI_BLUE="%F{4}"
+export ANSI_RED="%F{1}"
+export ANSI_CYAN="%F{6}"
+export ANSI_ORANGE="%F{9}"
 
 ###############################################################################
 # zsh specifics
@@ -110,24 +40,6 @@ ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
 # Prompt & motd
 ###############################################################################
 
-# Solarized Dark colors
-SOLARIZED_BASE03="%F{8}"    # Bright Black
-SOLARIZED_BASE02="%F{0}"    # Black
-SOLARIZED_BASE01="%F{10}"   # Bright Green
-SOLARIZED_BASE00="%F{11}"   # Bright Yellow
-SOLARIZED_BASE0="%F{12}"    # Bright Blue
-SOLARIZED_BASE1="%F{14}"    # Bright Cyan
-SOLARIZED_BASE2="%F{7}"     # White
-SOLARIZED_BASE3="%F{15}"    # Bright White
-SOLARIZED_YELLOW="%F{3}"    # Yellow
-SOLARIZED_ORANGE="%F{9}"    # Bright Red (used as Orange in Solarized)
-SOLARIZED_RED="%F{1}"       # Red
-SOLARIZED_MAGENTA="%F{5}"   # Magenta
-SOLARIZED_VIOLET="%F{13}"   # Bright Magenta
-SOLARIZED_BLUE="%F{4}"      # Blue
-SOLARIZED_CYAN="%F{6}"      # Cyan
-SOLARIZED_GREEN="%F{2}"     # Green
-
 # Echoes information about Git repository status when inside a Git repository
 git_info() {
   # Exit if not inside a Git repository
@@ -136,12 +48,12 @@ git_info() {
   # Git branch/tag, or name-rev if on detached head
   local GIT_LOCATION=${$(git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD)#(refs/heads/|tags/)}
 
-  local AHEAD="${SOLARIZED_YELLOW}↑NUM%f"
-  local BEHIND="${SOLARIZED_BLUE}↓NUM%f"
-  local MERGING="${SOLARIZED_MAGENTA}⧂%f"
-  local UNTRACKED="${SOLARIZED_RED}⊕%f"
-  local MODIFIED="${SOLARIZED_ORANGE}∆%f"
-  local STAGED="${SOLARIZED_GREEN}∙%f"
+  local AHEAD="%F{3}↑NUM%f"
+  local BEHIND="%F{4}↓NUM%f"
+  local MERGING="%F{5}⧂%f"
+  local UNTRACKED="%F{1}⊕%f"
+  local MODIFIED="%F{9}∆%f"
+  local STAGED="%F{2}∙%f"
 
   local -a DIVERGENCES
   local -a FLAGS
@@ -174,17 +86,36 @@ git_info() {
   fi
 
   local -a GIT_INFO
-  GIT_INFO+=( "${SOLARIZED_BLUE}[%f" )
+  GIT_INFO+=( "%F{4}[%f" )
   [[ ${#DIVERGENCES[@]} -ne 0 ]] && GIT_INFO+=( "${(j::)DIVERGENCES}" )
   [[ ${#FLAGS[@]} -ne 0 ]] && GIT_INFO+=( "${(j::)FLAGS}" )
-  GIT_INFO+=( "${SOLARIZED_CYAN}$GIT_LOCATION%f" )
-  GIT_INFO+=( "${SOLARIZED_BLUE}]%f" )
+  GIT_INFO+=( "%F{6}$GIT_LOCATION%f" )
+  GIT_INFO+=( "%F{4}]%f" )
   echo "${(j::)GIT_INFO}"
 }
 
+
+# Export Gitub gist  personal access token
+# Add the token to macOS keychain with `security add-generic-password -a ${USER} -s github-gist-token -w`
+# Test with `security find-generic-password -a ${USER} -s gh-token -w`
+
+export GITHUB_TOKEN=$(security find-generic-password -a ${USER} -s gh-token -w)
+
+# Set up `gist` function
+
+gist() {
+    [ -z "$GITHUB_TOKEN" ] && echo "Error: GITHUB_TOKEN not set" && return 1
+    filename="${1:-gist.txt}"
+    content="${2:-$(cat)}"
+    [ "$#" -eq 1 ] && [ ! -t 0 ] && content="$(cat)" && filename="$1"  # Handle piped input with filename
+    curl -s -H "Authorization: token $GITHUB_TOKEN" \
+         -H "Accept: application/vnd.github.v3+json" \
+         https://api.github.com/gists \
+         -d "{\"public\":false,\"files\":{\"$filename\":{\"content\":\"$content\"}}}" \
+         | grep -o '"html_url": *"https://gist[^"]*"' | cut -d'"' -f4
+}
+
 # Calculate and format system uptime in a human-readable string
-# Displays days, hours, minutes, and seconds with appropriate pluralization
-# and grammatically correct conjunctions (e.g., "2 days, 3 hours, and 1 minute")
 calculate_uptime() {
     local UPTIME=$(( $(date +%s) - $(sysctl -n kern.boottime | cut -d' ' -f4 | cut -d',' -f1) ))
     local d=$((UPTIME / 86400))
@@ -257,9 +188,9 @@ truncated_pwd() {
 colored_path() {
   local pwd_with_slash="$(truncated_pwd)/"
   if is_git_directory; then
-    echo "${SOLARIZED_GREEN}${pwd_with_slash}%f"
+    echo "%F{2}${pwd_with_slash}%f"
   else
-    echo "${SOLARIZED_BLUE}${pwd_with_slash}%f"
+    echo "%F{4}${pwd_with_slash}%f"
   fi
 }
 
@@ -271,18 +202,18 @@ is_ssh() {
 # Function to set the appropriate color for the host
 host_color() {
   if is_ssh; then
-    echo $SOLARIZED_ORANGE  # Orange for remote sessions
+    echo "%F{9}"  # Orange for remote
   else
-    echo $SOLARIZED_CYAN    # Cyan for local sessions
+    echo "%F{5}"  # Use magenta (%F{5}) for local
   fi
 }
 
 # Function to determine the appropriate arrow color and symbol
 arrow_prompt() {
     if [ $? -eq 0 ]; then
-        echo "${SOLARIZED_GREEN}"
+        echo "%F{2}"  # Green for success
     else
-        echo "${SOLARIZED_ORANGE}"
+        echo "%F{9}"  # Orange for failure
     fi
     if [ $UID -eq 0 ]; then
         echo "#"
@@ -296,17 +227,14 @@ precmd() {
   # Get git information
   git_status=$(git_info)
 
-  # Use the same color for both text and the vertical bar
-  PROMPT_COLOR="${SOLARIZED_BASE0}"
-
   # Print system information only once when the shell starts
   if [ -z "$MOTD_SHOWN" ]; then
-    print -P "\n${SOLARIZED_YELLOW}» salva nos, stella maris!%f"
+    print -P "\n» salva nos, stella maris!"
     print -P ""
-    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}You are connected to $(scutil --get ComputerName) | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)%f"
-    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}All access is logged. If you are not an authorised user, disconnect now.%f"
-    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}$(calculate_uptime)%f"
-    print -P "${PROMPT_COLOR}│%f  ${PROMPT_COLOR}$(date "+%A, %B %d, %Y | %T %Z")%f\n"
+    print -P "│  You are connected to $(scutil --get ComputerName) | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)"
+    print -P "│  All access is logged. If you are not an authorised user, disconnect now."
+    print -P "│  $(calculate_uptime)"
+    print -P "│  $(date "+%A, %B %d, %Y | %T %Z")\n"
     MOTD_SHOWN=1
   fi
 }
@@ -314,17 +242,17 @@ precmd() {
 # Set the prompt
 setopt prompt_subst
 
-# Main prompt (left side, showing arrow, user @ host, path, git status, and prompt character)
-PROMPT='$(arrow_prompt)%f ${SOLARIZED_YELLOW}%n @ $(host_color)%M%f $(colored_path) ${git_status}%{$'\n'%}$(arrow_prompt)%f '
+# Main prompt
+PROMPT='$(arrow_prompt)%f %F{3}%n%f @ $(host_color)%M%f $(colored_path) ${git_status}%{$'\n'%}$(arrow_prompt)%f '
 
 # Continuation prompt for multiline commands
-PROMPT2="${SOLARIZED_YELLOW}▶%f "
+PROMPT2="%F{3}▶%f "
 
 # Selection prompt used within a select loop
-PROMPT3="${SOLARIZED_YELLOW}?#%f "
+PROMPT3="%F{3}?#%f "
 
 # Execution trace prompt (setopt xtrace)
-PROMPT4="${SOLARIZED_RED}+%N:%i>%f "
+PROMPT4="%F{1}+%N:%i>%f "
 
 ###############################################################################
 # Terminal settings
@@ -348,7 +276,7 @@ setopt EXTENDED_GLOB
 setopt CORRECT
 setopt CORRECT_ALL
 
-# LSCOLORS - Default except for normal directories (first character) to replace hard-to-read blue
+# LSCOLORS - Default except for normal directories
 export LSCOLORS=Gxfxcxdxbxegedabagacad
 
 ###############################################################################
@@ -382,7 +310,7 @@ bindkey "^[[B" down-line-or-beginning-search
 alias ls="ls -G"
 
 # Reload the shell (i.e. invoke as a login shell)
-alias reload="exec ${SHELL} -l"
+alias bb-reload="exec ${SHELL} -l"
 
 # Print each PATH entry on a separate line
 alias path='echo -e ${PATH//:/\\n}'
@@ -425,6 +353,9 @@ cdf() {
 # Change Directory to the current user's home directory
 alias cdh='cd ~/'
 
+# Change Directory to the current user's iCloud Drive
+alias cdic='cd ~/Library/Mobile\ Documents/com~apple~CloudDocs'
+
 # All files, long form, short file sizes, colorized, time-order, with inodes
 alias ll='ls -AlhGti'
 
@@ -451,6 +382,7 @@ Color Meanings:
   Blue   : Path (for non-git directories)
   Cyan   : Git branch name
 "'
+
 ###############################################################################
 # Network
 ###############################################################################
@@ -471,9 +403,7 @@ list_ip_addresses() {
     ifconfig | grep "inet6 " | grep -v "fe80" | awk '{print $2}'
 }
 
-
 # Show active network interfaces
-
 alias ifactive="list_active_interfaces"
 list_active_interfaces() {
     networksetup -listallhardwareports | awk '
@@ -569,3 +499,164 @@ alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup
 
 # Lock current account - activate screensaver (which requires password on wake)
 alias lock="osascript -e 'tell application \"System Events\" to keystroke \"q\" using {command down,control down}'"
+
+# Set default editor
+export EDITOR="zed"
+
+# npm global path
+export PATH="/Users/diego/.npm-global/bin:$PATH"
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# bun completions
+[ -s "/Users/diego/.bun/_bun" ] && source "/Users/diego/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+
+###############################################################################
+# Boblbee Dotfiles Management
+###############################################################################
+
+# Main commands
+alias bb-help='echo "Boblbee Dotfiles Commands:
+
+SETUP & MAINTENANCE:
+  bb-setup      : Run complete system setup (new machines)
+  bb-upgrade    : Upgrade existing boblbee installation
+  bb-status     : Check sync status of all components
+
+SYNC COMMANDS:
+  bb-sync       : Sync all configurations (zshrc, claude, ssh)
+  bb-sync-zshrc : Sync shell configuration
+  bb-sync-claude: Sync Claude Code preferences
+  bb-sync-ssh   : Sync SSH configuration (iCloud only)
+
+UTILITIES:
+  bb-edit       : Edit boblbee scripts directory
+  bb-reload     : Reload shell (restarts with fresh prompt)
+
+HELP:
+  bb-help       : Show this help message
+  prompthelp    : Show prompt symbol meanings
+
+For detailed documentation, see:
+  ~/Developer/workspace/gl52/boblbee/DOCUMENTATION.md
+"'
+
+# Setup and maintenance
+alias bb-setup="cd $HOME/Developer/workspace/gl52/boblbee/scripts && ./index.sh"
+alias bb-upgrade="$HOME/Developer/workspace/gl52/boblbee/scripts/upgrade.sh"
+
+# Sync commands
+alias bb-sync-zshrc="$HOME/Developer/workspace/gl52/boblbee/scripts/zshrc-sync.sh"
+alias bb-sync-claude="$HOME/Developer/workspace/gl52/boblbee/scripts/claude-sync.sh"
+alias bb-sync-ssh="$HOME/Developer/workspace/gl52/boblbee/scripts/ssh-sync.sh"
+
+# Sync all function
+bb-sync() {
+  echo "=== Boblbee Full Sync ==="
+  echo ""
+  echo "Syncing zshrc..."
+  bb-sync-zshrc
+  echo ""
+  echo "Syncing Claude preferences..."
+  bb-sync-claude
+  echo ""
+  echo "Syncing SSH (if applicable)..."
+  bb-sync-ssh
+  echo ""
+  echo "✓ All syncs complete!"
+}
+
+# Status check function
+bb-status() {
+  echo "=== Boblbee Status ==="
+  echo ""
+
+  # Check boblbee directory
+  if [ -d "$HOME/Developer/workspace/gl52/boblbee" ]; then
+    echo "✓ Boblbee directory found"
+    cd "$HOME/Developer/workspace/gl52/boblbee"
+    echo "  Git status: $(git status -s | wc -l | xargs) uncommitted changes"
+  else
+    echo "✗ Boblbee directory not found"
+  fi
+
+  # Check iCloud
+  if [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
+    echo "✓ iCloud Drive available"
+  else
+    echo "✗ iCloud Drive not available"
+  fi
+
+  # Check symlinks
+  echo ""
+  echo "Configuration status:"
+  if [ -L "$HOME/.zshrc" ]; then
+    echo "  .zshrc: symlinked to $(readlink $HOME/.zshrc)"
+  else
+    echo "  .zshrc: regular file"
+  fi
+
+  if [ -L "$HOME/.ssh" ]; then
+    echo "  .ssh: symlinked to $(readlink $HOME/.ssh)"
+  else
+    echo "  .ssh: regular directory"
+  fi
+
+  if [ -L "$HOME/.config/claude/memory/user.md" ]; then
+    echo "  Claude: symlinked to dotfiles"
+  else
+    echo "  Claude: not configured"
+  fi
+}
+
+# Utilities
+bb-edit() {
+  cd "$HOME/Developer/workspace/gl52/boblbee"
+  if [ -n "$EDITOR" ]; then
+    $EDITOR .
+  elif command -v zed >/dev/null; then
+    zed .
+  elif command -v code >/dev/null; then
+    code .
+  elif command -v subl >/dev/null; then
+    subl .
+  elif command -v vim >/dev/null; then
+    vim .
+  else
+    echo "No editor found. Set EDITOR environment variable or install Zed/VS Code/Sublime/Vim"
+    echo "Current directory: $(pwd)"
+  fi
+}
+
+###############################################################################
+# Git Shortcuts
+###############################################################################
+
+# Essential git aliases - save your fingers!
+alias gs='git status'                # Instead of: git status
+alias ga='git add'                   # Instead of: git add
+alias gaa='git add -A'               # Instead of: git add -A (add all)
+alias gc='git commit -m'             # Instead of: git commit -m "message"
+alias gp='git push'                  # Instead of: git push
+alias gpo='git push origin'          # Instead of: git push origin
+alias gl='git pull'                  # Instead of: git pull
+alias gd='git diff'                  # Instead of: git diff
+alias gco='git checkout'             # Instead of: git checkout
+alias gb='git branch'                # Instead of: git branch
+alias glog='git log --oneline --graph --decorate'  # Pretty git log
+
+# Useful git combinations
+alias gac='git add -A && git commit -m'  # Add all and commit: gac "message"
+alias gst='git stash'                     # Stash changes
+alias gsp='git stash pop'                 # Pop stash
+
+# Git status shortcuts
+alias g='git'                        # Even shorter git commands: g status
+
+alias claude="/Users/diego/.claude/claude.sh"
