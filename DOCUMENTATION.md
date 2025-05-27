@@ -106,7 +106,6 @@ boblbee/
 │   ├── claude-sync.sh      # Claude memory sync
 │   ├── claude.sh           # Claude setup
 │   ├── dots.sh             # macOS preferences
-│   ├── identity.sh         # Identity management
 │   ├── index.sh            # Main installer
 │   ├── macports.sh         # MacPorts setup
 │   ├── new-machine.sh      # New machine helper

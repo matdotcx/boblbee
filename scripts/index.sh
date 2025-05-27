@@ -12,8 +12,6 @@ echo "Starting boblbee setup..."
 
 sudo sh touchid-sudo.sh
 sleep 3
-sh identity.sh
-sleep 3
 sh xcode.sh
 sleep 3
 sudo sh macports.sh
