@@ -2,7 +2,7 @@
 # Title: zshrc
 # Description: An improved ~/.zshrc
 # Enhanced prompt with consistent symbols, and modern macOS compatibility
-# Source: Based on https://github.com/matdotcx/ with modifications
+# Source: https://github.com/matdotcx/boblbee
 # Edition: Sun 25 May 2025 23:38:12 BST
 ###############################################################################
 
@@ -95,8 +95,8 @@ git_info() {
 }
 
 
-# Export Gitub gist  personal access token
-# Add the token to macOS keychain with `security add-generic-password -a ${USER} -s github-gist-token -w`
+# Export Gitub personal access token
+# Add the token to macOS keychain with `security add-generic-password -a ${USER} -s gh-token -w`
 # Test with `security find-generic-password -a ${USER} -s gh-token -w`
 
 export GITHUB_TOKEN=$(security find-generic-password -a ${USER} -s gh-token -w)
@@ -204,8 +204,31 @@ host_color() {
   if is_ssh; then
     echo "%F{9}"  # Orange for remote
   else
-    echo "%F{5}"  # Use magenta (%F{5}) for local
+    echo "%F{6}"  # Cyan for local
   fi
+}
+
+# Function to get the hostname display
+host_display() {
+  if is_ssh; then
+    echo "%M"  # Show actual hostname for remote
+  else
+    echo "localhost"  # Show "localhost" for local
+  fi
+}
+
+# Function to get milliseconds for timestamp
+get_milliseconds() {
+    if command -v gdate >/dev/null 2>&1; then
+        # macOS with GNU coreutils installed
+        gdate +%3N
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS without GNU coreutils - use python
+        python3 -c 'import datetime; print(f"{datetime.datetime.now().microsecond // 1000:03d}")'
+    else
+        # Linux
+        date +%3N
+    fi
 }
 
 # Function to determine the appropriate arrow color and symbol
@@ -231,7 +254,17 @@ precmd() {
   if [ -z "$MOTD_SHOWN" ]; then
     print -P "\n» salva nos, stella maris!"
     print -P ""
-    print -P "│  You are connected to $(scutil --get ComputerName) | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)"
+
+    # Display random MOTD line from file if it exists
+    if [ -f "$HOME/.motd" ]; then
+      local motd_line=$(sed '/^$/d' "$HOME/.motd" | shuf -n 1)
+      if [ -n "$motd_line" ]; then
+        print -P "│  ${motd_line}"
+        print -P ""
+      fi
+    fi
+
+    print -P "│  You are connected to $(ioreg -l | awk '/IOPlatformSerialNumber/ { print $4 }' | sed 's/"//g') | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)"
     print -P "│  All access is logged. If you are not an authorised user, disconnect now."
     print -P "│  $(calculate_uptime)"
     print -P "│  $(date "+%A, %B %d, %Y | %T %Z")\n"
@@ -243,7 +276,10 @@ precmd() {
 setopt prompt_subst
 
 # Main prompt
-PROMPT='$(arrow_prompt)%f %F{3}%n%f @ $(host_color)%M%f $(colored_path) ${git_status}%{$'\n'%}$(arrow_prompt)%f '
+PROMPT='$(arrow_prompt)%f %F{3}%n%f @ $(host_color)$(host_display)%f $(colored_path) ${git_status}%{$'\n'%}$(arrow_prompt)%f '
+
+# Right prompt with timestamp
+RPROMPT='%F{240}[%D{%H:%M:%S}.$(get_milliseconds) %D{%Z}]%f'
 
 # Continuation prompt for multiline commands
 PROMPT2="%F{3}▶%f "
@@ -353,8 +389,29 @@ cdf() {
 # Change Directory to the current user's home directory
 alias cdh='cd ~/'
 
+# Change Directory to the user's Developer directory
+alias cdd='cd ~/Developer'
+
+# Change Directory to the user's workspace directory
+alias cdw='cd ~/Developer/workspace'
+
 # Change Directory to the current user's iCloud Drive
 alias cdic='cd ~/Library/Mobile\ Documents/com~apple~CloudDocs'
+
+# Change Directory up to the root of a current project
+up() {
+  local directory=$PWD
+  local slashes=${directory//[^\/]/}
+  for (( n=${#slashes}; n > 0; --n )); do
+    directory=${directory%/*}
+    if [[ $directory == $HOME ||
+          -e $directory/package.json ||
+          -e $directory/Cargo.toml ||
+          -e $directory/.git ]]; then
+      cd "$directory" && return
+    fi
+  done
+}
 
 # All files, long form, short file sizes, colorized, time-order, with inodes
 alias ll='ls -AlhGti'
@@ -503,20 +560,156 @@ alias lock="osascript -e 'tell application \"System Events\" to keystroke \"q\" 
 # Set default editor
 export EDITOR="zed"
 
-# npm global path
-export PATH="/Users/diego/.npm-global/bin:$PATH"
+###############################################################################
+# Anthropic specific zshrc config inc. conda
+###############################################################################
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+source /Users/diego/code/anthropic/config/local/zsh/zshrc
+export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
-# bun completions
-[ -s "/Users/diego/.bun/_bun" ] && source "/Users/diego/.bun/_bun"
+# Added by Windsurf
+export PATH="/Users/diego/.codeium/windsurf/bin:$PATH"
 
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-alias claude="/Users/diego/.claude/local/claude"
+
+# Claude Exec - Natural language command executor using Claude Code
+# This function lets you describe what you want to do in plain language,
+# and Claude will generate and execute the appropriate shell command.
+
+function claude-exec() {
+    # Show help message if requested
+    if [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]]; then
+        cat << 'EOF'
+Claude Exec - Natural Language Command Executor
+---------------------------------------------
+This function uses Claude Code to translate plain English descriptions into
+executable zsh commands. It's like having an AI shell assistant that understands
+what you want to do and creates the command for you.
+
+Usage: claude-exec [-f] [-q] "description of command"
+
+Options:
+  -f        Force execution without confirmation
+  -q        Quiet mode - only show command output, no prompts or generated command
+  -h, --help    Show this help message
+
+Examples:
+  claude-exec "list all PDF files modified in the last week"
+  claude-exec -f "find the largest files in my Downloads folder"
+  claude-exec -q "show disk usage sorted by size" > usage.txt
+  claude-exec -fq "list all files" | wc -l
+
+Notes:
+- By default, the function shows the generated command and asks for confirmation
+- Use -f to execute immediately without confirmation
+- Use -q for quiet mode when piping output or redirecting to files
+- Combine -f and -q for pipe-friendly forced execution
+- The aliases 'cx' (regular), 'cxf' (force), 'cxq' (quiet), and 'cxfq' (force+quiet) are available
+- Special characters like '?' and '*' in your description are treated as
+  literal characters, not shell globs, thanks to noglob
+EOF
+        return 0
+    fi
+
+    local force_execute=false
+    local quiet_mode=false
+    local description
+
+    # Parse options
+    while getopts "fqh" opt; do
+        case $opt in
+            f) force_execute=true ;;
+            q) quiet_mode=true ;;
+            h) claude-exec --help; return 0 ;;
+            *) echo "Usage: claude-exec [-f] [-q] \"description of command\"" >&2
+               return 1 ;;
+        esac
+    done
+    shift $((OPTIND - 1))
+
+    # Check if description is provided
+    if [[ $# -eq 0 ]]; then
+        echo "Error: Please provide a command description" >&2
+        echo "Usage: claude-exec [-f] [-q] \"description of command\"" >&2
+        return 1
+    fi
+
+    description="$*"
+
+    # Craft a robust prompt for Claude
+    local prompt="You are a command-line assistant that must output EXACTLY the zsh command needed to accomplish the following task. Do not include any explanations, comments, or additional text.
+
+TASK: ${description}
+
+Requirements:
+1. Output ONLY the exact zsh command or commands (pipeline/multiline is acceptable)
+2. Ensure the command is valid zsh syntax
+3. Use standard zsh features like globs, functions, and built-ins where appropriate
+4. Do not include any markdown formatting, code blocks, or explanations
+5. Your response will be directly piped to zsh, so it must be executable as-is
+6. Ensure proper escaping of special characters if needed
+7. Commands should be optimized for the task, using the most efficient approach"
+
+    # Get the command from Claude
+    local command_output
+    command_output=$(claude -p "$prompt" 2>/dev/null)
+
+    # Check if Claude returned anything
+    if [[ -z "$command_output" ]]; then
+        [[ "$quiet_mode" = false ]] && echo "Error: Claude returned no output" >&2
+        return 1
+    fi
+
+    # Check if output looks like an error message (starts with "Error:" or contains common error patterns)
+    if [[ "$command_output" =~ ^Error: ]] || [[ "$command_output" =~ "I apologize" ]] || [[ "$command_output" =~ "I cannot" ]]; then
+        [[ "$quiet_mode" = false ]] && echo "Claude returned an error or refusal:" >&2
+        [[ "$quiet_mode" = false ]] && echo "$command_output" >&2
+        return 1
+    fi
+
+    # In quiet mode, skip all prompts and just execute
+    if [[ "$quiet_mode" = true ]]; then
+        eval "$command_output"
+        return $?
+    fi
+
+    # Display the command for review
+    echo "Generated command:"
+    echo "----------------"
+    echo "$command_output" | bat -l zsh --style=plain --paging=never 2>/dev/null || echo "$command_output"
+    echo "----------------"
+
+    # Ask for confirmation unless -f flag is used
+    if [[ "$force_execute" = true ]]; then
+        echo "Executing command..."
+        eval "$command_output"
+    else
+        echo ""
+        echo -n "Execute this command? [y/N] "
+        read -r response
+        if [[ "$response" =~ ^[Yy]$ ]]; then
+            echo "Executing command..."
+            eval "$command_output"
+        else
+            echo "Command execution cancelled."
+            return 1
+        fi
+    fi
+}
+
+# Aliases for convenience - using noglob to prevent special characters from being interpreted as globs
+alias cx='noglob claude-exec'
+alias cxf='noglob claude-exec -f'
+alias cxq='noglob claude-exec -q'
+alias cxfq='noglob claude-exec -fq'
+
+# Tab completion for claude-exec
+_claude_exec_complete() {
+    _arguments \
+        '-f[Force execution without confirmation]' \
+        '-q[Quiet mode - only show command output]' \
+        '1:description:_files'
+}
+compdef _claude_exec_complete claude-exec
 
 ###############################################################################
 # Boblbee Dotfiles Management
@@ -659,3 +852,5 @@ alias gsp='git stash pop'                 # Pop stash
 
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
+
+alias claude="/Users/diego/.claude/claude.sh"
