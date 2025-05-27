@@ -2,20 +2,32 @@
 
 check_icloud_signin_and_create_symlinks() {
     local account_info=$(defaults read MobileMeAccounts 2>/dev/null)
+    local had_errors=false
 
     if [[ -z "$account_info" ]]; then
         echo "No iCloud account found."
         return 1
     fi
 
-    local account_id=$(echo "$account_info" | sed -n '/AccountID/,/;/p' | awk -F'"' '{print $2; exit}')
-
-    if [[ -n "$account_id" ]]; then
-        echo "iCloud account detected: $account_id"
-        create_symlink ~/Library/Mobile\ Documents/com\~apple\~CloudDocs/Ark/Sync/System/.ssh ~/.ssh
-        create_symlink ~/Library/Mobile\ Documents/com\~apple\~CloudDocs/Ark/Sync/System/.zshrc ~/.zshrc
-        echo "Symlink creation completed."
-        return 0
+    local apple_id=$(echo "$account_info" | grep "AccountID" | head -1 | sed 's/.*= "\(.*\)";/\1/')
+    
+    if [[ -n "$apple_id" ]]; then
+        echo "Found iCloud account: $apple_id"
+        
+        # Use proper path escaping
+        local icloud_path="${HOME}/Library/Mobile Documents/com~apple~CloudDocs/Ark/Sync/System"
+        
+        # Create symlinks and track errors
+        create_symlink "${icloud_path}/.ssh" "${HOME}/.ssh" || had_errors=true
+        create_symlink "${icloud_path}/.zshrc" "${HOME}/.zshrc" || had_errors=true
+        
+        if [ "$had_errors" = true ]; then
+            echo "Symlink creation ended with errors."
+            return 1
+        else
+            echo "Symlink creation completed successfully."
+            return 0
+        fi
     else
         echo "No valid iCloud account found."
         return 1

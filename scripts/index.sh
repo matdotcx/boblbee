@@ -4,21 +4,25 @@
 # Source; https://github.com/matdotcx/
 #########################################################
 
-# Ask for the administrator password upfront
-sudo -v
-
-# Keep-alive: update existing `sudo` time stamp until we have finished
-while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+# Note: Some scripts require sudo privileges.
+# They will ask for password when needed.
 
 # Run each program
+echo "Starting boblbee setup..."
 
 sudo sh touchid-sudo.sh
 sleep 3
-sudo sh identity.sh
+sh identity.sh
 sleep 3
-sudo sh xcode.sh
+sh xcode.sh
 sleep 3
 sudo sh macports.sh
 sleep 3
-sudo sh dots.sh
+sh dots.sh
+sleep 3
+sh claude.sh
+sleep 3
+sh zshrc-sync.sh
+sleep 3
+sh ssh-sync.sh
 sleep 3

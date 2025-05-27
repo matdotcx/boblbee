@@ -30,7 +30,7 @@ echo "Current user: $CURRENT_USER (ID: $USER_ID)"
 # User-Configurable Variables
 #########################################################
 
-COMPUTER_NAME="Bloodhound" # Set your desired computer name here
+COMPUTER_NAME="Buckingham" # Set your desired computer name here
 MACOS_UI_COLOR="orange" # Set your desired UI color here
 
 echo "Computer name set to: $COMPUTER_NAME"
@@ -113,8 +113,8 @@ run_command "sudo defaults write /Library/Preferences/SystemConfiguration/com.ap
 echo ""
 echo "Setting macOS UI color…"
 if get_macos_color_values; then
-    run_command "sudo -u \"$CURRENT_USER\" defaults write -g AppleAccentColor -int $accent_color" "Set accent color"
-    run_command "sudo -u \"$CURRENT_USER\" defaults write -g AppleHighlightColor -string '$highlight_color'" "Set highlight color"
+    run_command "defaults write -g AppleAccentColor -int $accent_color" "Set accent color"
+    run_command "defaults write -g AppleHighlightColor -string '$highlight_color'" "Set highlight color"
     echo "UI color changes applied. A logout/login or restart is required for all changes to take effect."
 else
     echo "Failed to set macOS UI color"
