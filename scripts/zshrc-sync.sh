@@ -41,17 +41,28 @@ check_icloud() {
   fi
 }
 
+# Function to log messages with timestamp
+log_message() {
+  local level="$1"
+  local message="$2"
+  echo "$(date '+%Y-%m-%d %H:%M:%S') [$level] $message" >&2
+}
+
 # Function to backup existing .zshrc
 backup_zshrc() {
   if [ -f "$HOME_ZSHRC" ] && [ ! -L "$HOME_ZSHRC" ]; then
     local backup_file="$HOME_ZSHRC.backup.$(date +%Y%m%d_%H%M%S)"
     echo -e "${YELLOW}Backing up existing .zshrc to $backup_file${NC}"
     if cp "$HOME_ZSHRC" "$backup_file" 2>/dev/null; then
-      echo -e "${GREEN}✓ Backup created successfully${NC}"
+      echo -e "${GREEN}Backup created successfully${NC}"
+      return 0
     else
-      echo -e "${RED}✗ Backup failed, continuing anyway${NC}"
+      echo -e "${RED}Backup failed${NC}"
+      log_message "ERROR" "Failed to backup $HOME_ZSHRC to $backup_file"
+      return 1
     fi
   fi
+  return 0
 }
 
 # Function to check write permissions
@@ -70,44 +81,75 @@ if check_icloud; then
   
   # Ensure iCloud directory structure exists
   if ! mkdir -p "$(dirname "$ICLOUD_ZSHRC")" 2>/dev/null; then
-    echo -e "${RED}✗ Failed to create iCloud directory${NC}"
+    echo -e "${RED}Failed to create iCloud directory${NC}"
+    log_message "ERROR" "Failed to create directory: $(dirname "$ICLOUD_ZSHRC")"
     exit 1
   fi
   
   # If iCloud .zshrc doesn't exist, copy from dotfiles
   if [ ! -f "$ICLOUD_ZSHRC" ]; then
     echo -e "${YELLOW}Creating .zshrc in iCloud Drive${NC}"
-    if ! check_permissions "$ICLOUD_ZSHRC" || ! cp "$DOTFILES_ZSHRC" "$ICLOUD_ZSHRC" 2>/dev/null; then
-      echo -e "${RED}✗ Failed to copy .zshrc to iCloud Drive${NC}"
+    if ! check_permissions "$ICLOUD_ZSHRC"; then
+      log_message "ERROR" "No write permission for iCloud directory"
+      exit 1
+    fi
+    if ! cp "$DOTFILES_ZSHRC" "$ICLOUD_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}Failed to copy .zshrc to iCloud Drive${NC}"
+      log_message "ERROR" "Failed to copy $DOTFILES_ZSHRC to $ICLOUD_ZSHRC"
       exit 1
     fi
   fi
   
   # Check if home .zshrc is already correctly symlinked
-  if [ -L "$HOME_ZSHRC" ] && [ "$(realpath "$HOME_ZSHRC" 2>/dev/null)" = "$(realpath "$ICLOUD_ZSHRC" 2>/dev/null)" ]; then
-    echo -e "${GREEN}✓ .zshrc is already correctly symlinked to iCloud${NC}"
-  else
+  symlink_correct=false
+  if [ -L "$HOME_ZSHRC" ]; then
+    # Use readlink for better symlink resolution
+    current_target="$(readlink "$HOME_ZSHRC" 2>/dev/null)"
+    if [ "$current_target" = "$ICLOUD_ZSHRC" ] || [ "$(cd "$(dirname "$HOME_ZSHRC")" && realpath "$current_target" 2>/dev/null)" = "$(realpath "$ICLOUD_ZSHRC" 2>/dev/null)" ]; then
+      echo -e "${GREEN}.zshrc is already correctly symlinked to iCloud${NC}"
+      symlink_correct=true
+    else
+      log_message "INFO" "Symlink exists but points to wrong target: $current_target"
+    fi
+  fi
+  
+  if [ "$symlink_correct" = false ]; then
     # Backup existing .zshrc if needed
-    backup_zshrc
+    if ! backup_zshrc; then
+      log_message "WARN" "Backup failed, continuing with caution"
+    fi
     
     # Remove existing .zshrc (file or wrong symlink)
-    rm -f "$HOME_ZSHRC"
-    
-    # Create symlink to iCloud
-    if ! check_permissions "$HOME_ZSHRC" || ! ln -s "$ICLOUD_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
-      echo -e "${RED}✗ Failed to create symlink to iCloud Drive${NC}"
+    if ! rm -f "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}Failed to remove existing .zshrc${NC}"
+      log_message "ERROR" "Failed to remove $HOME_ZSHRC"
       exit 1
     fi
-    echo -e "${GREEN}✓ Created symlink: ~/.zshrc → iCloud Drive${NC}"
+    
+    # Create symlink to iCloud
+    if ! check_permissions "$HOME_ZSHRC"; then
+      log_message "ERROR" "No write permission for home directory"
+      exit 1
+    fi
+    if ! ln -s "$ICLOUD_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}Failed to create symlink to iCloud Drive${NC}"
+      log_message "ERROR" "Failed to create symlink from $HOME_ZSHRC to $ICLOUD_ZSHRC"
+      exit 1
+    fi
+    echo -e "${GREEN}Created symlink: ~/.zshrc → iCloud Drive${NC}"
   fi
   
   # Keep dotfiles version in sync
   if ! diff -q "$ICLOUD_ZSHRC" "$DOTFILES_ZSHRC" >/dev/null 2>&1; then
     echo -e "${YELLOW}Syncing iCloud version to dotfiles${NC}"
-    if ! check_permissions "$DOTFILES_ZSHRC" || ! cp "$ICLOUD_ZSHRC" "$DOTFILES_ZSHRC" 2>/dev/null; then
-      echo -e "${RED}✗ Failed to sync to dotfiles, continuing anyway${NC}"
+    if ! check_permissions "$DOTFILES_ZSHRC"; then
+      echo -e "${RED}No write permission for dotfiles, continuing anyway${NC}"
+      log_message "WARN" "No write permission for $DOTFILES_ZSHRC"
+    elif ! cp "$ICLOUD_ZSHRC" "$DOTFILES_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}Failed to sync to dotfiles, continuing anyway${NC}"
+      log_message "WARN" "Failed to copy $ICLOUD_ZSHRC to $DOTFILES_ZSHRC"
     else
-      echo -e "${GREEN}✓ Dotfiles .zshrc updated${NC}"
+      echo -e "${GREEN}Dotfiles .zshrc updated${NC}"
     fi
   fi
   
@@ -123,24 +165,42 @@ else
   if [ -f "$HOME_ZSHRC" ] && ! [ -L "$HOME_ZSHRC" ]; then
     # Compare with dotfiles version
     if diff -q "$HOME_ZSHRC" "$DOTFILES_ZSHRC" >/dev/null 2>&1; then
-      echo -e "${GREEN}✓ .zshrc is up to date${NC}"
+      echo -e "${GREEN}.zshrc is up to date${NC}"
     else
       # Backup and update
-      backup_zshrc
-      if ! check_permissions "$HOME_ZSHRC" || ! cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
-        echo -e "${RED}✗ Failed to update .zshrc from dotfiles${NC}"
+      if ! backup_zshrc; then
+        log_message "WARN" "Backup failed, continuing with caution"
+      fi
+      if ! check_permissions "$HOME_ZSHRC"; then
+        echo -e "${RED}No write permission for home directory${NC}"
+        log_message "ERROR" "No write permission for $HOME_ZSHRC"
         exit 1
       fi
-      echo -e "${GREEN}✓ Updated .zshrc from dotfiles${NC}"
+      if ! cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+        echo -e "${RED}Failed to update .zshrc from dotfiles${NC}"
+        log_message "ERROR" "Failed to copy $DOTFILES_ZSHRC to $HOME_ZSHRC"
+        exit 1
+      fi
+      echo -e "${GREEN}Updated .zshrc from dotfiles${NC}"
     fi
   else
     # Remove any symlink and copy from dotfiles
-    rm -f "$HOME_ZSHRC"
-    if ! check_permissions "$HOME_ZSHRC" || ! cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
-      echo -e "${RED}✗ Failed to install .zshrc from dotfiles${NC}"
+    if ! rm -f "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}Failed to remove existing .zshrc${NC}"
+      log_message "ERROR" "Failed to remove $HOME_ZSHRC"
       exit 1
     fi
-    echo -e "${GREEN}✓ Installed .zshrc from dotfiles${NC}"
+    if ! check_permissions "$HOME_ZSHRC"; then
+      echo -e "${RED}No write permission for home directory${NC}"
+      log_message "ERROR" "No write permission for $HOME_ZSHRC"
+      exit 1
+    fi
+    if ! cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${RED}Failed to install .zshrc from dotfiles${NC}"
+      log_message "ERROR" "Failed to copy $DOTFILES_ZSHRC to $HOME_ZSHRC"
+      exit 1
+    fi
+    echo -e "${GREEN}Installed .zshrc from dotfiles${NC}"
   fi
   
   echo ""
@@ -151,7 +211,7 @@ fi
 # Final check
 if [ -f "$HOME_ZSHRC" ] || [ -L "$HOME_ZSHRC" ]; then
   echo ""
-  echo -e "${GREEN}✓ .zshrc setup complete!${NC}"
+  echo -e "${GREEN}.zshrc setup complete!${NC}"
   
   # Update the claude-sync alias path to be relative to home
   if grep -q "claude-sync.*boblbee/scripts/claude-sync.sh" "$HOME_ZSHRC"; then
@@ -162,6 +222,6 @@ if [ -f "$HOME_ZSHRC" ] || [ -L "$HOME_ZSHRC" ]; then
   fi
 else
   echo ""
-  echo -e "${RED}✗ Setup failed - please check permissions${NC}"
+  echo -e "${RED}Setup failed - please check permissions${NC}"
   exit 1
 fi

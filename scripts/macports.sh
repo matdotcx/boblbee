@@ -25,18 +25,49 @@ if [ -d "/opt/mports" ]; then
 fi
 
 # Create a new mports folder in /opt/ and cd into it
-sudo mkdir /opt/mports
-cd /opt/mports
+if ! sudo mkdir /opt/mports; then
+    echo "Error: Failed to create /opt/mports directory"
+    exit 1
+fi
+
+if ! cd /opt/mports; then
+    echo "Error: Failed to change to /opt/mports directory"
+    exit 1
+fi
 
 # Clone the macports-base repo
-git clone https://github.com/macports/macports-base.git && cd macports-base
+if ! git clone https://github.com/macports/macports-base.git; then
+    echo "Error: Failed to clone macports-base repository"
+    exit 1
+fi
+
+if ! cd macports-base; then
+    echo "Error: Failed to change to macports-base directory"
+    exit 1
+fi
 
 # Checkout the current version and build / install / clean to `/opt/local`
-git checkout
+if ! git checkout; then
+    echo "Error: Failed to checkout current version"
+    exit 1
+fi
+
 echo "Building MacPorts"
-./configure --enable-readline
-make
-sudo make install
+if ! ./configure --enable-readline; then
+    echo "Error: Failed to configure MacPorts"
+    exit 1
+fi
+
+if ! make; then
+    echo "Error: Failed to build MacPorts"
+    exit 1
+fi
+
+if ! sudo make install; then
+    echo "Error: Failed to install MacPorts"
+    exit 1
+fi
+
 make distclean
 
 # Adds the apropriate path for MacPorts to /etc/paths.d

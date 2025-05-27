@@ -73,17 +73,17 @@ echo "when you run the main setup script."
 echo ""
 
 # Check for boblbee installation
-if [ -d "$HOME/Developer/workspace/gl52/boblbee" ]; then
+if [ -d "$HOME/Developer/workspace/matdotcx/boblbee" ]; then
   echo -e "${BLUE}Boblbee detected. Would you like to run the full setup? (y/n)${NC}"
   read -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
-    cd "$HOME/Developer/workspace/gl52/boblbee"
+    cd "$HOME/Developer/workspace/matdotcx/boblbee"
     ./scripts/index.sh
   else
     echo ""
     echo "To complete setup manually, run:"
-    echo "  cd ~/Developer/workspace/gl52/boblbee"
+    echo "  cd ~/Developer/workspace/matdotcx/boblbee"
     echo "  ./scripts/index.sh"
   fi
 else
@@ -91,10 +91,10 @@ else
   echo ""
   echo "To complete setup:"
   echo "1. Clone boblbee:"
-  echo "   git clone https://github.com/yourusername/boblbee.git ~/Developer/workspace/gl52/boblbee"
+  echo "   git clone https://github.com/matdotcx/boblbee.git ~/Developer/workspace/matdotcx/boblbee"
   echo ""
   echo "2. Run setup:"
-  echo "   cd ~/Developer/workspace/gl52/boblbee"
+  echo "   cd ~/Developer/workspace/matdotcx/boblbee"
   echo "   ./scripts/index.sh"
 fi
 

@@ -243,8 +243,7 @@ else
     fi
 
     run_command "sudo systemsetup -setrestartpowerfailure on" "Enable restart on power failure"
-    run_command "sudo systemsetup -setwaitforstartupafterpowerfaile"
-        run_command "sudo systemsetup -setwaitforstartupafterpowerfailure 30" "Set wait for startup after power failure to 30 seconds"
+    run_command "sudo systemsetup -setwaitforstartupafterpowerfailure 30" "Set wait for startup after power failure to 30 seconds"
     fi
 
     #########################################################
