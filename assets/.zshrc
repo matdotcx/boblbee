@@ -3,7 +3,7 @@
 # Description: An improved ~/.zshrc
 # Enhanced prompt with consistent symbols, and modern macOS compatibility
 # Source: https://github.com/matdotcx/boblbee
-# Edition: Sun 25 May 2025 23:38:12 BST
+# Edition: Tue 27 May 2025 16:40:08 BST
 ###############################################################################
 
 #!/bin/zsh
