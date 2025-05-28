@@ -258,7 +258,7 @@ precmd() {
 
     # Display random MOTD line from file if it exists
     if [ -f "$HOME/.motd" ]; then
-      local motd_line=$(sed '/^$/d' "$HOME/.motd" | shuf -n 1)
+      local motd_line=$(sed '/^$/d' "$HOME/.motd" | sort -R | head -1)
       if [ -n "$motd_line" ]; then
         print -P "│  ${motd_line}"
         print -P ""
