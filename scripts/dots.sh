@@ -30,7 +30,25 @@ echo "Current user: $CURRENT_USER (ID: $USER_ID)"
 # User-Configurable Variables
 #########################################################
 
-COMPUTER_NAME="Buckingham" # Set your desired computer name here
+# Get current computer name
+current_name=$(scutil --get ComputerName 2>/dev/null || echo "Unknown")
+
+# Prompt for computer name
+echo "Current computer name: $current_name"
+read -p "Enter new computer name (or press Enter to keep current): " input_name
+
+if [[ -n "$input_name" ]]; then
+    # Validate input (no spaces or special characters for hostname compatibility)
+    if [[ "$input_name" =~ ^[a-zA-Z0-9-]+$ ]]; then
+        COMPUTER_NAME="$input_name"
+    else
+        echo "Invalid name. Using current name: $current_name"
+        COMPUTER_NAME="$current_name"
+    fi
+else
+    COMPUTER_NAME="$current_name"
+fi
+
 MACOS_UI_COLOR="orange" # Set your desired UI color here
 
 echo "Computer name set to: $COMPUTER_NAME"
