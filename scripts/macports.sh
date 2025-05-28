@@ -14,6 +14,23 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # Define timestamp variable
 timestamp=$(date +%d-%m-%Y_%H.%M.%S)
 
+# Check if MacPorts was recently installed (less than 24 hours ago)
+if [ -f "/opt/local/bin/port" ]; then
+    install_time=$(stat -f %m /opt/local/bin/port 2>/dev/null)
+    current_time=$(date +%s)
+    time_diff=$((current_time - install_time))
+    hours_old=$((time_diff / 3600))
+    
+    if [ $hours_old -lt 24 ]; then
+        echo "MacPorts was installed $hours_old hours ago (less than 24 hours)."
+        read -p "Do you want to skip MacPorts installation? (y/N): " skip_install
+        if [[ $skip_install =~ ^[Yy]$ ]]; then
+            echo "Skipping MacPorts installation."
+            exit 0
+        fi
+    fi
+fi
+
 #########################################################
 
 # Check if the mports folder exists in /opt/
