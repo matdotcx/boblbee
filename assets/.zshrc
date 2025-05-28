@@ -748,6 +748,7 @@ alias bb-upgrade="$HOME/Developer/workspace/matdotcx/boblbee/scripts/upgrade.sh"
 alias bb-sync-zshrc="$HOME/Developer/workspace/matdotcx/boblbee/scripts/zshrc-sync.sh"
 alias bb-sync-claude="$HOME/Developer/workspace/matdotcx/boblbee/scripts/claude-sync.sh"
 alias bb-sync-ssh="$HOME/Developer/workspace/matdotcx/boblbee/scripts/ssh-sync.sh"
+alias bb-sync-motd="$HOME/Developer/workspace/matdotcx/boblbee/scripts/motd-sync.sh"
 
 # Sync all function
 bb-sync() {
@@ -755,6 +756,9 @@ bb-sync() {
   echo ""
   echo "Syncing zshrc..."
   bb-sync-zshrc
+  echo ""
+  echo "Syncing motd..."
+  bb-sync-motd
   echo ""
   echo "Syncing Claude preferences..."
   bb-sync-claude
