@@ -566,7 +566,6 @@ export EDITOR="zed"
 
 if [[ -f "/Users/diego/code/anthropic/config/local/zsh/zshrc" ]]; then
     source /Users/diego/code/anthropic/config/local/zsh/zshrc
-    echo -n "A"
 fi
 export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
