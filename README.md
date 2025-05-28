@@ -22,7 +22,7 @@ What makes this particular collection special is its intelligent sync system - i
 
 ```bash
 # Download and extract boblbee
-mkdir -p ~/Developer/workspace/gl52/ && cd ~/Developer/workspace/gl52
+mkdir -p ~/Developer/workspace/matdotcx/ && cd ~/Developer/workspace/matdotcx
 curl -L http://github.com/matdotcx/boblbee/archive/gold.tar.gz | tar zxf - && mv boblbee-gold boblbee
 
 # Run the setup
@@ -41,7 +41,7 @@ This will:
 ### Upgrading Existing Installation
 
 ```bash
-cd ~/Developer/workspace/gl52/boblbee
+cd ~/Developer/workspace/matdotcx/boblbee
 ./scripts/upgrade.sh
 ```
 

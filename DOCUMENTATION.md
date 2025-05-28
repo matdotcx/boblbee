@@ -155,8 +155,8 @@ Memory hierarchy:
 
 1. **Download boblbee**
    ```bash
-   mkdir -p ~/Developer/workspace/gl52/
-   cd ~/Developer/workspace/gl52
+   mkdir -p ~/Developer/workspace/matdotcx/
+   cd ~/Developer/workspace/matdotcx
    curl -L http://github.com/matdotcx/boblbee/archive/gold.tar.gz | tar zxf -
    mv boblbee-gold boblbee
    ```
@@ -234,7 +234,7 @@ The setup process configures:
 
 4. **Commit to git**
    ```bash
-   cd ~/Developer/workspace/gl52/boblbee
+   cd ~/Developer/workspace/matdotcx/boblbee
    git add -A
    git commit -m "feat: add new aliases"
    git push
@@ -255,13 +255,13 @@ cd ~/Developer/workspace/gl52/boblbee && git status
 1. **On the source machine**
    ```bash
    bb-sync
-   cd ~/Developer/workspace/gl52/boblbee
+   cd ~/Developer/workspace/matdotcx/boblbee
    git push
    ```
 
 2. **On the target machine**
    ```bash
-   cd ~/Developer/workspace/gl52/boblbee
+   cd ~/Developer/workspace/matdotcx/boblbee
    git pull
    bb-sync
    bb-reload
@@ -371,7 +371,7 @@ If automated tools fail:
 
 2. **Reset configuration**
    ```bash
-   cd ~/Developer/workspace/gl52/boblbee
+   cd ~/Developer/workspace/matdotcx/boblbee
    git reset --hard origin/gold
    git pull
    ```
