@@ -570,8 +570,6 @@ if [[ -f "/Users/diego/code/anthropic/config/local/zsh/zshrc" ]]; then
 fi
 export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
-# Added by Windsurf
-export PATH="/Users/diego/.codeium/windsurf/bin:$PATH"
 
 
 # Claude Exec - Natural language command executor using Claude Code
