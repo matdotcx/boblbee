@@ -86,7 +86,7 @@ get_macos_color_values() {
         [graphite]="0.847059 0.847059 0.862745 Graphite"
     )
 
-    if [[ -v ACCENT_COLORS[$color] ]]; then
+    if [[ -n "${ACCENT_COLORS[$color]}" ]]; then
         accent_color=${ACCENT_COLORS[$color]}
         highlight_color="${HIGHLIGHT_COLORS[$color]}"
         echo "Color values set for $color"
