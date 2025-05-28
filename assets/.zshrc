@@ -9,6 +9,7 @@
 #!/bin/zsh
 export TERM="xterm-256color"
 export LANG=en_GB.UTF-8
+export PATH="$HOME/bin:$HOME/.local/bin:/opt/local/bin:/usr/local/bin:$PATH"
 
 # Basic ANSI colors for prompts
 export ANSI_RESET="%f"
@@ -564,10 +565,10 @@ export EDITOR="zed"
 # Anthropic specific zshrc config inc. conda
 ###############################################################################
 
-source /Users/diego/code/anthropic/config/local/zsh/zshrc
-export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
-
-
+# Source Anthropic config if it exists
+if [ -f /Users/diego/code/anthropic/config/local/zsh/zshrc ]; then
+    source /Users/diego/code/anthropic/config/local/zsh/zshrc
+fi
 
 # Claude Exec - Natural language command executor using Claude Code
 # This function lets you describe what you want to do in plain language,
@@ -850,5 +851,3 @@ alias gsp='git stash pop'                 # Pop stash
 
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
-
-alias claude="/usr/local/bin/claude"
