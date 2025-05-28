@@ -564,7 +564,10 @@ export EDITOR="zed"
 # Anthropic specific zshrc config inc. conda
 ###############################################################################
 
-source /Users/diego/code/anthropic/config/local/zsh/zshrc
+if [[ -f "/Users/diego/code/anthropic/config/local/zsh/zshrc" ]]; then
+    source /Users/diego/code/anthropic/config/local/zsh/zshrc
+    echo -n "A"
+fi
 export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
 # Added by Windsurf
