@@ -247,7 +247,7 @@ The setup process configures:
 bb-status
 
 # Git status
-cd ~/Developer/workspace/gl52/boblbee && git status
+cd ~/Developer/workspace/matdotcx/boblbee && git status
 ```
 
 ### Syncing Between Machines

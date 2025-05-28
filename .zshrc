@@ -739,17 +739,17 @@ HELP:
   prompthelp    : Show prompt symbol meanings
 
 For detailed documentation, see:
-  ~/Developer/workspace/gl52/boblbee/DOCUMENTATION.md
+  ~/Developer/workspace/matdotcx/boblbee/DOCUMENTATION.md
 "'
 
 # Setup and maintenance
-alias bb-setup="cd $HOME/Developer/workspace/gl52/boblbee/scripts && ./index.sh"
-alias bb-upgrade="$HOME/Developer/workspace/gl52/boblbee/scripts/upgrade.sh"
+alias bb-setup="cd $HOME/Developer/workspace/matdotcx/boblbee/scripts && ./index.sh"
+alias bb-upgrade="$HOME/Developer/workspace/matdotcx/boblbee/scripts/upgrade.sh"
 
 # Sync commands
-alias bb-sync-zshrc="$HOME/Developer/workspace/gl52/boblbee/scripts/zshrc-sync.sh"
-alias bb-sync-claude="$HOME/Developer/workspace/gl52/boblbee/scripts/claude-sync.sh"
-alias bb-sync-ssh="$HOME/Developer/workspace/gl52/boblbee/scripts/ssh-sync.sh"
+alias bb-sync-zshrc="$HOME/Developer/workspace/matdotcx/boblbee/scripts/zshrc-sync.sh"
+alias bb-sync-claude="$HOME/Developer/workspace/matdotcx/boblbee/scripts/claude-sync.sh"
+alias bb-sync-ssh="$HOME/Developer/workspace/matdotcx/boblbee/scripts/ssh-sync.sh"
 
 # Sync all function
 bb-sync() {
@@ -773,9 +773,9 @@ bb-status() {
   echo ""
 
   # Check boblbee directory
-  if [ -d "$HOME/Developer/workspace/gl52/boblbee" ]; then
+  if [ -d "$HOME/Developer/workspace/matdotcx/boblbee" ]; then
     echo "✓ Boblbee directory found"
-    cd "$HOME/Developer/workspace/gl52/boblbee"
+    cd "$HOME/Developer/workspace/matdotcx/boblbee"
     echo "  Git status: $(git status -s | wc -l | xargs) uncommitted changes"
   else
     echo "✗ Boblbee directory not found"
@@ -812,7 +812,7 @@ bb-status() {
 
 # Utilities
 bb-edit() {
-  cd "$HOME/Developer/workspace/gl52/boblbee"
+  cd "$HOME/Developer/workspace/matdotcx/boblbee"
   if [ -n "$EDITOR" ]; then
     $EDITOR .
   elif command -v zed >/dev/null; then
@@ -854,4 +854,4 @@ alias gsp='git stash pop'                 # Pop stash
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
 
-alias claude="/usr/local/bin/claude"
+alias claude="/Users/diego/.claude/claude.sh"
