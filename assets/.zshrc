@@ -8,6 +8,13 @@
 
 #!/bin/zsh
 export TERM="xterm-256color"
+
+# Set terminal title to show hostname
+precmd() {
+    echo -ne "\033]0;${HOST%%.*} - $(basename $SHELL)\007"
+}
+
+# Exports
 export LANG=en_GB.UTF-8
 export PATH="$HOME/bin:$HOME/.local/bin:/opt/local/bin:/usr/local/bin:$PATH"
 
@@ -855,3 +862,4 @@ alias gsp='git stash pop'                 # Pop stash
 
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
+alias claude="/Users/diego/.claude/local/claude"
