@@ -8,7 +8,15 @@
 
 #!/bin/zsh
 export TERM="xterm-256color"
+
+# Set terminal title to show hostname
+precmd() {
+    echo -ne "\033]0;${HOST%%.*} - $(basename $SHELL)\007"
+}
+
+# Exports
 export LANG=en_GB.UTF-8
+export PATH="$HOME/bin:$HOME/.local/bin:/opt/local/bin:/usr/local/bin:$PATH"
 
 # Basic ANSI colors for prompts
 export ANSI_RESET="%f"
@@ -257,7 +265,7 @@ precmd() {
 
     # Display random MOTD line from file if it exists
     if [ -f "$HOME/.motd" ]; then
-      local motd_line=$(sed '/^$/d' "$HOME/.motd" | shuf -n 1)
+      local motd_line=$(sed '/^$/d' "$HOME/.motd" | sort -R | head -1)
       if [ -n "$motd_line" ]; then
         print -P "│  ${motd_line}"
         print -P ""
@@ -564,10 +572,10 @@ export EDITOR="zed"
 # Anthropic specific zshrc config inc. conda
 ###############################################################################
 
-source /Users/diego/code/anthropic/config/local/zsh/zshrc
-export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
-
-
+# Source Anthropic config if it exists
+if [ -f /Users/diego/code/anthropic/config/local/zsh/zshrc ]; then
+    source /Users/diego/code/anthropic/config/local/zsh/zshrc
+fi
 
 # Claude Exec - Natural language command executor using Claude Code
 # This function lets you describe what you want to do in plain language,
@@ -747,6 +755,7 @@ alias bb-upgrade="$HOME/Developer/workspace/matdotcx/boblbee/scripts/upgrade.sh"
 alias bb-sync-zshrc="$HOME/Developer/workspace/matdotcx/boblbee/scripts/zshrc-sync.sh"
 alias bb-sync-claude="$HOME/Developer/workspace/matdotcx/boblbee/scripts/claude-sync.sh"
 alias bb-sync-ssh="$HOME/Developer/workspace/matdotcx/boblbee/scripts/ssh-sync.sh"
+alias bb-sync-motd="$HOME/Developer/workspace/matdotcx/boblbee/scripts/motd-sync.sh"
 
 # Sync all function
 bb-sync() {
@@ -754,6 +763,9 @@ bb-sync() {
   echo ""
   echo "Syncing zshrc..."
   bb-sync-zshrc
+  echo ""
+  echo "Syncing motd..."
+  bb-sync-motd
   echo ""
   echo "Syncing Claude preferences..."
   bb-sync-claude
@@ -850,5 +862,4 @@ alias gsp='git stash pop'                 # Pop stash
 
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
-
-alias claude="/usr/local/bin/claude"
+alias claude="/Users/diego/.claude/local/claude"
