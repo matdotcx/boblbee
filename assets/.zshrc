@@ -316,9 +316,9 @@ setopt NO_CASE_GLOB
 # Enable extended globbing
 setopt EXTENDED_GLOB
 
-# Enable command auto-correction
-setopt CORRECT
-setopt CORRECT_ALL
+# Disable command auto-correction
+unsetopt CORRECT
+unsetopt CORRECT_ALL
 
 # LSCOLORS - Default except for normal directories
 export LSCOLORS=Gxfxcxdxbxegedabagacad
@@ -326,9 +326,6 @@ export LSCOLORS=Gxfxcxdxbxegedabagacad
 ###############################################################################
 # Key bindings
 ###############################################################################
-
-# Use emacs key bindings
-bindkey -e
 
 # Configure key bindings for command history navigation
 bindkey '^[[A' up-line-or-search
@@ -403,6 +400,9 @@ alias cdd='cd ~/Developer'
 # Change Directory to the user's workspace directory
 alias cdw='cd ~/Developer/workspace'
 
+# Change Directory to the user's repository directory
+alias cdm='cd ~/Developer/workspace/matotcx'
+
 # Change Directory to the current user's iCloud Drive
 alias cdic='cd ~/Library/Mobile\ Documents/com~apple~CloudDocs'
 
@@ -421,8 +421,35 @@ up() {
   done
 }
 
-# All files, long form, short file sizes, colorized, time-order, with inodes
-alias ll='ls -AlhGti'
+# All files, long form, human-readable sizes, colorized, full timestamps, directories first
+ll() {
+    # Force ls to output colors even when piped
+    local ls_output=$(CLICOLOR_FORCE=1 ls -lhAFGT "$@")
+
+    local total_line=""
+    local dirs=()
+    local files=()
+
+    while IFS= read -r line; do
+        if [[ $line == total* ]]; then
+            total_line="$line"
+        elif [[ $line == d* ]]; then
+            dirs+=("$line")
+        else
+            files+=("$line")
+        fi
+    done <<< "$ls_output"
+
+    [[ -n $total_line ]] && echo "$total_line"
+
+    for line in "${dirs[@]}"; do
+        echo "$line"
+    done
+
+    for line in "${files[@]}"; do
+        echo "$line"
+    done
+}
 
 # Generates a tree of files from the current working directory
 alias tree="find . -print | sed -e 's;[^/]*/;|____;g;s;____|; |;g'"
@@ -862,4 +889,4 @@ alias gsp='git stash pop'                 # Pop stash
 
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
-alias claude="/Users/diego/.claude/local/claude"
+# alias claude="npx @anthropic-ai/claude-code"
