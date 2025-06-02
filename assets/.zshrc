@@ -889,4 +889,15 @@ alias gsp='git stash pop'                 # Pop stash
 
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
-# alias claude="npx @anthropic-ai/claude-code"
+
+# Claude Code alias
+alias claude="/Users/diego/.claude/local/claude"
+
+# Package manager setup for Apple Silicon
+if [[ -d "/opt/local/bin" ]]; then
+    # MacPorts
+    export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+elif [[ -d "/opt/homebrew/bin" ]]; then
+    # Homebrew
+    export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+fi
