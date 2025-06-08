@@ -2,46 +2,65 @@
 
 ## What is this?
 
-`boblbee` is a collection of dotfiles, scripts, and widgets that I use to set up my Mac, to my own taste and specification. There are many dotfiles, but these are mine.
+`boblbee` is a collection of dotfiles, scripts, and widgets that I use to set up my development environments (macOS and Ubuntu), to my own taste and specification. There are many dotfiles, but these are mine.
 
 The name `boblbee` comes from [Point 65](https://boblbee.point65.com/pages/about-us-point-65-sweden) - a Swedish company founded in the late 90s to produce hard-case backpacks with spine protection, lumbar support, and loud colourways. I've used and loved them since the early 2000s, and carried my life in them, so it made sense to carry my digital detritus in one, too.
 
-What makes this particular collection special is its intelligent sync system - it automatically adapts to machines with or without iCloud Drive, includes comprehensive macOS system configuration, and seamlessly integrates with modern tools like Claude Code. But at its heart, it's still just my dotfiles.
+What makes this particular collection special is its intelligent sync system - it automatically adapts to different platforms (macOS and Ubuntu) and environments (with or without iCloud Drive), includes comprehensive system configuration, and seamlessly integrates with modern tools like Claude Code. But at its heart, it's still just my dotfiles.
 
 ## Key Features
 
+- **Cross-Platform**: Works on both macOS and Ubuntu with intelligent OS detection
 - **Smart Sync**: Automatically adapts to iCloud and non-iCloud environments
 - **Claude Code Integration**: Syncs AI assistant preferences across devices
 - **Intelligent Configuration**: Shell, SSH, and system preferences management
-- **Comprehensive Setup**: Full macOS configuration automation
+- **Comprehensive Setup**: Full system configuration automation
 - **Modular Design**: Use what you need, ignore what you don't
 
 ## Quick Start
 
-### First Time Setup
+### macOS Setup
 
 ```bash
 # Download and extract boblbee
 mkdir -p ~/Developer/workspace/matdotcx/ && cd ~/Developer/workspace/matdotcx
-curl -L http://github.com/matdotcx/boblbee/archive/gold.tar.gz | tar zxf - && mv boblbee-gold boblbee
+curl -L http://github.com/matdotcx/boblbee/archive/ubuntu.tar.gz | tar zxf - && mv boblbee-ubuntu boblbee
 
 # Run the setup
 cd boblbee/scripts
 ./index.sh
 ```
 
+### Ubuntu Setup
+
+```bash
+# Clone boblbee
+git clone -b ubuntu https://github.com/matdotcx/boblbee.git ~/boblbee
+
+# Run the setup
+cd ~/boblbee/scripts
+./index.sh
+```
+
 This will:
-- Configure macOS system preferences
-- Set up development tools
-- Install Claude Code integration
-- Configure shell with smart sync
-- Set up SSH (if using iCloud)
-- Create all necessary symlinks
+- **macOS**: Configure system preferences, install Xcode tools, set up MacPorts/Homebrew
+- **Ubuntu**: Install build-essential, configure apt packages, set up npm and Claude Code
+- Install Claude Code integration and preferences
+- Configure shell with platform-specific smart sync
+- Set up SSH (iCloud on macOS, local on Ubuntu)
+- Create all necessary symlinks and configurations
 
 ### Upgrading Existing Installation
 
+**macOS:**
 ```bash
 cd ~/Developer/workspace/matdotcx/boblbee
+./scripts/upgrade.sh
+```
+
+**Ubuntu:**
+```bash
+cd ~/boblbee
 ./scripts/upgrade.sh
 ```
 
@@ -93,27 +112,35 @@ bb-reload
 
 Boblbee uses an intelligent two-tier approach:
 
-**With iCloud Drive:**
+**macOS with iCloud Drive:**
 - Primary storage: iCloud Drive
 - Backup: Git repository
 - Files are symlinked for instant sync
 
-**Without iCloud Drive:**
+**macOS without iCloud Drive:**
 - Primary storage: Git repository
 - Files are copied locally
+
+**Ubuntu (CLI servers):**
+- Primary storage: Git repository
+- Simple bidirectional sync
+- No iCloud dependency
 
 ### Directory Structure
 
 ```
 boblbee/
-├── .zshrc                    # Shell configuration
-├── claude/                   # Claude Code integration
+├── assets/
+│   └── .zshrc               # Cross-platform shell configuration
+├── claude/                  # Claude Code integration
 │   └── memory/
 │       └── user.md          # Your AI assistant preferences
-├── scripts/                  # Setup and sync scripts
-│   ├── index.sh             # Main installer
+├── scripts/                 # Setup and sync scripts
+│   ├── detect-os.sh         # OS detection utility
+│   ├── index.sh             # Main installer (cross-platform)
+│   ├── ubuntu-*.sh          # Ubuntu-specific setup scripts
 │   ├── *-sync.sh            # Sync utilities
-│   └── ...                  # System setup scripts
+│   └── ...                  # macOS system setup scripts
 └── templates/               # Starter templates
     └── CLAUDE.md            # Project memory template
 ```
@@ -154,7 +181,7 @@ Don't use this if you're not at ease reading basic shell scripts, interpreting A
 
 - **Read before running**: Understand what each script does
 - **Backup first**: Some scripts modify system settings
-- **macOS only**: Designed specifically for macOS
+- **Cross-platform**: Works on macOS and Ubuntu 24.04+
 - **Requires admin**: Some features need sudo access
 
 ## Contributing
@@ -162,7 +189,7 @@ Don't use this if you're not at ease reading basic shell scripts, interpreting A
 I welcome contributions that improve the project. If you've found a bug, have an idea for a feature, or want to improve the documentation:
 
 1. Fork the repository
-2. Test your changes on both iCloud and non-iCloud systems
+2. Test your changes on both macOS (with/without iCloud) and Ubuntu systems
 3. Make sure the upgrade path works for existing users
 4. Update the documentation if needed
 5. Submit a pull request with a clear description
