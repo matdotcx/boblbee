@@ -62,11 +62,19 @@ autoload -U colors && colors # Enable colors in prompt
 # Platform-specific SSH key loading
 if is_macos; then
     # Preload keys to the ssh agent; passwords are pulled from the keychain.
-    # Supress stderr, leave errors to come through to the term.
+    # Suppress stderr, leave errors to come through to the term.
     ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
 elif is_ubuntu; then
-    # Ubuntu: Use keychain to manage SSH keys
-    eval $(keychain --eval --agents ssh --quiet id_rsa)
+    # Ubuntu: Use keychain to manage ssh-agent and keys
+    if command -v keychain &> /dev/null; then
+        eval $(keychain --eval --agents ssh --quiet id_rsa)
+    else
+        # Fallback if keychain isn't installed
+        if [ -z "$SSH_AUTH_SOCK" ]; then
+            eval $(ssh-agent -s)
+            ssh-add ~/.ssh/id_rsa
+        fi
+    fi
 fi
 
 ###############################################################################
