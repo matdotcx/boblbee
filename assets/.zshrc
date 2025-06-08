@@ -65,8 +65,8 @@ if is_macos; then
     # Supress stderr, leave errors to come through to the term.
     ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
 elif is_ubuntu; then
-    # Ubuntu: Load SSH key without keychain
-    ssh-add ~/.ssh/id_rsa 2>/dev/null
+    # Ubuntu: Use keychain to manage SSH keys
+    eval $(keychain --eval --agents ssh --quiet id_rsa)
 fi
 
 ###############################################################################

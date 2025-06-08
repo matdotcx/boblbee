@@ -58,6 +58,7 @@ essential_packages=(
     "npm"
     "unzip"
     "ca-certificates"
+    "keychain"
 )
 
 for package in "${essential_packages[@]}"; do
