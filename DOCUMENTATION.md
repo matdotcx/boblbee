@@ -1,6 +1,6 @@
 # Boblbee Documentation
 
-Complete guide for the boblbee intelligent dotfiles management system.
+Complete guide for the boblbee intelligent dotfiles management system for macOS and Ubuntu.
 
 ## Table of Contents
 
@@ -53,16 +53,17 @@ All boblbee commands follow the `bb-*` naming convention for easy discovery and 
 ### Design Philosophy
 
 Boblbee follows these principles:
-1. **Adaptive**: Works seamlessly with or without iCloud
-2. **Non-destructive**: Always backs up before modifying
-3. **Transparent**: Clear about what each operation does
-4. **Modular**: Use only what you need
+1. **Cross-platform**: Works on macOS and Ubuntu with intelligent OS detection
+2. **Adaptive**: Works seamlessly with or without iCloud (macOS) or git-only (Ubuntu)
+3. **Non-destructive**: Always backs up before modifying
+4. **Transparent**: Clear about what each operation does
+5. **Modular**: Use only what you need
 
 ### Sync Strategy
 
-The system intelligently adapts based on available services:
+The system intelligently adapts based on platform and available services:
 
-#### With iCloud Drive
+#### macOS with iCloud Drive
 
 ```
 iCloud Drive (Primary)
@@ -77,7 +78,7 @@ Git Repository (Backup)
 - Git repository serves as backup
 - Changes sync instantly across devices
 
-#### Without iCloud Drive
+#### macOS without iCloud Drive
 
 ```
 Git Repository (Primary)
@@ -89,31 +90,47 @@ Git Repository (Primary)
 - Home directory contains regular files
 - Manual sync required via `bb-sync-*` commands
 
+#### Ubuntu (CLI Servers)
+
+```
+Git Repository (Primary)
+    ↓ bidirectional sync
+~/.zshrc, ~/.ssh
+```
+
+- Configuration files live in git
+- Simple bidirectional sync between git and home
+- No iCloud dependency
+- CLI-focused setup for development servers
+
 ### Directory Structure
 
 ```
 boblbee/
 ├── .gitignore               # Git ignore rules
-├── .zshrc                   # Shell configuration
 ├── LICENSE                  # License information
 ├── README.md                # Quick start guide
 ├── DOCUMENTATION.md         # This file
-├── bootstrap.sh             # Legacy bootstrap script
+├── assets/
+│   └── .zshrc              # Cross-platform shell configuration
 ├── claude/                  # Claude Code integration
 │   └── memory/
 │       └── user.md         # Global Claude preferences
 ├── scripts/                 # All executable scripts
+│   ├── detect-os.sh        # OS detection utility
 │   ├── claude-sync.sh      # Claude memory sync
-│   ├── claude.sh           # Claude setup
-│   ├── dots.sh             # macOS preferences
-│   ├── index.sh            # Main installer
-│   ├── macports.sh         # MacPorts setup
-│   ├── new-machine.sh      # New machine helper
-│   ├── ssh-sync.sh         # SSH sync
-│   ├── touchid-sudo.sh     # TouchID for sudo
-│   ├── upgrade.sh          # Upgrade script
-│   ├── xcode.sh            # Xcode tools
-│   └── zshrc-sync.sh       # Shell sync
+│   ├── claude.sh           # Claude setup (cross-platform)
+│   ├── index.sh            # Main installer (cross-platform)
+│   ├── new-machine.sh      # New machine helper (cross-platform)
+│   ├── upgrade.sh          # Upgrade script (cross-platform)
+│   ├── zshrc-sync.sh       # Shell sync (cross-platform)
+│   ├── ssh-sync.sh         # SSH sync (cross-platform)
+│   ├── ubuntu-essentials.sh # Ubuntu: Install tools, npm, Claude Code
+│   ├── ubuntu-git-setup.sh  # Ubuntu: Configure git and SSH
+│   ├── dots.sh             # macOS: System preferences
+│   ├── macports.sh         # macOS: MacPorts setup
+│   ├── touchid-sudo.sh     # macOS: TouchID for sudo
+│   └── xcode.sh            # macOS: Xcode tools
 └── templates/              # Starter templates
     └── CLAUDE.md           # Project memory template
 ```
@@ -146,19 +163,28 @@ Memory hierarchy:
 
 ### Prerequisites
 
-- macOS (tested on macOS 12+)
+**macOS:**
+- macOS 12+ (tested)
 - Command Line Tools or Xcode
 - Admin (sudo) access
 - Internet connection
 
+**Ubuntu:**
+- Ubuntu 24.04+ (tested)
+- sudo access
+- Internet connection
+- git (will be installed if missing)
+
 ### New Machine Setup
+
+#### macOS Setup
 
 1. **Download boblbee**
    ```bash
    mkdir -p ~/Developer/workspace/matdotcx/
    cd ~/Developer/workspace/matdotcx
-   curl -L http://github.com/matdotcx/boblbee/archive/gold.tar.gz | tar zxf -
-   mv boblbee-gold boblbee
+   curl -L http://github.com/matdotcx/boblbee/archive/ubuntu.tar.gz | tar zxf -
+   mv boblbee-ubuntu boblbee
    ```
 
 2. **Run setup**
@@ -174,14 +200,34 @@ Memory hierarchy:
    bb-reload
    ```
 
-4. **Verify installation**
+#### Ubuntu Setup
+
+1. **Clone boblbee**
    ```bash
-   bb-status
+   git clone -b ubuntu https://github.com/matdotcx/boblbee.git ~/boblbee
    ```
+
+2. **Run setup**
+   ```bash
+   cd ~/boblbee/scripts
+   ./index.sh
+   ```
+
+3. **Reload shell**
+   ```bash
+   exec zsh  # Switch to zsh and reload
+   # or log out and back in
+   ```
+
+#### Verify Installation
+
+```bash
+bb-status
+```
 
 ### What Gets Installed
 
-The setup process configures:
+#### macOS Installation
 
 1. **System Preferences**
    - Finder settings
@@ -204,6 +250,30 @@ The setup process configures:
    - Smart sync system
    - Claude Code integration
    - SSH configuration
+
+#### Ubuntu Installation
+
+1. **Essential Packages**
+   - build-essential
+   - git, curl, zsh, vim
+   - tree, htop, ripgrep, fd-find
+   - npm (for Claude Code)
+
+2. **Development Tools**
+   - Claude Code (npm global install)
+   - Git configuration
+   - SSH key management
+
+3. **Shell Environment**
+   - zsh as default shell
+   - Cross-platform prompt
+   - Ubuntu-specific aliases
+   - npm global bin in PATH
+
+4. **Dotfiles Management**
+   - Simple git-based sync
+   - Claude Code integration
+   - Local SSH management
 
 ## Daily Workflow
 
@@ -255,13 +325,19 @@ cd ~/Developer/workspace/matdotcx/boblbee && git status
 1. **On the source machine**
    ```bash
    bb-sync
+   # macOS:
    cd ~/Developer/workspace/matdotcx/boblbee
+   # Ubuntu:
+   cd ~/boblbee
    git push
    ```
 
 2. **On the target machine**
    ```bash
+   # macOS:
    cd ~/Developer/workspace/matdotcx/boblbee
+   # Ubuntu:
+   cd ~/boblbee
    git pull
    bb-sync
    bb-reload
@@ -272,14 +348,31 @@ cd ~/Developer/workspace/matdotcx/boblbee && git status
 ### Setup Scripts
 
 #### index.sh
-Main installation orchestrator that runs all setup scripts in order.
+Main installation orchestrator with platform detection:
+- **macOS**: Runs TouchID, Xcode, MacPorts, system preferences
+- **Ubuntu**: Runs essentials, git setup, Claude Code installation
+- **Both**: Claude setup, shell sync, SSH sync
 
-#### dots.sh
+#### dots.sh (macOS only)
 Configures macOS system preferences including:
 - Finder preferences
 - Dock settings
 - UI/UX configuration
 - System behavior
+
+#### ubuntu-essentials.sh (Ubuntu only)
+Installs essential Ubuntu packages:
+- Development tools (build-essential)
+- npm and Claude Code
+- Shell configuration
+- Directory setup
+
+#### ubuntu-git-setup.sh (Ubuntu only)
+Configures git for shared workflow:
+- Git global configuration
+- SSH key setup and management
+- GitHub token configuration
+- Cross-platform compatibility
 
 #### claude.sh
 Sets up Claude Code memory integration:
@@ -288,17 +381,17 @@ Sets up Claude Code memory integration:
 - Preserves existing preferences
 
 #### ssh-sync.sh
-Manages SSH configuration:
-- Detects iCloud availability
-- Creates symlinks when appropriate
-- Preserves permissions
-- Backs up existing configs
+Manages SSH configuration with platform detection:
+- **macOS**: Detects iCloud availability, creates symlinks when appropriate
+- **Ubuntu**: Local SSH management, permission setting
+- **Both**: Preserves permissions, backs up existing configs
 
 #### zshrc-sync.sh
-Handles shell configuration sync:
-- Detects sync strategy (iCloud vs git)
-- Maintains proper symlinks
-- Syncs between iCloud and git
+Handles shell configuration sync with platform detection:
+- **macOS with iCloud**: Symlinks to iCloud, syncs to git backup
+- **macOS without iCloud**: Bidirectional sync between git and home
+- **Ubuntu**: Simple bidirectional sync between git and home
+- **All**: Maintains proper permissions and backups
 
 ### Utility Scripts
 
@@ -403,10 +496,12 @@ set +x  # Disable debug mode
 
 Before submitting changes:
 - [ ] Test on fresh macOS installation
+- [ ] Test on fresh Ubuntu 24.04 installation
 - [ ] Test on system with existing configuration
-- [ ] Test with iCloud enabled
-- [ ] Test without iCloud
-- [ ] Verify upgrade path works
+- [ ] Test macOS with iCloud enabled
+- [ ] Test macOS without iCloud
+- [ ] Test Ubuntu CLI-only environment
+- [ ] Verify upgrade path works on both platforms
 - [ ] Update documentation
 - [ ] Add helpful error messages
 

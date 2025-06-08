@@ -1,8 +1,13 @@
+#!/bin/bash
+
 #########################################################
-# Title; index
-# Description; Call and install each module
-# Source; https://github.com/matdotcx/
+# Title: index
+# Description: Call and install each module - supports macOS and Ubuntu
+# Source: https://github.com/matdotcx/boblbee
 #########################################################
+
+# Source OS detection
+source "$(dirname "$0")/detect-os.sh"
 
 # Note: Some scripts require sudo privileges.
 # They will ask for password when needed.
@@ -32,14 +37,43 @@ run_script() {
     sleep 3
 }
 
-# Run each program
-echo "Starting boblbee setup..."
-
-run_script "touchid-sudo.sh" "sudo"
-run_script "xcode.sh"
-run_script "macports.sh" "sudo"
-run_script "dots.sh"
-run_script "claude.sh"
-run_script "zshrc-sync.sh"
-run_script "motd-sync.sh"
-run_script "ssh-sync.sh"
+# Platform-specific setup
+if is_ubuntu; then
+    echo "Starting boblbee setup for Ubuntu..."
+    echo ""
+    
+    # Ubuntu setup sequence
+    run_script "ubuntu-essentials.sh"
+    run_script "ubuntu-git-setup.sh"
+    run_script "claude.sh"
+    run_script "zshrc-sync.sh"
+    run_script "motd-sync.sh"
+    run_script "ssh-sync.sh"
+    
+    echo ""
+    echo "Ubuntu setup complete!"
+    echo "Please log out and back in to use zsh as your default shell."
+    echo "Or run: exec zsh"
+    
+elif is_macos; then
+    echo "Starting boblbee setup for macOS..."
+    echo ""
+    
+    # Original macOS setup sequence
+    run_script "touchid-sudo.sh" "sudo"
+    run_script "xcode.sh"
+    run_script "macports.sh" "sudo"
+    run_script "dots.sh"
+    run_script "claude.sh"
+    run_script "zshrc-sync.sh"
+    run_script "motd-sync.sh"
+    run_script "ssh-sync.sh"
+    
+    echo ""
+    echo "macOS setup complete!"
+    
+else
+    echo "Unsupported operating system: $(uname -s)"
+    echo "This script supports macOS and Ubuntu only."
+    exit 1
+fi

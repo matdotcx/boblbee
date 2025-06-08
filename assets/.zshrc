@@ -9,6 +9,18 @@
 #!/bin/zsh
 export TERM="xterm-256color"
 
+# Set boblbee directory to consistent location
+BOBLBEE_DIR="/workspace/matdotcx/boblbee"
+
+# Source OS detection for cross-platform compatibility
+if [[ -f "$BOBLBEE_DIR/scripts/detect-os.sh" ]]; then
+    source "$BOBLBEE_DIR/scripts/detect-os.sh"
+fi
+
+# Detect OS for conditional logic
+is_macos() { [[ "$OSTYPE" == "darwin"* ]]; }
+is_ubuntu() { [[ -f /etc/lsb-release ]] && grep -q "Ubuntu" /etc/lsb-release; }
+
 # Set terminal title to show hostname
 precmd() {
     echo -ne "\033]0;${HOST%%.*} - $(basename $SHELL)\007"
@@ -16,7 +28,14 @@ precmd() {
 
 # Exports
 export LANG=en_GB.UTF-8
-export PATH="$HOME/bin:$HOME/.local/bin:/opt/local/bin:/usr/local/bin:$PATH"
+
+# Platform-specific PATH configuration
+if is_ubuntu; then
+    export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
+else
+    # macOS PATH (original)
+    export PATH="$HOME/bin:$HOME/.local/bin:/opt/local/bin:/usr/local/bin:$PATH"
+fi
 
 # Basic ANSI colors for prompts
 export ANSI_RESET="%f"
@@ -40,9 +59,15 @@ zstyle :compinstall filename "$HOME/.zshrc"
 autoload -Uz compinit && compinit
 autoload -U colors && colors # Enable colors in prompt
 
-# Preload keys to the ssh agent; passwords are pulled from the keychain.
-# Supress stderr, leave errors to come through to the term.
-ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
+# Platform-specific SSH key loading
+if is_macos; then
+    # Preload keys to the ssh agent; passwords are pulled from the keychain.
+    # Supress stderr, leave errors to come through to the term.
+    ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
+elif is_ubuntu; then
+    # Ubuntu: Use keychain to manage SSH keys
+    eval $(keychain --eval --agents ssh --quiet id_rsa)
+fi
 
 ###############################################################################
 # Prompt & motd
@@ -103,11 +128,18 @@ git_info() {
 }
 
 
-# Export Gitub personal access token
-# Add the token to macOS keychain with `security add-generic-password -a ${USER} -s gh-token -w`
-# Test with `security find-generic-password -a ${USER} -s gh-token -w`
-
-export GITHUB_TOKEN=$(security find-generic-password -a ${USER} -s gh-token -w)
+# Platform-specific GitHub token configuration
+if is_macos; then
+    # Export GitHub personal access token from macOS keychain
+    # Add the token to macOS keychain with `security add-generic-password -a ${USER} -s gh-token -w`
+    # Test with `security find-generic-password -a ${USER} -s gh-token -w`
+    export GITHUB_TOKEN=$(security find-generic-password -a ${USER} -s gh-token -w 2>/dev/null)
+elif is_ubuntu; then
+    # Ubuntu: Load GitHub token from file
+    if [[ -f "$HOME/.github_token" ]]; then
+        export GITHUB_TOKEN=$(cat "$HOME/.github_token")
+    fi
+fi
 
 # Set up `gist` function
 
@@ -125,7 +157,14 @@ gist() {
 
 # Calculate and format system uptime in a human-readable string
 calculate_uptime() {
-    local UPTIME=$(( $(date +%s) - $(sysctl -n kern.boottime | cut -d' ' -f4 | cut -d',' -f1) ))
+    local UPTIME
+    if is_macos; then
+        UPTIME=$(( $(date +%s) - $(sysctl -n kern.boottime | cut -d' ' -f4 | cut -d',' -f1) ))
+    elif is_ubuntu; then
+        UPTIME=$(awk '{print int($1)}' /proc/uptime)
+    else
+        UPTIME=0
+    fi
     local d=$((UPTIME / 86400))
     local h=$(( (UPTIME % 86400) / 3600 ))
     local m=$(( (UPTIME % 3600) / 60 ))
@@ -272,7 +311,11 @@ precmd() {
       fi
     fi
 
-    print -P "│  You are connected to $(system_profiler SPHardwareDataType | awk '/Serial Number/ {print $4}') | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)"
+    if is_macos; then
+        print -P "│  You are connected to $(system_profiler SPHardwareDataType | awk '/Serial Number/ {print $4}') | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)"
+    elif is_ubuntu; then
+        print -P "│  You are connected to $(hostname) | Ubuntu $(lsb_release -rs 2>/dev/null || echo 'Unknown') on $(uname -m)"
+    fi
     print -P "│  All access is logged. If you are not an authorised user, disconnect now."
     print -P "│  $(calculate_uptime)"
     print -P "│  $(date "+%A, %B %d, %Y | %T %Z")\n"
@@ -347,8 +390,12 @@ bindkey "^[[B" down-line-or-beginning-search
 # Shell & Navigation
 ###############################################################################
 
-# Use colors in ls
-alias ls="ls -G"
+# Platform-specific ls colors
+if is_macos; then
+    alias ls="ls -G"
+elif is_ubuntu; then
+    alias ls="ls --color=auto"
+fi
 
 # Reload the shell (i.e. invoke as a login shell)
 alias bb-reload="exec ${SHELL} -l"
@@ -369,27 +416,32 @@ export LESS_TERMCAP_se=$'\E[0m'        # reset reverse video
 export LESS_TERMCAP_us=$'\E[1;32m'     # begin underline
 export LESS_TERMCAP_ue=$'\E[0m'        # reset underline
 
-# Show/Hide hidden files in Finder
-alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES; killall Finder"
-alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO; killall Finder"
+# macOS-specific Finder aliases
+if is_macos; then
+    # Show/Hide hidden files in Finder
+    alias showfiles="defaults write com.apple.finder AppleShowAllFiles YES; killall Finder"
+    alias hidefiles="defaults write com.apple.finder AppleShowAllFiles NO; killall Finder"
+fi
 
 # Print working directory and ls after a cd
 cd() { builtin cd "$@" && pwd && ls -AlhGti; }
 
-# Change Directory to the active Finder window (else ~/Desktop)
-cdf() {
-    local fPath=$(osascript -e '
-    tell app "finder"
-        try
-            set folderPath to (folder of the front window as alias)
-        on error
-            set folderPath to (path to desktop folder as alias)
-        end try
-        POSIX path of folderPath
-    end tell')
-    echo "cd $fPath"
-    cd "$fPath"
-}
+# macOS-specific: Change Directory to the active Finder window (else ~/Desktop)
+if is_macos; then
+    cdf() {
+        local fPath=$(osascript -e '
+        tell app "finder"
+            try
+                set folderPath to (folder of the front window as alias)
+            on error
+                set folderPath to (path to desktop folder as alias)
+            end try
+            POSIX path of folderPath
+        end tell')
+        echo "cd $fPath"
+        cd "$fPath"
+    }
+fi
 
 # Change Directory to the current user's home directory
 alias cdh='cd ~/'
@@ -403,8 +455,10 @@ alias cdw='cd ~/Developer/workspace'
 # Change Directory to the user's repository directory
 alias cdm='cd ~/Developer/workspace/matotcx'
 
-# Change Directory to the current user's iCloud Drive
-alias cdic='cd ~/Library/Mobile\ Documents/com~apple~CloudDocs'
+# macOS-specific: Change Directory to the current user's iCloud Drive
+if is_macos; then
+    alias cdic='cd ~/Library/Mobile\ Documents/com~apple~CloudDocs'
+fi
 
 # Change Directory up to the root of a current project
 up() {
@@ -489,16 +543,26 @@ get_public_ip() {
 
 list_ip_addresses() {
     echo "IPv4 Addresses:"
-    ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}'
+    if is_macos; then
+        ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}'
+    elif is_ubuntu; then
+        ip -4 addr show | grep inet | grep -v 127.0.0.1 | awk '{print $2}' | cut -d'/' -f1
+    fi
 
     echo "\nIPv6 Addresses:"
-    ifconfig | grep "inet6 " | grep -v "fe80" | awk '{print $2}'
+    if is_macos; then
+        ifconfig | grep "inet6 " | grep -v "fe80" | awk '{print $2}'
+    elif is_ubuntu; then
+        ip -6 addr show | grep inet6 | grep -v "fe80" | awk '{print $2}' | cut -d'/' -f1
+    fi
 }
 
-# Show active network interfaces
-alias ifactive="list_active_interfaces"
-list_active_interfaces() {
-    networksetup -listallhardwareports | awk '
+# Platform-specific network interface listing
+if is_macos; then
+    # Show active network interfaces on macOS
+    alias ifactive="list_active_interfaces"
+    list_active_interfaces() {
+        networksetup -listallhardwareports | awk '
     function get_ip(dev) {
         cmd = "ifconfig " dev " 2>/dev/null | awk \"/inet /{print \\$2}\""
         cmd | getline ip
@@ -548,7 +612,11 @@ list_active_interfaces() {
             print ""
         }
     }'
-}
+    }
+elif is_ubuntu; then
+    # Show active network interfaces on Ubuntu
+    alias ifactive="ip link show | grep 'state UP'"
+fi
 
 # Run `nslookup` and display the most useful info
 dns() {
@@ -569,14 +637,23 @@ dns() {
 # System and Shortcuts
 ###############################################################################
 
-# Flush DNS cache
-alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+# Platform-specific DNS cache flushing
+if is_macos; then
+    # Flush DNS cache on macOS
+    alias flushdns="sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder"
+elif is_ubuntu; then
+    # Flush DNS cache on Ubuntu
+    alias flushdns="sudo systemctl restart systemd-resolved"
+fi
 
-# Clean up LaunchServices to remove duplicates in the "Open With" menu
-alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
-
-# Rebuild the Launch Services Database
-alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -user'
+# macOS-specific system maintenance
+if is_macos; then
+    # Clean up LaunchServices to remove duplicates in the "Open With" menu
+    alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
+    
+    # Rebuild the Launch Services Database
+    alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -user'
+fi
 
 # Fallback for hd, md5sum, and sha1sum
 command -v hd > /dev/null || alias hd="hexdump -C"
@@ -586,11 +663,27 @@ command -v sha1sum > /dev/null || alias sha1sum="shasum"
 # Generate a password using haddock, length of 28 characters
 alias secret='ha-gen -l 28'
 
-# Update system and packages
-alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'
+# Platform-specific system updates
+if is_macos; then
+    # Update system and packages on macOS
+    alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm update -g; sudo gem update --system; sudo gem update; sudo gem cleanup'
+elif is_ubuntu; then
+    # Update system and packages on Ubuntu
+    alias update='sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && npm update -g'
+fi
 
-# Lock current account - activate screensaver (which requires password on wake)
-alias lock="osascript -e 'tell application \"System Events\" to keystroke \"q\" using {command down,control down}'"
+# Platform-specific screen locking
+if is_macos; then
+    # Lock current account - activate screensaver (which requires password on wake)
+    alias lock="osascript -e 'tell application \"System Events\" to keystroke \"q\" using {command down,control down}'"
+elif is_ubuntu; then
+    # Lock screen on Ubuntu (if available)
+    if command -v gnome-screensaver-command >/dev/null 2>&1; then
+        alias lock="gnome-screensaver-command -l"
+    elif command -v loginctl >/dev/null 2>&1; then
+        alias lock="loginctl lock-session"
+    fi
+fi
 
 # Set default editor
 export EDITOR="zed"
@@ -771,18 +864,18 @@ HELP:
   prompthelp    : Show prompt symbol meanings
 
 For detailed documentation, see:
-  ~/Developer/workspace/matdotcx/boblbee/DOCUMENTATION.md
+  $BOBLBEE_DIR/DOCUMENTATION.md
 "'
 
 # Setup and maintenance
-alias bb-setup="cd $HOME/Developer/workspace/matdotcx/boblbee/scripts && ./index.sh"
-alias bb-upgrade="$HOME/Developer/workspace/matdotcx/boblbee/scripts/upgrade.sh"
+alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
+alias bb-upgrade="$BOBLBEE_DIR/scripts/upgrade.sh"
 
 # Sync commands
-alias bb-sync-zshrc="$HOME/Developer/workspace/matdotcx/boblbee/scripts/zshrc-sync.sh"
-alias bb-sync-claude="$HOME/Developer/workspace/matdotcx/boblbee/scripts/claude-sync.sh"
-alias bb-sync-ssh="$HOME/Developer/workspace/matdotcx/boblbee/scripts/ssh-sync.sh"
-alias bb-sync-motd="$HOME/Developer/workspace/matdotcx/boblbee/scripts/motd-sync.sh"
+alias bb-sync-zshrc="$BOBLBEE_DIR/scripts/zshrc-sync.sh"
+alias bb-sync-claude="$BOBLBEE_DIR/scripts/claude-sync.sh"
+alias bb-sync-ssh="$BOBLBEE_DIR/scripts/ssh-sync.sh"
+alias bb-sync-motd="$BOBLBEE_DIR/scripts/motd-sync.sh"
 
 # Sync all function
 bb-sync() {
@@ -809,9 +902,9 @@ bb-status() {
   echo ""
 
   # Check boblbee directory
-  if [ -d "$HOME/Developer/workspace/matdotcx/boblbee" ]; then
-    echo "✓ Boblbee directory found"
-    cd "$HOME/Developer/workspace/matdotcx/boblbee"
+  if [ -d "$BOBLBEE_DIR" ]; then
+    echo "✓ Boblbee directory found at $BOBLBEE_DIR"
+    cd "$BOBLBEE_DIR"
     echo "  Git status: $(git status -s | wc -l | xargs) uncommitted changes"
   else
     echo "✗ Boblbee directory not found"
@@ -848,7 +941,7 @@ bb-status() {
 
 # Utilities
 bb-edit() {
-  cd "$HOME/Developer/workspace/matdotcx/boblbee"
+  cd "$BOBLBEE_DIR"
   if [ -n "$EDITOR" ]; then
     $EDITOR .
   elif command -v zed >/dev/null; then
@@ -890,14 +983,37 @@ alias gsp='git stash pop'                 # Pop stash
 # Git status shortcuts
 alias g='git'                        # Even shorter git commands: g status
 
-# Claude Code alias
-alias claude="/Users/diego/.claude/local/claude"
+# Platform-specific Claude Code alias
+if is_macos; then
+    alias claude="/Users/diego/.claude/local/claude"
+elif is_ubuntu; then
+    # Ubuntu: Claude Code installed via npm
+    if command -v claude >/dev/null 2>&1; then
+        # Claude is already in PATH from npm global install
+        true
+    else
+        alias claude="$HOME/.npm-global/bin/claude"
+    fi
+fi
 
-# Package manager setup for Apple Silicon
-if [[ -d "/opt/local/bin" ]]; then
-    # MacPorts
-    export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
-elif [[ -d "/opt/homebrew/bin" ]]; then
-    # Homebrew
-    export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+# Platform-specific package manager setup
+if is_macos; then
+    # Package manager setup for Apple Silicon
+    if [[ -d "/opt/local/bin" ]]; then
+        # MacPorts
+        export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+    elif [[ -d "/opt/homebrew/bin" ]]; then
+        # Homebrew
+        export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
+    fi
+elif is_ubuntu; then
+    # Ubuntu-specific aliases and functions
+    alias install='sudo apt install'
+    alias search='apt search'
+    alias show='apt show'
+    
+    # Function to install .deb files
+    install-deb() {
+        sudo dpkg -i "$1" && sudo apt-get install -f
+    }
 fi
