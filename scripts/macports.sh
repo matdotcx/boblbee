@@ -103,3 +103,10 @@ export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
 
 echo "Port Self-update"
 sudo port -v selfupdate
+
+#########################################################
+# Install essential packages via local Portfile
+
+echo "Installing essential development packages..."
+cd "$(dirname "$0")/.."  # Go to boblbee root directory
+sudo port install file://$PWD

@@ -2,9 +2,25 @@
 
 #########################################################
 # Title: claude
-# Description: Setup Claude Code memory and preferences
+# Description: Install and setup Claude Code
 # Source: https://github.com/matdotcx/
 #########################################################
+
+echo "Setting up Claude Code..."
+
+# Check if Claude Code is already installed
+if ! command -v claude &> /dev/null; then
+    echo "Installing Claude Code via npm..."
+    sudo npm install -g @anthropic-ai/claude-code
+    
+    if ! command -v claude &> /dev/null; then
+        echo "✗ Failed to install Claude Code"
+        exit 1
+    fi
+    echo "✓ Claude Code installed successfully"
+else
+    echo "✓ Claude Code is already installed"
+fi
 
 echo "Setting up Claude Code memory..."
 
