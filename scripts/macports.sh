@@ -95,6 +95,9 @@ sudo touch /etc/paths.d/macports
 echo '/opt/local/bin' | sudo tee -a /etc/paths.d/macports
 echo '/opt/local/sbin' | sudo tee -a /etc/paths.d/macports
 
+# Update PATH for current session
+export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+
 #########################################################
 # Runs a `port -v selfupdate` to set up for the first port installation.
 
