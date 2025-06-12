@@ -2,9 +2,12 @@
 
 #########################################################
 # Title: ssh-sync
-# Description: Set up SSH symlinks for iCloud Drive
-# Source: https://github.com/matdotcx/
+# Description: Set up SSH configuration sync - iCloud Drive on macOS, local management on Ubuntu
+# Source: https://github.com/matdotcx/boblbee
 #########################################################
+
+# Source OS detection
+source "$(dirname "$0")/detect-os.sh"
 
 # Color codes
 GREEN='\033[0;32m'
@@ -20,9 +23,9 @@ echo ""
 ICLOUD_SSH="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Ark/Sync/System/.ssh"
 HOME_SSH="$HOME/.ssh"
 
-# Function to check if iCloud Drive is available
+# Function to check if iCloud Drive is available (macOS only)
 check_icloud() {
-  if [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
+  if is_macos && [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
     return 0
   else
     return 1
@@ -39,8 +42,50 @@ backup_ssh() {
   fi
 }
 
-# Main logic
-if check_icloud; then
+# Main logic - platform-specific behavior
+if is_ubuntu; then
+  echo -e "${BLUE}Ubuntu detected - local SSH management${NC}"
+  
+  # Ubuntu: Simple SSH configuration management
+  if [ -d "$HOME_SSH" ]; then
+    echo -e "${GREEN}✓ SSH directory exists${NC}"
+    
+    # Ensure correct permissions
+    chmod 700 "$HOME_SSH"
+    
+    # Set permissions for SSH files
+    if ls "$HOME_SSH"/* >/dev/null 2>&1; then
+      chmod 600 "$HOME_SSH"/* 2>/dev/null || true
+      chmod 644 "$HOME_SSH"/*.pub 2>/dev/null || true
+      chmod 644 "$HOME_SSH"/known_hosts* 2>/dev/null || true
+      chmod 644 "$HOME_SSH"/config 2>/dev/null || true
+      echo -e "${GREEN}✓ SSH permissions set correctly${NC}"
+    fi
+    
+    # Display SSH public keys if they exist
+    echo ""
+    echo -e "${BLUE}Available SSH public keys:${NC}"
+    for pub_key in "$HOME_SSH"/*.pub; do
+      if [ -f "$pub_key" ]; then
+        echo "$(basename "$pub_key"):"
+        cat "$pub_key"
+        echo ""
+      fi
+    done
+    
+  else
+    echo -e "${YELLOW}No SSH directory found${NC}"
+    echo "To set up SSH keys:"
+    echo "  1. Run ssh-keygen -t rsa -b 4096 -C 'your_email@example.com'"
+    echo "  2. Add the public key to your Git hosting service"
+    echo "  3. Run this script again to verify permissions"
+  fi
+  
+  echo ""
+  echo -e "${BLUE}Setup: Local SSH management${NC}"
+  echo "SSH keys and config managed locally (not synced)"
+  
+elif check_icloud; then
   echo -e "${BLUE}iCloud Drive detected${NC}"
   
   # Check if iCloud SSH directory exists

@@ -2,9 +2,12 @@
 
 #########################################################
 # Title: zshrc-sync
-# Description: Smart .zshrc sync that handles iCloud Drive
-# Source: https://github.com/matdotcx/
+# Description: Smart .zshrc sync that handles iCloud Drive on macOS and simple sync on Ubuntu
+# Source: https://github.com/matdotcx/boblbee
 #########################################################
+
+# Source OS detection
+source "$(dirname "$0")/detect-os.sh"
 
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -32,9 +35,9 @@ if [ ! -f "$DOTFILES_ZSHRC" ]; then
   exit 1
 fi
 
-# Function to check if iCloud Drive is available
+# Function to check if iCloud Drive is available (macOS only)
 check_icloud() {
-  if [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
+  if is_macos && [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
     return 0
   else
     return 1
@@ -56,7 +59,12 @@ get_file_mtime() {
     file="$(readlink "$file")"
   fi
   if [ -f "$file" ]; then
-    stat -f %m "$file" 2>/dev/null || echo "0"
+    if is_macos; then
+      stat -f %m "$file" 2>/dev/null || echo "0"
+    else
+      # Linux/Ubuntu uses different stat format
+      stat -c %Y "$file" 2>/dev/null || echo "0"
+    fi
   else
     echo "0"
   fi
@@ -137,8 +145,64 @@ check_permissions() {
   return 0
 }
 
-# Main logic
-if check_icloud; then
+# Main logic - platform-specific behavior
+if is_ubuntu; then
+  echo -e "${BLUE}Ubuntu detected - using simple dotfiles sync${NC}"
+  
+  # Ubuntu: Simple bidirectional sync between dotfiles and home
+  newest_file=$(find_newest_file "$HOME_ZSHRC" "$DOTFILES_ZSHRC")
+  
+  if [ -n "$newest_file" ]; then
+    echo -e "${BLUE}Newest version found: $(basename "$newest_file")${NC}"
+    
+    # Sync to the other location
+    if [ "$newest_file" = "$HOME_ZSHRC" ] && ! diff -q "$HOME_ZSHRC" "$DOTFILES_ZSHRC" >/dev/null 2>&1; then
+      echo -e "${YELLOW}Updating dotfiles from home directory${NC}"
+      if check_permissions "$DOTFILES_ZSHRC" && cp "$HOME_ZSHRC" "$DOTFILES_ZSHRC" 2>/dev/null; then
+        echo -e "${GREEN}Dotfiles updated${NC}"
+        commit_dotfiles_changes "Update .zshrc from home directory"
+      else
+        echo -e "${RED}Failed to update dotfiles${NC}"
+        log_message "ERROR" "Failed to copy $HOME_ZSHRC to $DOTFILES_ZSHRC"
+        exit 1
+      fi
+    elif [ "$newest_file" = "$DOTFILES_ZSHRC" ] && ! diff -q "$DOTFILES_ZSHRC" "$HOME_ZSHRC" >/dev/null 2>&1; then
+      echo -e "${YELLOW}Updating home directory from dotfiles${NC}"
+      if ! backup_zshrc; then
+        log_message "WARN" "Backup failed, continuing with caution"
+      fi
+      if check_permissions "$HOME_ZSHRC" && cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+        echo -e "${GREEN}Home .zshrc updated${NC}"
+      else
+        echo -e "${RED}Failed to update home .zshrc${NC}"
+        log_message "ERROR" "Failed to copy $DOTFILES_ZSHRC to $HOME_ZSHRC"
+        exit 1
+      fi
+    else
+      echo -e "${GREEN}Files are already in sync${NC}"
+    fi
+  else
+    # No files exist, create from dotfiles
+    if [ -f "$DOTFILES_ZSHRC" ]; then
+      echo -e "${YELLOW}Installing .zshrc from dotfiles${NC}"
+      if check_permissions "$HOME_ZSHRC" && cp "$DOTFILES_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+        echo -e "${GREEN}Installed .zshrc from dotfiles${NC}"
+      else
+        echo -e "${RED}Failed to install .zshrc from dotfiles${NC}"
+        log_message "ERROR" "Failed to copy $DOTFILES_ZSHRC to $HOME_ZSHRC"
+        exit 1
+      fi
+    else
+      echo -e "${RED}No .zshrc found in dotfiles${NC}"
+      exit 1
+    fi
+  fi
+  
+  echo ""
+  echo -e "${BLUE}Setup: Dotfiles ↔ Home (bidirectional sync)${NC}"
+  echo "Edit .zshrc in either location and run this script to sync"
+  
+elif check_icloud; then
   echo -e "${BLUE}iCloud Drive detected${NC}"
   
   # Ensure iCloud directory structure exists
@@ -250,7 +314,7 @@ if check_icloud; then
   echo "Changes will be automatically synced to dotfiles and committed"
   
 else
-  echo -e "${BLUE}No iCloud Drive detected - using dotfiles only${NC}"
+  echo -e "${BLUE}macOS without iCloud Drive - using dotfiles only${NC}"
   
   # Find newest between home and dotfiles
   newest_file=$(find_newest_file "$HOME_ZSHRC" "$DOTFILES_ZSHRC")

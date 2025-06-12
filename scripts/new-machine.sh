@@ -2,9 +2,12 @@
 
 #########################################################
 # Title: new-machine
-# Description: Quick setup for new machines with iCloud
-# Source: https://github.com/matdotcx/
+# Description: Quick setup for new machines - iCloud on macOS, git-based on Ubuntu
+# Source: https://github.com/matdotcx/boblbee
 #########################################################
+
+# Source OS detection
+source "$(dirname "$0")/detect-os.sh"
 
 # Color codes
 GREEN='\033[0;32m'
@@ -16,17 +19,46 @@ NC='\033[0m' # No Color
 echo "=== New Machine Setup ==="
 echo ""
 
-# Check if iCloud Drive is available
-ICLOUD_PATH="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
-if [ ! -d "$ICLOUD_PATH" ]; then
-  echo -e "${RED}iCloud Drive not found!${NC}"
-  echo "Please sign in to iCloud first, or use the standard setup:"
-  echo "  ./scripts/index.sh"
+if is_ubuntu; then
+  echo -e "${BLUE}Ubuntu detected - git-based setup${NC}"
+  echo ""
+  
+  # Ubuntu setup - no iCloud dependency
+  echo "This script will help set up boblbee on Ubuntu."
+  echo "Prerequisites: git should be available"
+  echo ""
+  
+  # Check if git is available
+  if ! command -v git >/dev/null 2>&1; then
+    echo -e "${RED}Git not found!${NC}"
+    echo "Please install git first:"
+    echo "  sudo apt update && sudo apt install git"
+    exit 1
+  fi
+  
+  echo -e "${GREEN}✓ Git available${NC}"
+  
+elif is_macos; then
+  echo -e "${BLUE}macOS detected - iCloud-based setup${NC}"
+  echo ""
+  
+  # Check if iCloud Drive is available
+  ICLOUD_PATH="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+  if [ ! -d "$ICLOUD_PATH" ]; then
+    echo -e "${RED}iCloud Drive not found!${NC}"
+    echo "Please sign in to iCloud first, or use the standard setup:"
+    echo "  ./scripts/index.sh"
+    exit 1
+  fi
+  
+  echo -e "${GREEN}✓ iCloud Drive detected${NC}"
+  echo ""
+  
+else
+  echo -e "${RED}Unsupported OS: $(uname -s)${NC}"
+  echo "This script supports macOS and Ubuntu only."
   exit 1
 fi
-
-echo -e "${GREEN}✓ iCloud Drive detected${NC}"
-echo ""
 
 # Function to create symlink with backup
 create_symlink() {
@@ -72,30 +104,48 @@ echo "SSH and .zshrc will be automatically configured"
 echo "when you run the main setup script."
 echo ""
 
+# Platform-specific setup paths
+if is_ubuntu; then
+  BOBLBEE_PATH="$HOME/boblbee"
+else
+  BOBLBEE_PATH="$HOME/Developer/workspace/matdotcx/boblbee"
+fi
+
 # Check for boblbee installation
-if [ -d "$HOME/Developer/workspace/matdotcx/boblbee" ]; then
-  echo -e "${BLUE}Boblbee detected. Would you like to run the full setup? (y/n)${NC}"
+if [ -d "$BOBLBEE_PATH" ]; then
+  echo -e "${BLUE}Boblbee detected at $BOBLBEE_PATH${NC}"
+  echo "Would you like to run the full setup? (y/n)"
   read -n 1 -r
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
-    cd "$HOME/Developer/workspace/matdotcx/boblbee"
+    cd "$BOBLBEE_PATH"
     ./scripts/index.sh
   else
     echo ""
     echo "To complete setup manually, run:"
-    echo "  cd ~/Developer/workspace/matdotcx/boblbee"
+    echo "  cd $BOBLBEE_PATH"
     echo "  ./scripts/index.sh"
   fi
 else
   echo -e "${YELLOW}Boblbee not found at expected location${NC}"
   echo ""
   echo "To complete setup:"
-  echo "1. Clone boblbee:"
-  echo "   git clone https://github.com/matdotcx/boblbee.git ~/Developer/workspace/matdotcx/boblbee"
-  echo ""
-  echo "2. Run setup:"
-  echo "   cd ~/Developer/workspace/matdotcx/boblbee"
-  echo "   ./scripts/index.sh"
+  
+  if is_ubuntu; then
+    echo "1. Clone boblbee:"
+    echo "   git clone https://github.com/matdotcx/boblbee.git ~/boblbee"
+    echo ""
+    echo "2. Run setup:"
+    echo "   cd ~/boblbee"
+    echo "   ./scripts/index.sh"
+  else
+    echo "1. Clone boblbee:"
+    echo "   git clone https://github.com/matdotcx/boblbee.git ~/Developer/workspace/matdotcx/boblbee"
+    echo ""
+    echo "2. Run setup:"
+    echo "   cd ~/Developer/workspace/matdotcx/boblbee"
+    echo "   ./scripts/index.sh"
+  fi
 fi
 
 echo ""
@@ -103,5 +153,10 @@ echo -e "${GREEN}✓ Initial setup complete!${NC}"
 echo ""
 echo "Next steps:"
 echo "- Run the boblbee setup scripts as shown above"
-echo "- Source your shell: source ~/.zshrc"
-echo "- Test aliases: dots, claude-sync"
+if is_ubuntu; then
+  echo "- Log out and back in to use zsh as default shell (or run: exec zsh)"
+  echo "- Test git configuration and Claude Code installation"
+else
+  echo "- Source your shell: source ~/.zshrc"
+  echo "- Test aliases: dots, claude-sync"
+fi
