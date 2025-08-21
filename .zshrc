@@ -398,6 +398,9 @@ alias cdw='cd ~/Developer/workspace'
 # Change Directory to the current user's iCloud Drive
 alias cdic='cd ~/Library/Mobile\ Documents/com~apple~CloudDocs'
 
+# Change Directory to main Obsidian Vault
+alias zettelkasten='cd ~/Library/Mobile Documents/iCloud~md~obsidian/Documents/Zettelkasten'
+
 # Change Directory up to the root of a current project
 up() {
   local directory=$PWD
