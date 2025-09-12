@@ -106,6 +106,11 @@ bb-edit      # Open boblbee in your editor
 bb-reload    # Reload shell configuration
 ```
 
+### Development Tools
+```bash
+scripts/setup-gpg-signing.sh  # Configure Git GPG signing with existing keys
+```
+
 ## Daily Usage
 
 After making changes to your configuration:
