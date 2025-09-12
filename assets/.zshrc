@@ -1,4 +1,4 @@
-###############################################################################
+w###############################################################################
 # Title: zshrc
 # Description: An improved ~/.zshrc
 # Enhanced prompt with consistent symbols, and modern macOS compatibility
