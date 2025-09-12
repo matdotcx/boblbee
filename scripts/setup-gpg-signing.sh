@@ -27,7 +27,7 @@ echo "Setting up GPG signing for Git..."
 
 # Find your GPG key (looks for keys with your email)
 EMAIL="diego@iaconelli.org"
-KEY_ID=$(gpg --list-secret-keys --keyid-format=long | grep -A 1 "$EMAIL" | grep "sec" | cut -d'/' -f2 | cut -d' ' -f1)
+KEY_ID=$(gpg --list-secret-keys --keyid-format=long | grep -B 10 "$EMAIL" | grep "sec" | tail -1 | cut -d'/' -f2 | cut -d' ' -f1)
 
 if [ -z "$KEY_ID" ]; then
     echo "No GPG key found for $EMAIL"
