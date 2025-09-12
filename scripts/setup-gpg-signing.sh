@@ -20,6 +20,7 @@
 #
 # Prerequisites:
 # - GPG keys must already be installed (via GPG Keychain or gpg --import)
+# - If using GPG Keychain, import your .asc secret key file first
 # - GitHub CLI must be authenticated (run 'gh auth login' if needed)
 # - Your email in the GPG key should match the EMAIL variable below
 
@@ -33,6 +34,11 @@ if [ -z "$KEY_ID" ]; then
     echo "No GPG key found for $EMAIL"
     echo "Available keys:"
     gpg --list-secret-keys --keyid-format=long
+    echo ""
+    echo "Troubleshooting:"
+    echo "- If using GPG Keychain: Import your .asc secret key file"
+    echo "- If keys show above but email doesn't match, update EMAIL variable"
+    echo "- If no keys shown: gpg --import your-secret-key.asc"
     exit 1
 fi
 
