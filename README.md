@@ -21,6 +21,21 @@ What makes this particular collection special is its intelligent sync system - i
 
 ### macOS Setup
 
+#### Option 1: MacPorts Installation (Recommended)
+
+```bash
+# Install via MacPorts with essential tools
+sudo port install boblbee +essentials
+
+# Or with development tools
+sudo port install boblbee +development
+
+# Run the setup
+boblbee-setup
+```
+
+#### Option 2: Manual Installation
+
 ```bash
 # Download and extract boblbee
 mkdir -p ~/Developer/workspace/matdotcx/ && cd ~/Developer/workspace/matdotcx
@@ -89,6 +104,11 @@ bb-setup     # Run complete setup (for new machines)
 bb-upgrade   # Upgrade existing installation
 bb-edit      # Open boblbee in your editor
 bb-reload    # Reload shell configuration
+```
+
+### Development Tools
+```bash
+scripts/setup-gpg-signing.sh  # Configure Git GPG signing with existing keys
 ```
 
 ## Daily Usage
@@ -183,6 +203,37 @@ Don't use this if you're not at ease reading basic shell scripts, interpreting A
 - **Backup first**: Some scripts modify system settings
 - **Cross-platform**: Works on macOS and Ubuntu 24.04+
 - **Requires admin**: Some features need sudo access
+
+## MacPorts Installation
+
+boblbee is available as a MacPorts port with automatic dependency management. The Portfile includes three installation variants:
+
+- **Default** (`+essentials`): Core tools plus zsh enhancements, fzf, ripgrep, tree, GitHub CLI
+- **Development** (`+development`): Adds Python testing tools, linters, and system utilities
+- **Complete** (`+complete`): Everything above plus tmux, deno, and additional tools
+
+### Installation Variants
+
+```bash
+# Basic installation with essentials (recommended)
+sudo port install boblbee +essentials
+
+# Add development tools
+sudo port install boblbee +development  
+
+# Complete installation
+sudo port install boblbee +complete
+```
+
+### Dependencies Included
+
+The MacPorts installation automatically handles all dependencies identified in the `.zshrc` analysis:
+- **Core**: zsh, git, curl, python3, ssh, coreutils
+- **Shell**: zsh-syntax-highlighting, zsh-autosuggestions  
+- **Tools**: fzf, ripgrep, tree, gh, nodejs/npm
+- **Optional**: pytest, ruff, pre-commit, htop, eza, tmux, deno, uv
+
+See [`macports/README.md`](macports/README.md) for detailed installation instructions and troubleshooting.
 
 ## Contributing
 
