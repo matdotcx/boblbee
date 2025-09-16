@@ -1,8 +1,9 @@
 ###############################################################################
-# Title: zshrc (OPTIMIZED VERSION)
-# Description: Fast-loading zshrc with lazy loading for slow operations
+# Title: zshrc
+# Description: An improved ~/.zshrc
+# Enhanced prompt with consistent symbols, and modern macOS compatibility
 # Source: https://github.com/matdotcx/boblbee
-# Edition: Optimized for fast startup
+# Edition: Fri 12 Sep 2025 20:50:19 BST
 ###############################################################################
 
 export TERM="xterm-256color"
@@ -17,7 +18,7 @@ is_macos() { [[ "$OSTYPE" == "darwin"* ]]; }
 is_ubuntu() { [[ -f /etc/lsb-release ]] && grep -q "Ubuntu" /etc/lsb-release; }
 
 ###############################################################################
-# Path Configuration (Fast)
+# Path Configuration
 ###############################################################################
 
 if is_ubuntu; then
@@ -26,12 +27,15 @@ else
     # macOS PATH
     export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 
-    # Skip brew --prefix call, use direct paths
-    if [[ -d "/opt/homebrew" ]]; then
-        # Apple Silicon - direct path, no brew call
+    # Package manager paths
+    if [[ -d "/opt/local/bin" ]]; then
+        # MacPorts
+        export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
+    elif [[ -d "/opt/homebrew/bin" ]]; then
+        # Homebrew Apple Silicon
         export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"
-    elif [[ -d "/usr/local/Homebrew" ]]; then
-        # Intel - direct path, no brew call
+    elif [[ -d "/usr/local/bin" ]]; then
+        # Homebrew Intel
         export PATH="/usr/local/bin:/usr/local/sbin:$PATH"
     fi
 fi
@@ -45,39 +49,45 @@ export BUN_INSTALL="$HOME/.bun"
 ###############################################################################
 
 HISTFILE=~/.zsh_history
-HISTSIZE=10000000
+HISTSIZE=10000000                # 10 million like eli
 SAVEHIST=$HISTSIZE
-setopt INC_APPEND_HISTORY
-setopt SHARE_HISTORY
-setopt HIST_REDUCE_BLANKS
-setopt HIST_VERIFY
-setopt HIST_EXPIRE_DUPS_FIRST
-setopt HIST_IGNORE_DUPS
-setopt HIST_IGNORE_ALL_DUPS
-setopt HIST_FIND_NO_DUPS
-setopt HIST_SAVE_NO_DUPS
-setopt HIST_IGNORE_SPACE
+setopt INC_APPEND_HISTORY        # Write immediately
+setopt SHARE_HISTORY             # Share between sessions
+setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks
+setopt HIST_VERIFY               # Don't execute immediately on expansion
+setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicates first
+setopt HIST_IGNORE_DUPS          # Don't record duplicates
+setopt HIST_IGNORE_ALL_DUPS      # Delete old duplicates
+setopt HIST_FIND_NO_DUPS         # Don't display duplicates
+setopt HIST_SAVE_NO_DUPS         # Don't save duplicates
+setopt HIST_IGNORE_SPACE         # Don't record lines starting with space
 
 ###############################################################################
 # Shell Options
 ###############################################################################
 
-setopt NO_CASE_GLOB
-setopt EXTENDED_GLOB
-setopt AUTO_PUSHD
-setopt PUSHD_IGNORE_DUPS
-setopt PUSHD_MINUS
-setopt AUTO_CD
-setopt NO_MATCH
-setopt CORRECT
-setopt INTERACTIVE_COMMENTS
-unsetopt CORRECT_ALL
-unsetopt NOTIFY
-unsetopt BEEP
+setopt NO_CASE_GLOB              # Case-insensitive globbing
+setopt EXTENDED_GLOB             # Extended globbing patterns
+setopt AUTO_PUSHD                # Push directories onto stack
+setopt PUSHD_IGNORE_DUPS         # Don't duplicate directories
+setopt PUSHD_MINUS               # Reverse +/- meanings
+setopt AUTO_CD                   # cd by typing directory name
+setopt NO_MATCH                  # No error on no matches
+setopt CORRECT                   # Spelling correction for commands
+setopt INTERACTIVE_COMMENTS      # Allow comments in interactive shell
+unsetopt CORRECT_ALL             # Don't correct arguments
+unsetopt NOTIFY                  # Report status of background jobs immediately
+unsetopt BEEP                    # No beeping
 
 ###############################################################################
-# Lazy Load Completion System (Major speedup)
+# Completion System (Lazy loaded for faster startup - saves ~50-80ms)
 ###############################################################################
+
+# Completion options
+setopt COMPLETE_IN_WORD          # Complete from cursor position
+setopt AUTO_MENU                 # Use menu completion after second tab
+setopt ALWAYS_TO_END             # Move cursor to end after completion
+setopt NO_BEEP                   # Don't beep on errors
 
 # Defer compinit to first tab press
 __init_completion() {
@@ -122,52 +132,39 @@ __lazy_complete() {
 zle -N __lazy_complete
 bindkey '^I' __lazy_complete
 
-# Completion options
-setopt COMPLETE_IN_WORD
-setopt AUTO_MENU
-setopt ALWAYS_TO_END
-setopt NO_BEEP
-
 ###############################################################################
-# SKIP SSH Configuration on startup - load on demand
+# SSH Configuration
 ###############################################################################
 
-# Function to initialize SSH when needed
-init_ssh() {
-    if [[ -z "$SSH_INITIALIZED" ]]; then
-        if is_macos; then
-            ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
-        elif is_ubuntu; then
-            if command -v keychain &>/dev/null; then
-                eval $(keychain --eval --agents ssh --quiet id_rsa)
-            elif [[ -z "$SSH_AUTH_SOCK" ]]; then
-                eval $(ssh-agent -s)
-                ssh-add ~/.ssh/id_rsa 2>/dev/null
-            fi
-        fi
-        export SSH_INITIALIZED=1
+if is_macos; then
+    # Preload keys to the ssh agent from keychain
+    ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
+elif is_ubuntu; then
+    # Ubuntu: Use keychain or ssh-agent
+    if command -v keychain &>/dev/null; then
+        eval $(keychain --eval --agents ssh --quiet id_rsa)
+    elif [[ -z "$SSH_AUTH_SOCK" ]]; then
+        eval $(ssh-agent -s)
+        ssh-add ~/.ssh/id_rsa 2>/dev/null
     fi
-}
-
-# Auto-init SSH only when using git or ssh commands
-ssh() { init_ssh; command ssh "$@"; }
-git() { init_ssh; command git "$@"; }
-gh() { init_ssh; command gh "$@"; }
+fi
 
 ###############################################################################
-# Lazy Load ZSH Plugins (Major speedup)
+# Plugins (zsh-syntax-highlighting & zsh-autosuggestions)
 ###############################################################################
 
-# Defer plugin loading until first command
-__load_plugins() {
+load_zsh_plugins() {
     local plugin_base=""
 
-    # Use direct paths instead of brew --prefix
+    # Use direct paths instead of brew --prefix (saves ~30-50ms)
     if [[ -d "/opt/homebrew/share" ]]; then
+        # Homebrew Apple Silicon
         plugin_base="/opt/homebrew/share"
     elif [[ -d "/usr/local/share" ]]; then
+        # Homebrew Intel
         plugin_base="/usr/local/share"
     elif [[ -d "/opt/local/share" ]]; then
+        # MacPorts
         plugin_base="/opt/local/share"
     else
         return 1
@@ -179,23 +176,13 @@ __load_plugins() {
 
     [[ -f "$syntax_hl" ]] && source "$syntax_hl"
     [[ -f "$autosugg" ]] && source "$autosugg"
-
-    # Configure autosuggestions
-    ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
-    bindkey '^ ' autosuggest-accept  # Ctrl+Space to accept
-
-    export PLUGINS_LOADED=1
 }
 
-# Load plugins on first prompt
-precmd_functions+=(__lazy_load_plugins)
-__lazy_load_plugins() {
-    if [[ -z "$PLUGINS_LOADED" ]]; then
-        __load_plugins
-    fi
-    # Remove from precmd after first run
-    precmd_functions=(${precmd_functions:#__lazy_load_plugins})
-}
+load_zsh_plugins
+
+# Configure autosuggestions
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
+bindkey '^ ' autosuggest-accept  # Ctrl+Space to accept
 
 ###############################################################################
 # Key Bindings
@@ -213,7 +200,7 @@ bindkey "^[[A" up-line-or-beginning-search
 bindkey "^[[B" down-line-or-beginning-search
 
 ###############################################################################
-# Git Prompt Functions (Optimized)
+# Git Prompt Functions
 ###############################################################################
 
 git_info() {
@@ -293,13 +280,13 @@ host_display() {
     fi
 }
 
-# Fast milliseconds function (skip python fallback)
 get_milliseconds() {
     if command -v gdate >/dev/null 2>&1; then
         gdate +%3N
+    elif is_macos; then
+        python3 -c 'import datetime; print(f"{datetime.datetime.now().microsecond // 1000:03d}")'
     else
-        # Just return 000 on macOS without gdate - faster than python
-        echo "000"
+        date +%3N
     fi
 }
 
@@ -317,7 +304,7 @@ arrow_prompt() {
 }
 
 ###############################################################################
-# Command Timing & Prompt Setup (Simplified)
+# Command Timing & Prompt Setup
 ###############################################################################
 
 preexec() {
@@ -371,7 +358,7 @@ precmd() {
     # Set terminal title
     echo -ne "\033]0;${HOST%%.*} - $(basename $SHELL)\007"
 
-    # Show MOTD with cached system info
+    # Show MOTD once with cached system info
     if [[ -z "$MOTD_SHOWN" ]]; then
         print -P "\n» salva nos, stella maris!"
         print -P ""
@@ -381,7 +368,7 @@ precmd() {
             [[ -n "$motd_line" ]] && print -P "│  ${motd_line}\n"
         fi
 
-        # Cache system info for fast retrieval
+        # Cache system info for fast retrieval (saves ~350-400ms)
         local cache_file="$HOME/.zsh_sysinfo_cache"
         local cache_age=$(($(date +%s) - $(stat -f %m "$cache_file" 2>/dev/null || echo 0)))
 
@@ -416,16 +403,6 @@ precmd() {
         print -P "│  $(date '+%A, %B %d, %Y | %T %Z')\n"
         MOTD_SHOWN=1
     fi
-}
-
-# Lazy function for full system info (call manually if needed)
-sysinfo() {
-    if is_macos; then
-        print -P "│  You are connected to $(system_profiler SPHardwareDataType | awk '/Serial Number/ {print $4}') | $(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)"
-    elif is_ubuntu; then
-        print -P "│  You are connected to $(hostname) | Ubuntu $(lsb_release -rs 2>/dev/null || echo 'Unknown') on $(uname -m)"
-    fi
-    print -P "│  System Uptime: $(calculate_uptime)"
 }
 
 calculate_uptime() {
@@ -591,13 +568,22 @@ jump() {
     fi
 
     if alias "jump_${name}" &>/dev/null; then
-        "jump_${name}"
+        eval "jump_${name}"
     else
         echo "Bookmark '${name}' not found"
         bookmark list
         return 1
     fi
 }
+
+if (( $+functions[compdef] )); then
+    _jump_completion() {
+        local bookmarks=($(grep "^alias jump_" "$BOOKMARKS_FILE" 2>/dev/null | \
+            sed 's/alias jump_//;s/=.*//' || true))
+        _describe 'bookmark' bookmarks
+    }
+    compdef _jump_completion jump
+fi
 
 ###############################################################################
 # Listing Functions
@@ -651,6 +637,7 @@ alias ga='git add'
 alias gaa='git add -A'
 alias gc='git commit -m'
 alias gp='git push'
+alias gpo='git push origin'
 alias gl='git pull'
 alias gd='git diff'
 alias gco='git checkout'
@@ -659,7 +646,6 @@ alias glog='git log --oneline --graph --decorate'
 alias gac='git add -A && git commit -m'
 alias gst='git stash'
 alias gsp='git stash pop'
-alias gpo='git push origin'
 
 # Smart commit with pre-commit handling
 gcauto() {
@@ -964,22 +950,12 @@ elif is_ubuntu; then
 fi
 
 ###############################################################################
-# FZF Integration (Lazy)
+# FZF Integration
 ###############################################################################
 
 if command -v fzf > /dev/null; then
-    __init_fzf() {
-        [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
-        eval "$(fzf --zsh)" 2>/dev/null || true
-    }
-
-    # Lazy load FZF on first use
-    fzf() {
-        unset -f fzf
-        __init_fzf
-        command fzf "$@"
-    }
-
+    [[ -f ~/.fzf.zsh ]] && source ~/.fzf.zsh
+    eval "$(fzf --zsh)" 2>/dev/null || true
     alias fim='vim $(fzf)'
 fi
 
@@ -1059,8 +1035,11 @@ alias cxq='noglob claude-exec -q'
 alias cxfq='noglob claude-exec -fq'
 
 ###############################################################################
-# Zedspace function
+# Anthropic/Coder Integration
 ###############################################################################
+
+[[ -f /Users/diego/code/anthropic/config/local/zsh/zshrc ]] && \
+    source /Users/diego/code/anthropic/config/local/zsh/zshrc
 
 zedspace() {
     if [[ -z "$1" ]]; then
@@ -1121,18 +1100,5 @@ alias prompthelp='echo "Prompt Symbols:
   #  : Root user prompt"'
 
 ###############################################################################
-# Anthropic/Coder Integration (Lazy)
-###############################################################################
-
-# Only source if file exists and on demand
-if [[ -f /Users/diego/code/anthropic/config/local/zsh/zshrc ]]; then
-    load_anthropic() {
-        source /Users/diego/code/anthropic/config/local/zsh/zshrc
-    }
-    # Trigger load on first coder command
-    alias coder="load_anthropic; coder"
-fi
-
-###############################################################################
-# END OF OPTIMIZED CONFIGURATION
+# END OF CONFIGURATION
 ###############################################################################
