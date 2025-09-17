@@ -489,7 +489,12 @@ for index ({1..9}) alias "$index"="cd +${index}"; unset index
 
 # Enhanced cd - shows content after changing
 cd() {
-    builtin cd "$@" && pwd && ls -AlhGti
+    if builtin cd "$@" 2>/dev/null; then
+        pwd && ls -AlhGti
+    else
+        echo "cd: no such file or directory: $@"
+        return 1
+    fi
 }
 
 # Create and enter directory
