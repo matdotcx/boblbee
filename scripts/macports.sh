@@ -11,6 +11,10 @@ sudo -v
 # Keep-alive: update existing `sudo` time stamp until we have finished
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 
+# Save original script directory for later use
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BOBLBEE_DIR="$(dirname "$SCRIPT_DIR")"
+
 # Define timestamp variable
 timestamp=$(date +%d-%m-%Y_%H.%M.%S)
 
@@ -118,5 +122,5 @@ sudo chown -R macports:admin /opt/local/var/macports/sources/ 2>/dev/null || tru
 # Install essential packages via local Portfile
 
 echo "Installing essential development packages..."
-cd "$(dirname "$0")/.."  # Go to boblbee root directory
+cd "$BOBLBEE_DIR"
 sudo port install file://$PWD
