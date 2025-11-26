@@ -122,5 +122,5 @@ sudo chown -R macports:admin /opt/local/var/macports/sources/ 2>/dev/null || tru
 # Install essential packages via local Portfile
 
 echo "Installing essential development packages..."
-cd "$BOBLBEE_DIR"
+cd "$BOBLBEE_DIR/macports"
 sudo port install file://$PWD
