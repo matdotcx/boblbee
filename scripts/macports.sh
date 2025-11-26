@@ -119,8 +119,8 @@ echo "Fixing ports tree ownership..."
 sudo chown -R macports:admin /opt/local/var/macports/sources/ 2>/dev/null || true
 
 #########################################################
-# Install essential packages via local Portfile
+# Install essential packages
 
-echo "Installing essential development packages..."
-cd "$BOBLBEE_DIR/macports"
-sudo port install file://$PWD
+# Install essential packages directly
+echo "Installing essential packages..."
+sudo /opt/local/bin/port install zsh-autosuggestions zsh-syntax-highlighting git curl
