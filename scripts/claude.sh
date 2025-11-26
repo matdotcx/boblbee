@@ -10,6 +10,19 @@ echo "Setting up Claude Code..."
 
 # Check if Claude Code is already installed
 if ! command -v claude &> /dev/null; then
+    # Check if npm is available, install if not
+    if ! command -v npm &> /dev/null; then
+        echo "npm not found, installing via MacPorts..."
+        if command -v port &> /dev/null; then
+            sudo port install npm10 nodejs22
+        elif [ -f /opt/local/bin/port ]; then
+            sudo /opt/local/bin/port install npm10 nodejs22
+        else
+            echo "✗ MacPorts not found. Please install npm manually."
+            exit 1
+        fi
+    fi
+
     echo "Installing Claude Code via npm..."
     sudo npm install -g @anthropic-ai/claude-code
     
