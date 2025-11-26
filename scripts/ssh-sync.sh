@@ -23,9 +23,19 @@ echo ""
 ICLOUD_SSH="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Ark/Sync/System/.ssh"
 HOME_SSH="$HOME/.ssh"
 
-# Function to check if iCloud Drive is available (macOS only)
+# Function to check if iCloud Drive is available AND functional (macOS only)
 check_icloud() {
-  if is_macos && [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
+  if ! is_macos; then
+    return 1
+  fi
+  local icloud_base="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+  if [ ! -d "$icloud_base" ]; then
+    return 1
+  fi
+  # Test if we can actually write to iCloud (may exist but not signed in)
+  local test_file="$icloud_base/.boblbee_write_test_$$"
+  if touch "$test_file" 2>/dev/null; then
+    rm -f "$test_file" 2>/dev/null
     return 0
   else
     return 1

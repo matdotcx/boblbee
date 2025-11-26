@@ -32,11 +32,20 @@ if [ ! -f "$DOTFILES_MOTD" ]; then
   exit 1
 fi
 
-# Function to check if iCloud Drive is available
+# Function to check if iCloud Drive is available AND functional
 check_icloud() {
-  if [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
+  local icloud_base="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+  if [ ! -d "$icloud_base" ]; then
+    log_message "INFO" "iCloud directory does not exist"
+    return 1
+  fi
+  # Test if we can actually write to iCloud (may exist but not signed in)
+  local test_file="$icloud_base/.boblbee_write_test_$$"
+  if touch "$test_file" 2>/dev/null; then
+    rm -f "$test_file" 2>/dev/null
     return 0
   else
+    log_message "INFO" "iCloud exists but not writable (not signed in?)"
     return 1
   fi
 }
@@ -236,12 +245,18 @@ if check_icloud; then
       log_message "ERROR" "No write permission for home directory"
       exit 1
     fi
-    if ! ln -s "$ICLOUD_MOTD" "$HOME_MOTD" 2>/dev/null; then
-      echo -e "${RED}Failed to create symlink to iCloud Drive${NC}"
-      log_message "ERROR" "Failed to create symlink from $HOME_MOTD to $ICLOUD_MOTD"
-      exit 1
+    # Verify target file exists before creating symlink
+    if [ ! -f "$ICLOUD_MOTD" ]; then
+      echo -e "${RED}Cannot create symlink - iCloud target file does not exist${NC}"
+      log_message "ERROR" "iCloud file $ICLOUD_MOTD does not exist"
+    else
+      if ! ln -s "$ICLOUD_MOTD" "$HOME_MOTD" 2>/dev/null; then
+        echo -e "${RED}Failed to create symlink to iCloud Drive${NC}"
+        log_message "ERROR" "Failed to create symlink from $HOME_MOTD to $ICLOUD_MOTD"
+        exit 1
+      fi
+      echo -e "${GREEN}Created symlink: ~/.motd → iCloud Drive${NC}"
     fi
-    echo -e "${GREEN}Created symlink: ~/.motd → iCloud Drive${NC}"
   fi
   
   echo ""

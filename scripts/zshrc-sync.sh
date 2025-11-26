@@ -35,11 +35,23 @@ if [ ! -f "$DOTFILES_ZSHRC" ]; then
   exit 1
 fi
 
-# Function to check if iCloud Drive is available (macOS only)
+# Function to check if iCloud Drive is available AND functional (macOS only)
 check_icloud() {
-  if is_macos && [ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]; then
+  if ! is_macos; then
+    return 1
+  fi
+  local icloud_base="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+  if [ ! -d "$icloud_base" ]; then
+    log_message "INFO" "iCloud directory does not exist"
+    return 1
+  fi
+  # Test if we can actually write to iCloud (may exist but not signed in)
+  local test_file="$icloud_base/.boblbee_write_test_$$"
+  if touch "$test_file" 2>/dev/null; then
+    rm -f "$test_file" 2>/dev/null
     return 0
   else
+    log_message "INFO" "iCloud exists but not writable (not signed in?)"
     return 1
   fi
 }
@@ -300,12 +312,19 @@ elif check_icloud; then
       log_message "ERROR" "No write permission for home directory"
       exit 1
     fi
-    if ! ln -s "$ICLOUD_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
-      echo -e "${RED}Failed to create symlink to iCloud Drive${NC}"
-      log_message "ERROR" "Failed to create symlink from $HOME_ZSHRC to $ICLOUD_ZSHRC"
-      exit 1
+    # Verify target file exists before creating symlink
+    if [ ! -f "$ICLOUD_ZSHRC" ]; then
+      echo -e "${RED}Cannot create symlink - iCloud target file does not exist${NC}"
+      log_message "ERROR" "iCloud file $ICLOUD_ZSHRC does not exist, falling back to dotfiles-only mode"
+      # Fall through to non-iCloud mode below
+    else
+      if ! ln -s "$ICLOUD_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+        echo -e "${RED}Failed to create symlink to iCloud Drive${NC}"
+        log_message "ERROR" "Failed to create symlink from $HOME_ZSHRC to $ICLOUD_ZSHRC"
+        exit 1
+      fi
+      echo -e "${GREEN}Created symlink: ~/.zshrc → iCloud Drive${NC}"
     fi
-    echo -e "${GREEN}Created symlink: ~/.zshrc → iCloud Drive${NC}"
   fi
   
   echo ""
