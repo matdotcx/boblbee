@@ -14,6 +14,9 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 # Define timestamp variable
 timestamp=$(date +%d-%m-%Y_%H.%M.%S)
 
+# MacPorts version to install (use stable release, not dev/master)
+MACPORTS_VERSION="v2.11.6"
+
 # Check if MacPorts was recently installed (less than 24 hours ago)
 if [ -f "/opt/local/bin/port" ]; then
     install_time=$(stat -f %m /opt/local/bin/port 2>/dev/null)
@@ -63,13 +66,14 @@ if ! cd macports-base; then
     exit 1
 fi
 
-# Checkout the current version and build / install / clean to `/opt/local`
-if ! git checkout; then
-    echo "Error: Failed to checkout current version"
+# Checkout stable release version (not dev/master)
+echo "Checking out MacPorts $MACPORTS_VERSION..."
+if ! git checkout "$MACPORTS_VERSION"; then
+    echo "Error: Failed to checkout $MACPORTS_VERSION"
     exit 1
 fi
 
-echo "Building MacPorts"
+echo "Building MacPorts $MACPORTS_VERSION"
 if ! ./configure --enable-readline; then
     echo "Error: Failed to configure MacPorts"
     exit 1
@@ -100,9 +104,14 @@ export PATH="/opt/local/bin:/opt/local/sbin:$PATH"
 
 #########################################################
 # Runs a `port -v selfupdate` to set up for the first port installation.
+# Also fix ownership in case tarball extraction creates files with wrong UIDs
 
 echo "Port Self-update"
 sudo port -v selfupdate
+
+# Fix ownership of ports tree (tarball may have wrong UIDs)
+echo "Fixing ports tree ownership..."
+sudo chown -R macports:admin /opt/local/var/macports/sources/ 2>/dev/null || true
 
 #########################################################
 # Install essential packages via local Portfile
