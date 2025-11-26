@@ -15,7 +15,8 @@ while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 timestamp=$(date +%d-%m-%Y_%H.%M.%S)
 
 # MacPorts version to install (use stable release, not dev/master)
-MACPORTS_VERSION="v2.11.6"
+echo "Fetching latest MacPorts stable release..."
+MACPORTS_VERSION=$(git ls-remote --tags https://github.com/macports/macports-base.git | grep -oE "v[0-9]+\.[0-9]+\.[0-9]+$" | sort -V | tail -1)
 
 # Check if MacPorts was recently installed (less than 24 hours ago)
 if [ -f "/opt/local/bin/port" ]; then
