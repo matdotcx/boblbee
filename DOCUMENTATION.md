@@ -130,6 +130,7 @@ boblbee/
 │   ├── dots.sh             # macOS: System preferences
 │   ├── macports.sh         # macOS: MacPorts setup
 │   ├── touchid-sudo.sh     # macOS: TouchID for sudo
+│   ├── pam-ssh-agent-sudo.sh # macOS: SSH agent sudo auth
 │   └── xcode.sh            # macOS: Xcode tools
 └── templates/              # Starter templates
     └── CLAUDE.md           # Project memory template
@@ -392,6 +393,27 @@ Handles shell configuration sync with platform detection:
 - **macOS without iCloud**: Bidirectional sync between git and home
 - **Ubuntu**: Simple bidirectional sync between git and home
 - **All**: Maintains proper permissions and backups
+
+#### pam-ssh-agent-sudo.sh (macOS only)
+Enables passwordless sudo via SSH agent authentication:
+- Builds pam_ssh_agent_auth from source with necessary patches
+- Installs PAM module to /usr/local/lib/pam/
+- Configures sudoers to preserve SSH_AUTH_SOCK
+- Configures PAM to use ssh-agent authentication
+
+After installation, sudo authenticates via your forwarded SSH agent keys.
+Requires: Xcode CLI tools, OpenSSL via MacPorts.
+
+**Usage:**
+```bash
+./pam-ssh-agent-sudo.sh           # Install
+./pam-ssh-agent-sudo.sh uninstall # Remove
+```
+
+**Note:** If using Tailscale SSH, add the Tailscale ECDSA key to authorized_keys:
+```bash
+ssh-add -L >> ~/.ssh/authorized_keys
+```
 
 ### Utility Scripts
 
