@@ -1,0 +1,7 @@
+# Element-named hosts
+cobalt
+nickel
+krypton
+radon
+hydrogen
+helium

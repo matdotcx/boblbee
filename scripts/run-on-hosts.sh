@@ -124,10 +124,17 @@ run_on_host() {
             continue
         fi
 
-        if ssh $SSH_OPTS "$host" "$cmd" 2>&1 | sed "s/^/  /"; then
+        local output
+        local exit_code
+        output=$(ssh $SSH_OPTS "$host" "$cmd" 2>&1)
+        exit_code=$?
+
+        echo "$output" | sed "s/^/  /"
+
+        if [[ $exit_code -eq 0 ]]; then
             log_host "$host" "${GREEN}ok${NC}"
         else
-            log_host "$host" "${RED}failed${NC}"
+            log_host "$host" "${RED}failed (exit $exit_code)${NC}"
             failed=1
             if [[ "$STOP_ON_ERROR" == "1" ]]; then
                 log_error "Stopping due to error on $host"
