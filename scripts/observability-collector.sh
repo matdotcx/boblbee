@@ -22,7 +22,8 @@ echo ""
 # Helium server (monitoring host)
 HELIUM_FQDN="helium.gl52.iaconelli.org"
 HELIUM_IP="10.52.1.26"
-INSTALLER_URL="https://raw.githubusercontent.com/matdotcx/observability/main/scripts/install-collector.sh"
+SCRIPT_DIR="$(dirname "$0")"
+INSTALLER_SCRIPT="$SCRIPT_DIR/install-collector.sh"
 
 # Function to get local IP address
 get_local_ip() {
@@ -141,25 +142,19 @@ fi
 echo -e "${BLUE}Installing observability collector...${NC}"
 echo ""
 
-# Download and run the installer
-if curl -sL "$INSTALLER_URL" -o /tmp/install-collector.sh 2>/dev/null; then
-    chmod +x /tmp/install-collector.sh
-
-    if bash /tmp/install-collector.sh; then
+# Run the bundled installer
+if [[ -f "$INSTALLER_SCRIPT" ]]; then
+    if bash "$INSTALLER_SCRIPT"; then
         echo -e "${GREEN}Collector installed successfully${NC}"
-        rm -f /tmp/install-collector.sh
     else
         echo -e "${RED}Collector installation failed${NC}"
-        rm -f /tmp/install-collector.sh
         exit 1
     fi
 else
-    echo -e "${RED}Failed to download installer from:${NC}"
-    echo "  $INSTALLER_URL"
+    echo -e "${RED}Installer script not found:${NC}"
+    echo "  $INSTALLER_SCRIPT"
     echo ""
-    echo -e "${YELLOW}The installer script may not be available yet.${NC}"
-    echo "You can install manually later by running:"
-    echo "  curl -sL $INSTALLER_URL | bash"
+    echo -e "${YELLOW}Skipping collector installation.${NC}"
     # Don't fail - allow boblbee to continue
 fi
 
