@@ -33,11 +33,27 @@ get_local_ip() {
     fi
 }
 
+# Function to detect which port the exporter is running on
+# Returns the port number, or empty if not running
+detect_exporter_port() {
+    # Check macOS exporter on 9101
+    if curl -s --connect-timeout 2 "http://localhost:9101/metrics" > /dev/null 2>&1; then
+        echo "9101"
+        return 0
+    fi
+    # Check node_exporter on 9100
+    if curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1; then
+        echo "9100"
+        return 0
+    fi
+    return 1
+}
+
 # Function to check if exporter is already running
 check_existing_exporter() {
     if is_macos; then
         # Check for macOS exporter on port 9101
-        if curl -s --connect-timeout 2 "http://localhost:9101/health" > /dev/null 2>&1; then
+        if curl -s --connect-timeout 2 "http://localhost:9101/metrics" > /dev/null 2>&1; then
             return 0
         fi
         # Also check if LaunchDaemon exists
@@ -78,6 +94,7 @@ get_helium_address() {
 # Function to register with helium
 register_with_helium() {
     local helium_addr="$1"
+    local exporter_port="${2:-9100}"
     local hostname
     local local_ip
 
@@ -92,10 +109,11 @@ register_with_helium() {
     echo -e "${BLUE}Registering with helium (${helium_addr})...${NC}"
     echo "  Hostname: $hostname"
     echo "  IP: $local_ip"
+    echo "  Exporter Port: $exporter_port"
 
     # Use SSH agent forwarding to register
     if ssh -A -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$helium_addr" \
-        "~/observability/scripts/register-host.sh '$hostname' '$local_ip'" 2>/dev/null; then
+        "~/observability/scripts/register-host.sh '$hostname' '$local_ip' '$exporter_port'" 2>/dev/null; then
         echo -e "${GREEN}Registered with helium${NC}"
         return 0
     else
@@ -106,12 +124,13 @@ register_with_helium() {
 
 # Check if collector is already installed
 if check_existing_exporter; then
-    echo -e "${GREEN}Exporter already installed and running${NC}"
+    exporter_port=$(detect_exporter_port)
+    echo -e "${GREEN}Exporter already installed and running on port ${exporter_port}${NC}"
     echo ""
 
     # Still try to register in case this is a re-run
     if helium=$(get_helium_address); then
-        register_with_helium "$helium" || true
+        register_with_helium "$helium" "$exporter_port" || true
     fi
 
     echo -e "${GREEN}Observability collector setup complete!${NC}"
@@ -144,10 +163,10 @@ else
     # Don't fail - allow boblbee to continue
 fi
 
-# Try to register with helium
+# Try to register with helium (install-collector.sh uses port 9100)
 echo ""
 if helium=$(get_helium_address); then
-    register_with_helium "$helium" || true
+    register_with_helium "$helium" "9100" || true
 else
     echo -e "${YELLOW}Helium not reachable${NC}"
     echo "This machine will not be monitored until registered."
