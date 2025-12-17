@@ -49,8 +49,9 @@ if is_ubuntu; then
     run_script "zshrc-sync.sh"
     run_script "motd-sync.sh"
     run_script "ssh-sync.sh"
+    run_script "observability-collector.sh"
     run_script "hostname-fqdn.sh" "sudo"
-    
+
     echo ""
     echo "Ubuntu setup complete!"
     echo "Please log out and back in to use zsh as your default shell."
@@ -69,8 +70,9 @@ elif is_macos; then
     run_script "zshrc-sync.sh"
     run_script "motd-sync.sh"
     run_script "ssh-sync.sh"
+    run_script "observability-collector.sh"
     run_script "hostname-fqdn.sh" "sudo"
-    
+
     echo ""
     echo "macOS setup complete!"
     
