@@ -14,6 +14,7 @@ What makes this particular collection special is its intelligent sync system - i
 - **Smart Sync**: Automatically adapts to iCloud and non-iCloud environments
 - **Claude Code Integration**: Syncs AI assistant preferences across devices
 - **Intelligent Configuration**: Shell, SSH, and system preferences management
+- **Observability Integration**: Automatic metrics collection and reporting to central monitoring
 - **Comprehensive Setup**: Full system configuration automation
 - **Modular Design**: Use what you need, ignore what you don't
 
@@ -63,6 +64,7 @@ This will:
 - Install Claude Code integration and preferences
 - Configure shell with platform-specific smart sync
 - Set up SSH (iCloud on macOS, local on Ubuntu)
+- Install observability collector and register with central monitoring
 - Create all necessary symlinks and configurations
 
 ### Upgrading Existing Installation
@@ -158,12 +160,55 @@ boblbee/
 ├── scripts/                 # Setup and sync scripts
 │   ├── detect-os.sh         # OS detection utility
 │   ├── index.sh             # Main installer (cross-platform)
+│   ├── install-collector.sh # Prometheus node_exporter installer
+│   ├── observability-collector.sh  # Metrics collection setup
+│   ├── tailscale-setup.sh   # Optional Tailscale installer
 │   ├── ubuntu-*.sh          # Ubuntu-specific setup scripts
 │   ├── *-sync.sh            # Sync utilities
 │   └── ...                  # macOS system setup scripts
 └── templates/               # Starter templates
     └── CLAUDE.md            # Project memory template
 ```
+
+## Observability Integration
+
+Every machine set up with boblbee automatically installs and configures a Prometheus node exporter, reporting metrics to a central monitoring server (helium).
+
+### What Gets Installed
+
+- **Linux**: `node_exporter` on port 9100 (standard Prometheus exporter)
+- **macOS**: Detects existing macOS exporter on port 9101, or installs node_exporter
+
+### How It Works
+
+During `index.sh` setup:
+1. `observability-collector.sh` runs automatically
+2. Installs the appropriate exporter for the platform
+3. Creates a systemd service (Linux) or LaunchAgent (macOS)
+4. Registers with helium via SSH (if reachable)
+5. Helium's Prometheus starts scraping metrics immediately
+
+### Scripts
+
+| Script | Description |
+|--------|-------------|
+| `install-collector.sh` | Downloads and installs node_exporter for the correct platform/architecture |
+| `observability-collector.sh` | Wrapper that installs exporter and registers with helium |
+| `tailscale-setup.sh` | Optional - installs Tailscale for remote machines to reach helium |
+
+### Manual Registration
+
+If helium wasn't reachable during setup, register later:
+
+```bash
+ssh -A helium '~/observability/scripts/register-host.sh $(hostname) <your-ip> [port]'
+```
+
+The port argument is optional (default: 9100). Use 9101 for macOS exporter.
+
+### Skipping Observability
+
+Set `SKIP_OBSERVABILITY=1` before running setup to skip collector installation.
 
 ## Customization
 
