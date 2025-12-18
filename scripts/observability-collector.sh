@@ -26,9 +26,19 @@ SCRIPT_DIR="$(dirname "$0")"
 INSTALLER_SCRIPT="$SCRIPT_DIR/install-collector.sh"
 
 # Function to get local IP address
+# Prefers Tailscale IP if available (for remote machines)
 get_local_ip() {
+    # Try Tailscale IP first (works for remote machines)
+    local tailscale_ip
+    tailscale_ip=$(tailscale ip -4 2>/dev/null)
+    if [[ -n "$tailscale_ip" ]]; then
+        echo "$tailscale_ip"
+        return 0
+    fi
+
+    # Fall back to primary interface IP
     if is_macos; then
-        ipconfig getifaddr en0 2>/dev/null || hostname -I 2>/dev/null | awk '{print $1}'
+        ipconfig getifaddr en0 2>/dev/null
     elif is_ubuntu; then
         hostname -I 2>/dev/null | awk '{print $1}'
     fi
