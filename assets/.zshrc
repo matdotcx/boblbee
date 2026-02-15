@@ -1079,7 +1079,14 @@ zedspace() {
 # Boblbee Dotfiles Management
 ###############################################################################
 
-BOBLBEE_DIR="/workspace/matdotcx/boblbee"
+# Auto-detect boblbee directory from common locations
+if [[ -d "$HOME/Developer/workspace/matdotcx/boblbee" ]]; then
+  BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
+elif [[ -d "$HOME/workspace/matdotcx/boblbee" ]]; then
+  BOBLBEE_DIR="$HOME/workspace/matdotcx/boblbee"
+elif [[ -d "/workspace/matdotcx/boblbee" ]]; then
+  BOBLBEE_DIR="/workspace/matdotcx/boblbee"
+fi
 
 alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-status, bb-edit"'
 alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
