@@ -1112,7 +1112,7 @@ bb-sync() {
     bb-sync-ssh
     # Push any commits made by the sync scripts
     if [[ -d "$BOBLBEE_DIR" ]] && git -C "$BOBLBEE_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        if ! git -C "$BOBLBEE_DIR" diff --quiet origin/$(git -C "$BOBLBEE_DIR" branch --show-current)..HEAD 2>/dev/null; then
+        if [[ -n $(git -C "$BOBLBEE_DIR" log --oneline @{u}..HEAD 2>/dev/null) ]]; then
             echo "Pushing changes to remote..."
             git -C "$BOBLBEE_DIR" push && echo "Pushed successfully." || echo "Push failed."
         fi
