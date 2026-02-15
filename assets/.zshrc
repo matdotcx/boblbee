@@ -8,7 +8,7 @@
 
 export TERM="xterm-256color"
 export LANG=en_GB.UTF-8
-export EDITOR="zed"
+export EDITOR="zed --wait"
 
 ###############################################################################
 # Platform Detection
@@ -386,7 +386,14 @@ precmd() {
 
         if [[ -f "$HOME/.motd" ]]; then
             local motd_line=$(sed '/^$/d' "$HOME/.motd" | sort -R | head -1)
-            [[ -n "$motd_line" ]] && print -P "│  ${motd_line}\n"
+            if [[ -n "$motd_line" ]]; then
+                local wrap_width=$((${COLUMNS:-80} - 5))
+                local wrapped=$(print -r -- "$motd_line" | fold -s -w $wrap_width)
+                while IFS= read -r line; do
+                    print "│  $line"
+                done <<< "$wrapped"
+                print ""
+            fi
         fi
 
         # Cache system info for fast retrieval (saves ~350-400ms)
