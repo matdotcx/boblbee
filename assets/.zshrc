@@ -1043,7 +1043,7 @@ fi
 # Claude Integration
 ###############################################################################
 
-alias claude="/Users/diego/.claude/local/claude" 2>/dev/null || true
+alias claude="$HOME/.claude/local/claude" 2>/dev/null || true
 
 claude-exec() {
     [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]] && {
@@ -1118,8 +1118,8 @@ alias cxfq='noglob claude-exec -fq'
 # Anthropic/Coder Integration
 ###############################################################################
 
-[[ -f /Users/diego/code/anthropic/config/local/zsh/zshrc ]] && \
-    source /Users/diego/code/anthropic/config/local/zsh/zshrc
+[[ -f $HOME/code/anthropic/config/local/zsh/zshrc ]] && \
+    source $HOME/code/anthropic/config/local/zsh/zshrc
 
 zedspace() {
     if [[ -z "$1" ]]; then
