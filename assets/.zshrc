@@ -539,7 +539,8 @@ up() {
         if [[ $directory == $HOME ||
               -e $directory/package.json ||
               -e $directory/Cargo.toml ||
-              -e $directory/.git ]]; then
+              -e $directory/.git ||
+              -e $directory/pyproject.toml ]]; then
             cd "$directory" && return
         fi
     done
@@ -624,32 +625,38 @@ fi
 
 # Platform-specific ls colors
 export LSCOLORS=Gxfxcxdxbxegedabagacad
+unalias ls 2>/dev/null
 if is_macos; then
     alias ls="ls -G"
-elif is_ubuntu; then
+else
     alias ls="ls --color=auto"
 fi
 
 # Enhanced listing
+unalias ll 2>/dev/null
 ll() {
-    local ls_output=$(CLICOLOR_FORCE=1 ls -lhAFGT "$@")
-    local total_line=""
-    local dirs=()
-    local files=()
+    if is_macos; then
+        local ls_output=$(CLICOLOR_FORCE=1 ls -lhAFGT "$@")
+        local total_line=""
+        local dirs=()
+        local files=()
 
-    while IFS= read -r line; do
-        if [[ $line == total* ]]; then
-            total_line="$line"
-        elif [[ $line == d* ]]; then
-            dirs+=("$line")
-        else
-            files+=("$line")
-        fi
-    done <<< "$ls_output"
+        while IFS= read -r line; do
+            if [[ $line == total* ]]; then
+                total_line="$line"
+            elif [[ $line == d* ]]; then
+                dirs+=("$line")
+            else
+                files+=("$line")
+            fi
+        done <<< "$ls_output"
 
-    [[ -n $total_line ]] && echo "$total_line"
-    for line in "${dirs[@]}"; do echo "$line"; done
-    for line in "${files[@]}"; do echo "$line"; done
+        [[ -n $total_line ]] && echo "$total_line"
+        for line in "${dirs[@]}"; do echo "$line"; done
+        for line in "${files[@]}"; do echo "$line"; done
+    else
+        ls -lhAF --group-directories-first "$@"
+    fi
 }
 
 # Tree view
@@ -711,8 +718,8 @@ feature() {
 
     local stash_output="$(git stash)"
 
-    git checkout master
-    git pull --rebase origin master
+    git checkout master || git checkout main
+    git pull --rebase origin master || git pull --rebase origin main
     git checkout -b "${GH_USER}/${feature_name}"
 
     if [[ $stash_output != "No local changes to save" ]]; then
@@ -725,7 +732,12 @@ feature() {
 # GitHub activity reporter
 repo-man() {
     local GH_USER=$(gh api user --jq .login)
-    local DATE_FILTER=">$(date -v-7d '+%Y-%m-%d')"
+    local DATE_FILTER
+    if is_macos; then
+        DATE_FILTER=">$(date -v-7d '+%Y-%m-%d')"
+    else
+        DATE_FILTER=">$(date -d '7 days ago' '+%Y-%m-%d')"
+    fi
 
     echo "Activity for: $GH_USER (last 7 days)"
     echo ""
@@ -744,6 +756,41 @@ repo-man() {
 
     echo -e "\n• Commits"
     gh search commits --author="$GH_USER" --author-date="$DATE_FILTER" --limit 1000
+}
+
+# Ship changes: create feature branch, push, and create auto-merge PR
+shipit() {
+    if [[ -z "$1" ]]; then
+        echo "Usage: shipit <description>"
+        echo "Example: shipit add-new-aliases"
+        return 1
+    fi
+
+    local description="$1"
+    local GH_USER
+    if command -v gh &>/dev/null && gh auth status &>/dev/null; then
+        GH_USER=$(gh api user --jq .login 2>/dev/null)
+    fi
+    GH_USER="${GH_USER:-$(whoami)}"
+    local branch_name="${GH_USER}/${description}"
+
+    git checkout -b "$branch_name"
+    git add -A
+
+    if git commit -m "feat: ${description}"; then
+        echo "✓ Commit successful"
+    else
+        if git status --porcelain | grep -q "^[AM]"; then
+            echo "Pre-commit made changes, retrying..."
+            git add -A
+            git commit -m "feat: ${description}"
+        fi
+    fi
+
+    git push -u origin "$branch_name"
+    gh pr create --fill --web
+
+    echo "✓ PR created"
 }
 
 # GitHub token setup
@@ -1131,6 +1178,39 @@ bb-edit() {
     cd "$BOBLBEE_DIR"
     ${EDITOR:-vim} .
 }
+
+###############################################################################
+# CI Debugging
+###############################################################################
+
+ci_failed() {
+    gh pr view --json statusCheckRollup --jq '.statusCheckRollup[] | select(.state == "FAILURE") | .targetUrl'
+}
+
+###############################################################################
+# Kubernetes (if available)
+###############################################################################
+
+if command -v kubectl > /dev/null; then
+    alias k='kubectl'
+    alias kgp='kubectl get pods'
+    alias kl='kubectl logs'
+    alias ke='kubectl exec -it'
+fi
+
+###############################################################################
+# Docker (if available)
+###############################################################################
+
+if command -v docker > /dev/null; then
+    alias dps='docker ps'
+    alias dpsa='docker ps -a'
+    alias di='docker images'
+    alias dex='docker exec -it'
+    alias dl='docker logs'
+    alias drm='docker rm'
+    alias drmi='docker rmi'
+fi
 
 ###############################################################################
 # Prompt Help
