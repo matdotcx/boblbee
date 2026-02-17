@@ -68,6 +68,7 @@ elif is_macos; then
     run_script "dots.sh"
     run_script "claude.sh"
     run_script "zshrc-sync.sh"
+    run_script "ghostty-sync.sh"
     run_script "motd-sync.sh"
     run_script "ssh-sync.sh"
     run_script "observability-collector.sh"

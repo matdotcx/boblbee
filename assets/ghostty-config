@@ -1,0 +1,17 @@
+clipboard-read = allow
+clipboard-write = allow
+copy-on-select = true
+window-subtitle = working-directory
+window-theme = system
+window-height = 34
+window-width = 120
+theme = Manganese Dark
+cursor-text = #1a1b27
+cursor-style = block
+cursor-style-blink = true
+font-thicken = true
+font-family = Berkeley Mono Variable
+keybind = shift+enter=text:\n
+macos-titlebar-style = native
+auto-update = download
+auto-update-channel = tip
