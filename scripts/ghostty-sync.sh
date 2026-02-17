@@ -21,7 +21,9 @@ DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
 # Paths
 GHOSTTY_DIR="$HOME/Library/Application Support/com.mitchellh.ghostty"
 GHOSTTY_CONFIG="$GHOSTTY_DIR/config"
+GHOSTTY_THEMES_DIR="$HOME/.config/ghostty/themes"
 DOTFILES_CONFIG="$DOTFILES_DIR/assets/ghostty-config"
+DOTFILES_THEMES_DIR="$DOTFILES_DIR/assets/ghostty-themes"
 
 # Color codes
 GREEN='\033[0;32m'
@@ -56,7 +58,7 @@ commit_dotfiles_changes() {
   cd "$DOTFILES_DIR" || return 1
 
   if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-    if git add assets/ghostty-config 2>/dev/null; then
+    if git add assets/ghostty-config assets/ghostty-themes 2>/dev/null; then
       if git diff --staged --quiet; then
         echo -e "${BLUE}No changes to commit${NC}"
         return 0
@@ -119,6 +121,37 @@ else
     echo -e "${RED}Failed to update local config${NC}"
     exit 1
   fi
+fi
+
+# Sync themes
+echo ""
+echo "=== Ghostty Theme Sync ==="
+echo ""
+
+if [ -d "$DOTFILES_THEMES_DIR" ]; then
+  mkdir -p "$GHOSTTY_THEMES_DIR" 2>/dev/null
+  themes_updated=false
+
+  for theme_file in "$DOTFILES_THEMES_DIR"/*; do
+    [ -f "$theme_file" ] || continue
+    theme_name="$(basename "$theme_file")"
+    local_theme="$GHOSTTY_THEMES_DIR/$theme_name"
+
+    if [ ! -f "$local_theme" ] || ! diff -q "$theme_file" "$local_theme" >/dev/null 2>&1; then
+      if cp "$theme_file" "$local_theme" 2>/dev/null; then
+        echo -e "${GREEN}Installed theme: $theme_name${NC}"
+        themes_updated=true
+      else
+        echo -e "${RED}Failed to install theme: $theme_name${NC}"
+      fi
+    fi
+  done
+
+  if [ "$themes_updated" = false ]; then
+    echo -e "${GREEN}Themes are already in sync${NC}"
+  fi
+else
+  echo -e "${YELLOW}No themes directory in dotfiles, skipping${NC}"
 fi
 
 echo ""
