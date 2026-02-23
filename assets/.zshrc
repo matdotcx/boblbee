@@ -1043,7 +1043,6 @@ fi
 # Claude Integration
 ###############################################################################
 
-alias claude="$HOME/.claude/local/claude" 2>/dev/null || true
 
 claude-exec() {
     [[ "$1" == "-h" ]] || [[ "$1" == "--help" ]] && {
