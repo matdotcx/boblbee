@@ -65,7 +65,11 @@ get_file_mtime() {
     file="$(readlink "$file")"
   fi
   if [ -f "$file" ]; then
-    stat -f %m "$file" 2>/dev/null || echo "0"
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+      stat -f %m "$file" 2>/dev/null || echo "0"
+    else
+      stat -c %Y "$file" 2>/dev/null || echo "0"
+    fi
   else
     echo "0"
   fi

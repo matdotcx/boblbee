@@ -13,7 +13,7 @@ What makes this particular collection special is its intelligent sync system - i
 - **Cross-Platform**: Works on both macOS and Ubuntu with intelligent OS detection
 - **Smart Sync**: Automatically adapts to iCloud and non-iCloud environments
 - **Claude Code Integration**: Syncs AI assistant preferences across devices
-- **Intelligent Configuration**: Shell, SSH, and system preferences management
+- **Intelligent Configuration**: Shell, tmux, terminal, SSH, and system preferences management
 - **Observability Integration**: Automatic metrics collection and reporting to central monitoring
 - **Comprehensive Setup**: Full system configuration automation
 - **Modular Design**: Use what you need, ignore what you don't
@@ -21,21 +21,6 @@ What makes this particular collection special is its intelligent sync system - i
 ## Quick Start
 
 ### macOS Setup
-
-#### Option 1: MacPorts Installation (Recommended)
-
-```bash
-# Install via MacPorts with essential tools
-sudo port install boblbee +essentials
-
-# Or with development tools
-sudo port install boblbee +development
-
-# Run the setup
-boblbee-setup
-```
-
-#### Option 2: Manual Installation
 
 ```bash
 # Download and extract boblbee
@@ -59,12 +44,15 @@ cd ~/boblbee/scripts
 ```
 
 This will:
-- **macOS**: Configure system preferences, install Xcode tools, set up MacPorts/Homebrew
+- **macOS**: Configure system preferences, install Xcode tools, set up MacPorts, sync Ghostty config
 - **Ubuntu**: Install build-essential, configure apt packages, set up npm and Claude Code
 - Install Claude Code integration and preferences
 - Configure shell with platform-specific smart sync
+- Sync tmux configuration and Manganese themes
+- Set up message of the day
 - Set up SSH (iCloud on macOS, local on Ubuntu)
 - Install observability collector and register with central monitoring
+- Set hostname to FQDN (macOS)
 - Create all necessary symlinks and configurations
 
 ### Upgrading Existing Installation
@@ -94,10 +82,13 @@ prompthelp   # Understand shell prompt symbols
 
 ### Syncing
 ```bash
-bb-sync       # Sync all configurations (zshrc, claude, ssh)
-bb-sync-zshrc # Sync shell configuration only
-bb-sync-claude# Sync Claude Code preferences only
-bb-sync-ssh   # Sync SSH configuration (iCloud only)
+bb-sync        # Sync all configurations
+bb-sync-zshrc  # Sync shell configuration
+bb-sync-tmux   # Sync tmux configuration and themes
+bb-sync-ghostty# Sync Ghostty terminal config (macOS only)
+bb-sync-claude # Sync Claude Code preferences
+bb-sync-ssh    # Sync SSH configuration (iCloud only)
+bb-sync-motd   # Sync message of the day
 ```
 
 ### Utilities
@@ -108,9 +99,11 @@ bb-edit      # Open boblbee in your editor
 bb-reload    # Reload shell configuration
 ```
 
-### Development Tools
+### Optional Scripts (manual)
 ```bash
-scripts/setup-gpg-signing.sh  # Configure Git GPG signing with existing keys
+scripts/setup-gpg-signing.sh   # Configure Git GPG signing (uses git config email or pass as arg)
+scripts/tailscale-setup.sh     # Install and configure Tailscale VPN
+scripts/pam-ssh-agent-sudo.sh  # Enable sudo via SSH agent (macOS)
 ```
 
 ## Daily Usage
@@ -153,26 +146,31 @@ Boblbee uses an intelligent two-tier approach:
 ```
 boblbee/
 ├── assets/
-│   └── .zshrc               # Cross-platform shell configuration
+│   ├── .zshrc               # Cross-platform shell configuration
+│   ├── .motd                # Message of the day
+│   ├── ghostty-config       # Ghostty terminal config
+│   ├── ghostty-themes/      # Manganese Dark/Light themes
+│   ├── tmux.conf            # Main tmux config
+│   ├── tmux-base.conf       # Shared tmux settings
+│   └── tmux-theme-*.conf    # Manganese tmux themes
 ├── claude/                  # Claude Code integration
 │   └── memory/
 │       └── user.md          # Your AI assistant preferences
 ├── scripts/                 # Setup and sync scripts
-│   ├── detect-os.sh         # OS detection utility
 │   ├── index.sh             # Main installer (cross-platform)
-│   ├── install-collector.sh # Prometheus node_exporter installer
-│   ├── observability-collector.sh  # Metrics collection setup
-│   ├── tailscale-setup.sh   # Optional Tailscale installer
+│   ├── upgrade.sh           # Upgrade existing installations
+│   ├── *-sync.sh            # Sync utilities (zshrc, tmux, ghostty, motd, claude, ssh)
+│   ├── detect-os.sh         # OS detection utility
 │   ├── ubuntu-*.sh          # Ubuntu-specific setup scripts
-│   ├── *-sync.sh            # Sync utilities
-│   └── ...                  # macOS system setup scripts
+│   └── ...                  # macOS system setup, observability, optional scripts
+├── macports/                # MacPorts Portfile
 └── templates/               # Starter templates
     └── CLAUDE.md            # Project memory template
 ```
 
 ## Observability Integration
 
-Every machine set up with boblbee automatically installs and configures a Prometheus node exporter, reporting metrics to a central monitoring server (helium).
+During setup, boblbee installs and configures a Prometheus node exporter, reporting metrics to a central monitoring server (helium). Set `SKIP_OBSERVABILITY=1` before running setup to skip this.
 
 ### What Gets Installed
 
@@ -205,10 +203,6 @@ ssh -A helium '~/observability/scripts/register-host.sh $(hostname) <your-ip> [p
 ```
 
 The port argument is optional (default: 9100). Use 9101 for macOS exporter.
-
-### Skipping Observability
-
-Set `SKIP_OBSERVABILITY=1` before running setup to skip collector installation.
 
 ## Customization
 
@@ -249,9 +243,9 @@ Don't use this if you're not at ease reading basic shell scripts, interpreting A
 - **Cross-platform**: Works on macOS and Ubuntu 24.04+
 - **Requires admin**: Some features need sudo access
 
-## MacPorts Installation
+## MacPorts Installation (Experimental)
 
-boblbee is available as a MacPorts port with automatic dependency management. The Portfile includes three installation variants:
+A MacPorts Portfile is included for future use but is not yet the primary install path. The `macports.sh` script currently builds MacPorts from source and installs core packages directly. The Portfile defines three installation variants:
 
 - **Default** (`+essentials`): Core tools plus zsh enhancements, fzf, ripgrep, tree, GitHub CLI
 - **Development** (`+development`): Adds Python testing tools, linters, and system utilities

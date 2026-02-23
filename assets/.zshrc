@@ -490,7 +490,7 @@ alias -- -='cd -'
 alias cdh='cd ~/'
 alias cdd='cd ~/Developer'
 alias cdw='cd ~/Developer/workspace'
-alias cdm='cd ~/Developer/workspace/matotcx'
+alias cdm='cd ~/Developer/workspace/matdotcx'
 
 # macOS-specific navigation
 if is_macos; then
@@ -1141,10 +1141,12 @@ elif [[ -d "/workspace/matdotcx/boblbee" ]]; then
   BOBLBEE_DIR="/workspace/matdotcx/boblbee"
 fi
 
-alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-status, bb-edit"'
+alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,claude,ssh,motd}, bb-status, bb-edit"'
 alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
 alias bb-upgrade="$BOBLBEE_DIR/scripts/upgrade.sh"
 alias bb-sync-zshrc="$BOBLBEE_DIR/scripts/zshrc-sync.sh"
+alias bb-sync-tmux="$BOBLBEE_DIR/scripts/tmux-sync.sh"
+alias bb-sync-ghostty="$BOBLBEE_DIR/scripts/ghostty-sync.sh"
 alias bb-sync-claude="$BOBLBEE_DIR/scripts/claude-sync.sh"
 alias bb-sync-ssh="$BOBLBEE_DIR/scripts/ssh-sync.sh"
 alias bb-sync-motd="$BOBLBEE_DIR/scripts/motd-sync.sh"
@@ -1153,6 +1155,8 @@ alias bb-reload="exec ${SHELL} -l"
 bb-sync() {
     echo "=== Boblbee Full Sync ==="
     bb-sync-zshrc
+    bb-sync-tmux
+    [[ "$OSTYPE" == "darwin"* ]] && bb-sync-ghostty
     bb-sync-motd
     bb-sync-claude
     bb-sync-ssh

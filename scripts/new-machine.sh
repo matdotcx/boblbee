@@ -158,5 +158,5 @@ if is_ubuntu; then
   echo "- Test git configuration and Claude Code installation"
 else
   echo "- Source your shell: source ~/.zshrc"
-  echo "- Test aliases: dots, claude-sync"
+  echo "- Try bb-help to see available commands"
 fi

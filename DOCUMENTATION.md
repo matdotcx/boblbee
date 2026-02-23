@@ -23,7 +23,7 @@ All boblbee commands follow the `bb-*` naming convention for easy discovery and 
 |---------|-------------|
 | `bb-help` | Display all available boblbee commands with descriptions |
 | `bb-status` | Check the current sync status of all components |
-| `bb-sync` | Sync all configurations (zshrc, claude, ssh) |
+| `bb-sync` | Sync all configurations (zshrc, tmux, ghostty, motd, claude, ssh) |
 | `bb-reload` | Reload shell configuration after changes |
 
 ### Setup Commands
@@ -38,8 +38,11 @@ All boblbee commands follow the `bb-*` naming convention for easy discovery and 
 | Command | Description |
 |---------|-------------|
 | `bb-sync-zshrc` | Sync shell configuration between iCloud/git |
+| `bb-sync-tmux` | Sync tmux configuration and themes |
+| `bb-sync-ghostty` | Sync Ghostty terminal config (macOS only) |
 | `bb-sync-claude` | Sync Claude Code preferences to dotfiles |
 | `bb-sync-ssh` | Sync SSH configuration (iCloud only) |
+| `bb-sync-motd` | Sync message of the day |
 
 ### Utility Commands
 
@@ -112,26 +115,50 @@ boblbee/
 ├── README.md                # Quick start guide
 ├── DOCUMENTATION.md         # This file
 ├── assets/
-│   └── .zshrc              # Cross-platform shell configuration
+│   ├── .zshrc              # Cross-platform shell configuration
+│   ├── .motd               # Message of the day
+│   ├── ghostty-config      # Ghostty terminal config (macOS)
+│   ├── ghostty-themes/     # Ghostty color themes
+│   │   ├── Manganese Dark
+│   │   └── Manganese Light
+│   ├── tmux.conf           # Main tmux config (loads base + theme)
+│   ├── tmux-base.conf      # Shared tmux settings and keybindings
+│   ├── tmux-theme-dark.conf  # Manganese dark tmux theme
+│   └── tmux-theme-light.conf # Manganese light tmux theme
 ├── claude/                  # Claude Code integration
 │   └── memory/
 │       └── user.md         # Global Claude preferences
 ├── scripts/                 # All executable scripts
 │   ├── detect-os.sh        # OS detection utility
+│   ├── index.sh            # Main installer (cross-platform)
+│   ├── upgrade.sh          # Upgrade script (cross-platform)
+│   ├── new-machine.sh      # New machine helper (cross-platform)
+│   ├── # Sync scripts
+│   ├── zshrc-sync.sh       # Shell sync (cross-platform)
+│   ├── tmux-sync.sh        # Tmux config sync (cross-platform)
+│   ├── ghostty-sync.sh     # Ghostty config sync (macOS only)
+│   ├── motd-sync.sh        # Message of the day sync (cross-platform)
 │   ├── claude-sync.sh      # Claude memory sync
 │   ├── claude.sh           # Claude setup (cross-platform)
-│   ├── index.sh            # Main installer (cross-platform)
-│   ├── new-machine.sh      # New machine helper (cross-platform)
-│   ├── upgrade.sh          # Upgrade script (cross-platform)
-│   ├── zshrc-sync.sh       # Shell sync (cross-platform)
 │   ├── ssh-sync.sh         # SSH sync (cross-platform)
-│   ├── ubuntu-essentials.sh # Ubuntu: Install tools, npm, Claude Code
-│   ├── ubuntu-git-setup.sh  # Ubuntu: Configure git and SSH
+│   ├── # Platform setup
 │   ├── dots.sh             # macOS: System preferences
 │   ├── macports.sh         # macOS: MacPorts setup
 │   ├── touchid-sudo.sh     # macOS: TouchID for sudo
-│   ├── pam-ssh-agent-sudo.sh # macOS: SSH agent sudo auth
-│   └── xcode.sh            # macOS: Xcode tools
+│   ├── xcode.sh            # macOS: Xcode tools
+│   ├── ubuntu-essentials.sh # Ubuntu: Install tools, npm, Claude Code
+│   ├── ubuntu-git-setup.sh  # Ubuntu: Configure git and SSH
+│   ├── # Optional / manual scripts
+│   ├── setup-gpg-signing.sh # Configure Git GPG signing (manual)
+│   ├── hostname-fqdn.sh    # Set hostname to FQDN (macOS, run during setup)
+│   ├── pam-ssh-agent-sudo.sh # SSH agent sudo auth (macOS, manual)
+│   ├── tailscale-setup.sh  # Tailscale VPN setup (manual)
+│   ├── observability-collector.sh # Prometheus node_exporter (run during setup)
+│   ├── install-collector.sh # node_exporter installer helper
+│   └── run-on-hosts.sh     # Run commands across multiple hosts
+├── macports/               # MacPorts Portfile
+│   ├── Portfile
+│   └── README.md
 └── templates/              # Starter templates
     └── CLAUDE.md           # Project memory template
 ```
@@ -247,10 +274,15 @@ bb-status
    - Path configuration
    - Completion setup
 
-4. **Dotfiles Management**
+4. **Terminal Configuration**
+   - Tmux config with Manganese themes
+   - Ghostty terminal config and themes
+
+5. **Dotfiles Management**
    - Smart sync system
    - Claude Code integration
    - SSH configuration
+   - Message of the day
 
 #### Ubuntu Installation
 
@@ -271,10 +303,14 @@ bb-status
    - Ubuntu-specific aliases
    - npm global bin in PATH
 
-4. **Dotfiles Management**
+4. **Terminal Configuration**
+   - Tmux config with Manganese themes
+
+5. **Dotfiles Management**
    - Simple git-based sync
    - Claude Code integration
    - Local SSH management
+   - Message of the day
 
 ## Daily Workflow
 
@@ -350,9 +386,9 @@ cd ~/Developer/workspace/matdotcx/boblbee && git status
 
 #### index.sh
 Main installation orchestrator with platform detection:
-- **macOS**: Runs TouchID, Xcode, MacPorts, system preferences
+- **macOS**: Runs TouchID, Xcode, MacPorts, system preferences, Ghostty sync
 - **Ubuntu**: Runs essentials, git setup, Claude Code installation
-- **Both**: Claude setup, shell sync, SSH sync
+- **Both**: Claude setup, shell sync, tmux sync, motd sync, SSH sync, observability, hostname
 
 #### dots.sh (macOS only)
 Configures macOS system preferences including:
@@ -393,6 +429,33 @@ Handles shell configuration sync with platform detection:
 - **macOS without iCloud**: Bidirectional sync between git and home
 - **Ubuntu**: Simple bidirectional sync between git and home
 - **All**: Maintains proper permissions and backups
+
+#### tmux-sync.sh
+Syncs tmux configuration and themes:
+- Bidirectional sync based on file modification time
+- Syncs main config to `~/.tmux.conf`
+- Syncs base and theme configs to `~/.config/tmux/`
+- Commits local changes back to dotfiles when newer
+
+#### ghostty-sync.sh (macOS only)
+Syncs Ghostty terminal configuration and themes:
+- Config synced to `~/Library/Application Support/com.mitchellh.ghostty/config`
+- Manganese Dark/Light themes synced to themes directory
+- Skips entirely on non-macOS platforms
+
+#### motd-sync.sh
+Syncs message of the day with platform detection:
+- **macOS with iCloud**: Symlinks to iCloud, syncs to git backup
+- **macOS without iCloud**: Symlinks to dotfiles
+- **Ubuntu**: Symlinks to dotfiles
+- Three-way sync picks newest version across all locations
+
+#### hostname-fqdn.sh (macOS only)
+Sets macOS HostName to FQDN using DNS search domain:
+- Combines LocalHostName with DNS search domain
+- Skips Tailscale domains
+- No-ops if already set correctly
+- Run during setup, not during upgrade
 
 #### pam-ssh-agent-sudo.sh (macOS only)
 Enables passwordless sudo via SSH agent authentication:

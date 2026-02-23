@@ -27,7 +27,12 @@
 echo "Setting up GPG signing for Git..."
 
 # Find your GPG key (looks for keys with your email)
-EMAIL="diego@iaconelli.org"
+EMAIL="${1:-$(git config --global user.email)}"
+if [ -z "$EMAIL" ]; then
+    echo "No email provided and none found in git config."
+    echo "Usage: ./setup-gpg-signing.sh [email]"
+    exit 1
+fi
 KEY_ID=$(gpg --list-secret-keys --keyid-format=long | grep -B 10 "$EMAIL" | grep "sec" | tail -1 | cut -d'/' -f2 | cut -d' ' -f1)
 
 if [ -z "$KEY_ID" ]; then
