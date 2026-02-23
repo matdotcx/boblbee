@@ -28,6 +28,9 @@ else
 fi
 DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
 
+# Source OS detection
+source "$SCRIPT_DIR/detect-os.sh"
+
 # Check if we're in the right place
 if [ ! -f "$DOTFILES_DIR/README.md" ] || [ ! -d "$DOTFILES_DIR/scripts" ]; then
   echo -e "${RED}Error: This doesn't appear to be a boblbee directory${NC}"
@@ -86,7 +89,7 @@ echo ""
 # 4. Check for missing scripts
 echo "4. Checking for new scripts..."
 missing_scripts=()
-for script in "claude.sh" "claude-sync.sh" "zshrc-sync.sh" "new-machine.sh" "upgrade.sh"; do
+for script in "claude.sh" "claude-sync.sh" "zshrc-sync.sh" "tmux-sync.sh" "ghostty-sync.sh" "motd-sync.sh" "new-machine.sh" "upgrade.sh"; do
   if [ ! -f "$SCRIPT_DIR/$script" ]; then
     missing_scripts+=("$script")
   fi
@@ -110,6 +113,12 @@ echo ""
 echo -e "${BLUE}Ready to upgrade. This will:${NC}"
 echo "- Ensure Claude Code memory sync is configured"
 echo "- Verify smart .zshrc sync setup"
+echo "- Sync tmux configuration and themes"
+if is_macos; then
+  echo "- Sync Ghostty terminal configuration"
+fi
+echo "- Sync message of the day"
+echo "- Verify SSH sync setup"
 echo "- Update to new bb-* command structure"
 echo "- Preserve all your existing configurations"
 echo ""
@@ -133,6 +142,20 @@ echo ""
 
 echo "Setting up smart .zshrc sync..."
 "$SCRIPT_DIR/zshrc-sync.sh"
+echo ""
+
+echo "Setting up tmux configuration..."
+"$SCRIPT_DIR/tmux-sync.sh"
+echo ""
+
+if is_macos; then
+  echo "Setting up Ghostty terminal configuration..."
+  "$SCRIPT_DIR/ghostty-sync.sh"
+  echo ""
+fi
+
+echo "Setting up message of the day..."
+"$SCRIPT_DIR/motd-sync.sh"
 echo ""
 
 echo "Setting up SSH sync (if iCloud available)..."
@@ -162,6 +185,7 @@ echo "  bb-help        - Show all available commands"
 echo "  bb-sync        - Sync all configurations"
 echo "  bb-status      - Check sync status"
 echo "  bb-sync-zshrc  - Sync shell configuration"
+echo "  bb-sync-tmux   - Sync tmux configuration"
 echo "  bb-sync-claude - Sync Claude preferences"
 echo "  bb-sync-ssh    - Sync SSH configuration"
 echo ""
