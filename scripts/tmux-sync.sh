@@ -146,6 +146,15 @@ commit_dotfiles_changes "Update tmux config from local"
 
 echo ""
 echo -e "${GREEN}tmux config setup complete!${NC}"
+
+# Auto-reload any running tmux sessions
+if command -v tmux >/dev/null 2>&1 && tmux list-sessions >/dev/null 2>&1; then
+  tmux source-file "$HOME_TMUX_CONF" 2>/dev/null && \
+    echo -e "${GREEN}Active tmux sessions reloaded${NC}" || \
+    echo -e "${YELLOW}Could not reload tmux — reload manually with: tmux source-file ~/.tmux.conf${NC}"
+else
+  echo "No active tmux sessions to reload"
+fi
+
 echo ""
 echo "To switch themes, edit ~/.tmux.conf and change the theme source line."
-echo "Then reload with: tmux source-file ~/.tmux.conf"
