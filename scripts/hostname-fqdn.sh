@@ -1,4 +1,4 @@
-#\!/usr/bin/env bash
+#!/usr/bin/env bash
 
 #########################################################
 # Title: hostname-fqdn
@@ -20,7 +20,7 @@ NC="\033[0m"
 echo "=== FQDN Hostname Setup ==="
 echo ""
 
-if \! is_macos; then
+if ! is_macos; then
   echo -e "${YELLOW}Skipping - macOS only${NC}"
   exit 0
 fi
