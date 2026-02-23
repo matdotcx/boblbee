@@ -297,7 +297,7 @@ host_display() {
     if is_ssh; then
         echo "%M"
     else
-        echo "localhost"
+        echo "%m\\\\local"
     fi
 }
 
