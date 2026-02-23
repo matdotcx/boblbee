@@ -157,4 +157,4 @@ else
 fi
 
 echo ""
-echo "To switch themes, edit ~/.tmux.conf and change the theme source line."
+echo "To switch themes, use prefix + t (Ctrl-b t) inside tmux."
