@@ -225,9 +225,9 @@ bindkey "^[[B" down-line-or-beginning-search
 ###############################################################################
 
 git_info() {
-    ! git rev-parse --is-inside-work-tree > /dev/null 2>&1 && return
+    ! command git rev-parse --is-inside-work-tree > /dev/null 2>&1 && return
 
-    local GIT_LOCATION=${$(git symbolic-ref -q HEAD || git name-rev --name-only --no-undefined --always HEAD)#(refs/heads/|tags/)}
+    local GIT_LOCATION=${$(command git symbolic-ref -q HEAD || command git name-rev --name-only --no-undefined --always HEAD)#(refs/heads/|tags/)}
 
     local AHEAD="%F{3}↑NUM%f"
     local BEHIND="%F{4}↓NUM%f"
@@ -239,18 +239,18 @@ git_info() {
     local -a DIVERGENCES
     local -a FLAGS
 
-    local NUM_AHEAD="$(git log --oneline @{u}.. 2>/dev/null | wc -l | tr -d ' ')"
+    local NUM_AHEAD="$(command git log --oneline @{u}.. 2>/dev/null | wc -l | tr -d ' ')"
     [[ "$NUM_AHEAD" -gt 0 ]] && DIVERGENCES+=("${AHEAD//NUM/$NUM_AHEAD}")
 
-    local NUM_BEHIND="$(git log --oneline ..@{u} 2>/dev/null | wc -l | tr -d ' ')"
+    local NUM_BEHIND="$(command git log --oneline ..@{u} 2>/dev/null | wc -l | tr -d ' ')"
     [[ "$NUM_BEHIND" -gt 0 ]] && DIVERGENCES+=("${BEHIND//NUM/$NUM_BEHIND}")
 
-    local GIT_DIR="$(git rev-parse --git-dir 2>/dev/null)"
+    local GIT_DIR="$(command git rev-parse --git-dir 2>/dev/null)"
     [[ -n $GIT_DIR ]] && test -r $GIT_DIR/MERGE_HEAD && FLAGS+=("$MERGING")
 
-    [[ -n $(git ls-files --other --exclude-standard 2>/dev/null) ]] && FLAGS+=("$UNTRACKED")
-    ! git diff --quiet 2>/dev/null && FLAGS+=("$MODIFIED")
-    ! git diff --cached --quiet 2>/dev/null && FLAGS+=("$STAGED")
+    [[ -n $(command git ls-files --other --exclude-standard 2>/dev/null) ]] && FLAGS+=("$UNTRACKED")
+    ! command git diff --quiet 2>/dev/null && FLAGS+=("$MODIFIED")
+    ! command git diff --cached --quiet 2>/dev/null && FLAGS+=("$STAGED")
 
     local -a GIT_INFO
     GIT_INFO+=("%F{4}[%f")
@@ -262,7 +262,7 @@ git_info() {
 }
 
 is_git_directory() {
-    git rev-parse --is-inside-work-tree 2>/dev/null
+    command git rev-parse --is-inside-work-tree 2>/dev/null
 }
 
 truncated_pwd() {
