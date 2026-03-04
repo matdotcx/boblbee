@@ -126,7 +126,7 @@ run_on_host() {
 
         local output
         local exit_code
-        output=$(ssh $SSH_OPTS "$host" "$cmd" 2>&1)
+        output=$(ssh -n $SSH_OPTS "$host" "$cmd" 2>&1)
         exit_code=$?
 
         echo "$output" | sed "s/^/  /"
