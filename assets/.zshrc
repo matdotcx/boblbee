@@ -142,20 +142,30 @@ zle -N __lazy_complete
 bindkey '^I' __lazy_complete
 
 ###############################################################################
-# SSH Configuration (Lazy loaded for faster startup)
+# SSH Configuration (Socket eager, key loading lazy)
 ###############################################################################
 
-# Function to initialize SSH when needed
+# Set SSH_AUTH_SOCK eagerly — finding the socket is cheap, and commands like
+# ssh-add need it even before init_ssh runs via the git/ssh wrappers.
+if is_macos && [[ -z "$SSH_AUTH_SOCK" ]]; then
+    _sock=$(find /private/tmp/com.apple.launchd.* -name Listeners -print -quit 2>/dev/null)
+    [[ -n "$_sock" ]] && export SSH_AUTH_SOCK="$_sock"
+    unset _sock
+fi
+
+# Function to load keys into the agent (lazy — only on first ssh/git/gh use)
 init_ssh() {
     if [[ -z "$SSH_INITIALIZED" ]]; then
         if is_macos; then
             ssh-add --apple-use-keychain ~/.ssh/id_rsa 2>/dev/null
+            ssh-add --apple-use-keychain ~/.ssh/id_ed25519 2>/dev/null
         elif is_ubuntu; then
             if command -v keychain &>/dev/null; then
-                eval $(keychain --eval --agents ssh --quiet id_rsa)
+                eval $(keychain --eval --agents ssh --quiet id_rsa id_ed25519)
             elif [[ -z "$SSH_AUTH_SOCK" ]]; then
                 eval $(ssh-agent -s)
                 ssh-add ~/.ssh/id_rsa 2>/dev/null
+                ssh-add ~/.ssh/id_ed25519 2>/dev/null
             fi
         fi
         export SSH_INITIALIZED=1
@@ -1183,7 +1193,17 @@ bb-status() {
     echo "=== Boblbee Status ==="
     [[ -d "$BOBLBEE_DIR" ]] && echo "✓ Boblbee directory found" || echo "✗ Boblbee directory not found"
     [[ -L "$HOME/.zshrc" ]] && echo "  .zshrc: symlinked" || echo "  .zshrc: regular file"
-    [[ -L "$HOME/.ssh" ]] && echo "  .ssh: symlinked" || echo "  .ssh: regular directory"
+    if is_macos; then
+        if [[ -L "$HOME/.ssh" ]]; then
+            echo "  .ssh: symlinked to iCloud (needs migration — run bb-sync-ssh)"
+        elif [[ -d "$HOME/.ssh" ]]; then
+            echo "  .ssh: local directory (correct)"
+        else
+            echo "  .ssh: missing (run bb-sync-ssh)"
+        fi
+    else
+        [[ -d "$HOME/.ssh" ]] && echo "  .ssh: directory exists" || echo "  .ssh: missing"
+    fi
 }
 
 bb-edit() {
