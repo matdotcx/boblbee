@@ -44,9 +44,8 @@ fi
 # Check if the mports folder exists in /opt/
 if [ -d "/opt/mports" ]; then
   # If it does, tar and move the folder, then delete the original
-  tar -cvzf /opt/mports$timestamp.tar.gz /opt/mports/
-  mv /opt/mports$timestamp.tar.gz /opt/
-  rm -rf /opt/mports
+  sudo tar -cvzf /opt/mports$timestamp.tar.gz /opt/mports/
+  sudo rm -rf /opt/mports
 fi
 
 # Create a new mports folder in /opt/ and cd into it
@@ -54,6 +53,7 @@ if ! sudo mkdir /opt/mports; then
     echo "Error: Failed to create /opt/mports directory"
     exit 1
 fi
+sudo chown "$(id -u):$(id -g)" /opt/mports
 
 if ! cd /opt/mports; then
     echo "Error: Failed to change to /opt/mports directory"
