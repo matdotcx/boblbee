@@ -78,7 +78,7 @@ run_command() {
 }
 
 is_portable() {
-    if system_profiler SPHardwareDataType | grep -q "MacBook"; then
+    if system_profiler SPHardwareDataType 2>/dev/null | grep -q "MacBook"; then
         echo "Machine type: Portable"
         return 0
     else

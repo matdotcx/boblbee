@@ -423,7 +423,7 @@ precmd() {
             # Cache is old or missing, regenerate in background
             (
                 if is_macos; then
-                    local serial=$(system_profiler SPHardwareDataType | awk '/Serial Number/ {print $4}')
+                    local serial=$(system_profiler SPHardwareDataType 2>/dev/null | awk '/Serial Number/ {print $4}')
                     local os_info="$(sw_vers -productName) - $(sw_vers -productVersion) ($(sw_vers -buildVersion)) on $(uname -m)"
                     echo "$serial|$os_info" > "$cache_file"
                 elif is_ubuntu; then
