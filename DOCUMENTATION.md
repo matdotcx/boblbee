@@ -1,6 +1,6 @@
 # Boblbee Documentation
 
-Complete guide for the boblbee intelligent dotfiles management system for macOS and Ubuntu.
+Complete guide for the boblbee dotfiles management system for macOS and Ubuntu.
 
 ## Table of Contents
 
@@ -9,47 +9,47 @@ Complete guide for the boblbee intelligent dotfiles management system for macOS 
 3. [Installation Guide](#installation-guide)
 4. [Daily Workflow](#daily-workflow)
 5. [Script Reference](#script-reference)
-6. [Customization](#customization)
-7. [Troubleshooting](#troubleshooting)
-8. [Contributing](#contributing)
+6. [Fleet Management](#fleet-management)
+7. [Observability](#observability)
+8. [Troubleshooting](#troubleshooting)
 
 ## Command Reference
 
-All boblbee commands follow the `bb-*` naming convention for easy discovery and consistency.
+All boblbee commands follow the `bb-*` naming convention. They're defined as shell functions in `.zshrc`.
 
 ### Core Commands
 
 | Command | Description |
 |---------|-------------|
 | `bb-help` | Display all available boblbee commands with descriptions |
-| `bb-status` | Check the current sync status of all components |
+| `bb-status` | Check sync status of all components |
 | `bb-sync` | Sync all configurations (zshrc, tmux, ghostty, motd, claude, ssh) |
-| `bb-reload` | Reload shell configuration after changes |
+| `bb-reload` | Reload shell configuration |
 
 ### Setup Commands
 
 | Command | Description |
 |---------|-------------|
-| `bb-setup` | Run complete system setup (for new machines) |
+| `bb-setup` | Run complete system setup (`index.sh`) |
 | `bb-upgrade` | Upgrade existing boblbee installation |
 
 ### Sync Commands
 
 | Command | Description |
 |---------|-------------|
-| `bb-sync-zshrc` | Sync shell configuration between iCloud/git |
-| `bb-sync-tmux` | Sync tmux configuration and themes |
-| `bb-sync-ghostty` | Sync Ghostty terminal config (macOS only) |
-| `bb-sync-claude` | Sync Claude Code preferences to dotfiles |
-| `bb-sync-ssh` | Sync SSH configuration (iCloud only) |
+| `bb-sync-zshrc` | Sync shell configuration (three-way with iCloud, or two-way) |
+| `bb-sync-tmux` | Sync tmux configuration and Manganese themes |
+| `bb-sync-ghostty` | Sync Ghostty terminal config and themes (macOS only) |
+| `bb-sync-claude` | Commit Claude Code preferences to git |
+| `bb-sync-ssh` | Sync SSH configuration (copies from iCloud on macOS) |
 | `bb-sync-motd` | Sync message of the day |
 
 ### Fleet Commands
 
 | Command | Description |
 |---------|-------------|
-| `bb-status-fleet` | Report status across all hosts (commit, zshrc type/hash, plugins, MacPorts, agent dir perms) |
-| `bb-sync-fleet` | Pull boblbee + run sync scripts on every host in `hosts/elements.txt`; uses HTTPS fetch so agent forwarding isn't required |
+| `bb-status-fleet` | One-line-per-host status: commit, zshrc type/hash, plugins, MacPorts, agent dir perms |
+| `bb-sync-fleet` | Pull boblbee + run sync scripts on every host in `hosts/elements.txt` |
 
 ### Utility Commands
 
@@ -60,573 +60,359 @@ All boblbee commands follow the `bb-*` naming convention for easy discovery and 
 
 ## Architecture
 
-### Design Philosophy
+### Design Principles
 
-Boblbee follows these principles:
-1. **Cross-platform**: Works on macOS and Ubuntu with intelligent OS detection
-2. **Adaptive**: Works seamlessly with or without iCloud (macOS) or git-only (Ubuntu)
-3. **Non-destructive**: Always backs up before modifying
-4. **Transparent**: Clear about what each operation does
-5. **Modular**: Use only what you need
+1. **Copy, not symlink**: All dotfiles are real local files. Symlinks to iCloud are fragile - they break when iCloud evicts files or delays materialisation on boot.
+2. **Newest wins**: Sync compares mtime across all locations and propagates the most recently modified version.
+3. **Single canonical path**: The repo lives at `~/Developer/workspace/matdotcx/boblbee` on every host, every platform. No path detection or fallback logic.
+4. **Shared libraries**: Common code lives in `scripts/lib/`. No script duplicates helpers inline.
+5. **Auto-detect branch**: Scripts use `get_default_branch()` instead of hardcoded branch names.
 
-### Sync Strategy
+### Shared Libraries
 
-The system intelligently adapts based on platform and available services:
+#### `scripts/lib/config.sh`
+
+Centralised configuration values sourced by all scripts:
+
+| Value | Purpose |
+|-------|---------|
+| `BOBLBEE_CANONICAL_PATH` | Single repo path (`~/Developer/workspace/matdotcx/boblbee`) |
+| `ICLOUD_BASE` | iCloud Drive root |
+| `ICLOUD_SYNC_DIR` / `ICLOUD_SYNC_PATH` | Sync directory within iCloud (`Ark/Sync/System`) |
+| `HELIUM_FQDN` / `HELIUM_IP` | Central monitoring server |
+| `HELIUM_REGISTER_SCRIPT` | Path to registration script on helium |
+| `NODE_EXPORTER_VERSION` | Pinned version for node_exporter installs |
+| `REPO_HTTPS` | HTTPS clone URL (avoids agent-forwarding dependency for fleet pulls) |
+| `get_default_branch()` | Auto-detect current branch from git (cached per run) |
+
+#### `scripts/lib/lib.sh`
+
+Shared helper functions:
+
+| Function | Purpose |
+|----------|---------|
+| `log_info`, `log_success`, `log_warn`, `log_error` | Coloured log output |
+| `log_message` | Timestamped structured logging to stderr |
+| `check_icloud()` | Detect iCloud: directory exists + not evicted (ls traversal test) |
+| `get_file_mtime()` | Cross-platform file mtime as epoch seconds |
+| `find_newest_file()` | Return the path of the newest file among given arguments |
+| `check_permissions()` | Verify write access to a file's parent directory |
+| `backup_file()` | Timestamped backup of regular files (skips symlinks) |
+| `commit_dotfiles_changes()` | Stage, diff-check, and commit files in the repo |
+| `sync_dotfile()` | The unified three-way/two-way sync helper (see below) |
+
+Also provides colour code variables: `GREEN`, `RED`, `YELLOW`, `BLUE`, `CYAN`, `DIM`, `NC`.
+
+### The `sync_dotfile()` Helper
+
+This is the core sync function used by `zshrc-sync.sh` and `motd-sync.sh`. Signature:
+
+```
+sync_dotfile <display_name> <home_file> <repo_file> <icloud_file> <git_add_pattern>
+```
+
+It:
+1. Checks if iCloud is available (via `check_icloud()`)
+2. Builds a list of locations to compare (2 or 3 depending on iCloud)
+3. Finds the newest file by mtime
+4. Propagates the newest to all other locations
+5. Migrates symlinks to real files if encountered
+6. Commits repo changes to git
+
+### Sync Strategy by Platform
 
 #### macOS with iCloud Drive
 
 ```
-iCloud Drive (Primary)
-    ↓ symlink
-~/.zshrc, ~/.ssh
-    ↓ sync
-Git Repository (Backup)
+Home (~/.zshrc)  <->  iCloud Drive  <->  Git Repository
+      ^                    ^                    ^
+      |                    |                    |
+  local copy         cross-host sync      version history
 ```
 
-- Configuration files live in iCloud
-- Home directory contains symlinks
-- Git repository serves as backup
-- Changes sync instantly across devices
+Three-way sync. All three locations are compared; newest wins. iCloud provides cross-device sharing; the git repo provides version control and fleet distribution.
 
-#### macOS without iCloud Drive
+#### macOS without iCloud / Ubuntu
 
 ```
-Git Repository (Primary)
-    ↓ copy
-~/.zshrc, ~/.ssh
+Home (~/.zshrc)  <->  Git Repository
+      ^                    ^
+      |                    |
+  local copy         version history
 ```
 
-- Configuration files live in git
-- Home directory contains regular files
-- Manual sync required via `bb-sync-*` commands
+Two-way sync. iCloud is skipped entirely.
 
-#### Ubuntu (CLI Servers)
+#### SSH (special case)
 
-```
-Git Repository (Primary)
-    ↓ bidirectional sync
-~/.zshrc, ~/.ssh
-```
+SSH does not use `sync_dotfile()`. Instead, `ssh-sync.sh` copies **portable files** (keys, config, authorized_keys) from iCloud to `~/.ssh/` as a local directory. It never modifies iCloud files - read-only from iCloud, write to local. On macOS, it also stores key passphrases in Keychain via `ssh-add --apple-use-keychain` so you're never prompted again.
 
-- Configuration files live in git
-- Simple bidirectional sync between git and home
-- No iCloud dependency
-- CLI-focused setup for development servers
-
-### Directory Structure
-
-```
-boblbee/
-├── .gitignore               # Git ignore rules
-├── LICENSE                  # License information
-├── README.md                # Quick start guide
-├── DOCUMENTATION.md         # This file
-├── assets/
-│   ├── .zshrc              # Cross-platform shell configuration
-│   ├── .motd               # Message of the day
-│   ├── ghostty-config      # Ghostty terminal config (macOS)
-│   ├── ghostty-themes/     # Ghostty color themes
-│   │   ├── Manganese Dark
-│   │   └── Manganese Light
-│   ├── tmux.conf           # Main tmux config (loads base + theme)
-│   ├── tmux-base.conf      # Shared tmux settings and keybindings
-│   ├── tmux-theme-dark.conf  # Manganese dark tmux theme
-│   └── tmux-theme-light.conf # Manganese light tmux theme
-├── claude/                  # Claude Code integration
-│   └── memory/
-│       └── user.md         # Global Claude preferences
-├── scripts/                 # All executable scripts
-│   ├── detect-os.sh        # OS detection utility
-│   ├── index.sh            # Main installer (cross-platform)
-│   ├── upgrade.sh          # Upgrade script (cross-platform)
-│   ├── new-machine.sh      # New machine helper (cross-platform)
-│   ├── # Sync scripts
-│   ├── zshrc-sync.sh       # Shell sync (cross-platform)
-│   ├── tmux-sync.sh        # Tmux config sync (cross-platform)
-│   ├── ghostty-sync.sh     # Ghostty config sync (macOS only)
-│   ├── motd-sync.sh        # Message of the day sync (cross-platform)
-│   ├── claude-sync.sh      # Claude memory sync
-│   ├── claude.sh           # Claude setup (cross-platform)
-│   ├── ssh-sync.sh         # SSH sync (cross-platform)
-│   ├── # Platform setup
-│   ├── dots.sh             # macOS: System preferences
-│   ├── macports.sh         # macOS: MacPorts setup
-│   ├── touchid-sudo.sh     # macOS: TouchID for sudo
-│   ├── xcode.sh            # macOS: Xcode tools
-│   ├── ubuntu-essentials.sh # Ubuntu: Install tools, npm, Claude Code
-│   ├── ubuntu-git-setup.sh  # Ubuntu: Configure git and SSH
-│   ├── # Optional / manual scripts
-│   ├── setup-gpg-signing.sh # Configure Git GPG signing (manual)
-│   ├── hostname-fqdn.sh    # Set hostname to FQDN (macOS, run during setup)
-│   ├── pam-ssh-agent-sudo.sh # SSH agent sudo auth (macOS, manual)
-│   ├── tailscale-setup.sh  # Tailscale VPN setup (manual)
-│   ├── observability-collector.sh # Prometheus node_exporter (run during setup)
-│   ├── install-collector.sh # node_exporter installer helper
-│   └── run-on-hosts.sh     # Run commands across multiple hosts
-└── templates/              # Starter templates
-    └── CLAUDE.md           # Project memory template
-```
-
-### Component Details
-
-#### Shell Configuration (.zshrc)
-
-Features:
-- Git-aware prompt with status indicators
-- Comprehensive aliases and functions
-- Development environment setup
-- Boblbee command suite
-- Platform-specific optimizations
-
-#### Claude Code Integration
-
-Memory hierarchy:
-1. **User Memory**: Global preferences (synced via boblbee)
-2. **Project Memory**: Per-project settings (in project repos)
-3. **Local Memory**: Machine-specific overrides (never synced)
-
-#### SSH Configuration
-
-- Automatically symlinked on iCloud machines
-- Preserves permissions (700 for .ssh, 600 for keys)
-- Backs up existing configuration before changes
+If `~/.ssh` is a symlink (legacy), it's automatically migrated to a real directory.
 
 ## Installation Guide
 
 ### Prerequisites
 
 **macOS:**
-- macOS 12+ (tested)
-- Command Line Tools or Xcode
+- macOS 12+
 - Admin (sudo) access
 - Internet connection
 
 **Ubuntu:**
-- Ubuntu 24.04+ (tested)
+- Ubuntu 24.04+
 - sudo access
 - Internet connection
-- git (will be installed if missing)
+- git (installed by `ubuntu-essentials.sh` if missing)
 
 ### New Machine Setup
 
-#### macOS Setup
-
-1. **Download boblbee**
-   ```bash
-   mkdir -p ~/Developer/workspace/matdotcx/
-   cd ~/Developer/workspace/matdotcx
-   curl -L http://github.com/matdotcx/boblbee/archive/ubuntu.tar.gz | tar zxf -
-   mv boblbee-ubuntu boblbee
-   ```
-
-2. **Run setup**
-   ```bash
-   cd boblbee/scripts
-   ./index.sh
-   ```
-
-3. **Reload shell**
-   ```bash
-   source ~/.zshrc
-   # or
-   bb-reload
-   ```
-
-#### Ubuntu Setup
-
-1. **Clone boblbee**
-   ```bash
-   git clone -b ubuntu https://github.com/matdotcx/boblbee.git ~/boblbee
-   ```
-
-2. **Run setup**
-   ```bash
-   cd ~/boblbee/scripts
-   ./index.sh
-   ```
-
-3. **Reload shell**
-   ```bash
-   exec zsh  # Switch to zsh and reload
-   # or log out and back in
-   ```
-
-#### Verify Installation
+Both platforms use the same path and branch:
 
 ```bash
-bb-status
+mkdir -p ~/Developer/workspace/matdotcx && cd ~/Developer/workspace/matdotcx
+git clone https://github.com/matdotcx/boblbee.git
+cd boblbee/scripts
+./index.sh
+```
+
+Then reload your shell:
+```bash
+source ~/.zshrc    # or: exec zsh
 ```
 
 ### What Gets Installed
 
-#### macOS Installation
+#### macOS (`index.sh` runs, in order)
 
-1. **System Preferences**
-   - Finder settings
-   - Dock configuration
-   - UI/UX preferences
-   - Security settings
+1. `touchid-sudo.sh` - TouchID for sudo (requires sudo)
+2. `xcode.sh` - Xcode Command Line Tools
+3. `macports.sh` - MacPorts package manager (requires sudo)
+4. `dots.sh` - System preferences (Finder, Dock, UI/UX, security)
+5. `claude.sh` - Claude Code memory integration
+6. `zshrc-sync.sh` - Shell configuration sync
+7. `tmux-sync.sh` - Tmux config and Manganese themes
+8. `ghostty-sync.sh` - Ghostty terminal config and themes
+9. `motd-sync.sh` - Message of the day
+10. `ssh-sync.sh` - SSH keys from iCloud + Keychain storage
+11. `tailscale-setup.sh` - Tailscale VPN
+12. `observability-collector.sh` - Prometheus node_exporter
+13. `pam-ssh-agent-sudo.sh` - SSH agent sudo authentication
+14. `setup-gpg-signing.sh` - Git GPG commit signing
+15. `hostname-fqdn.sh` - Set HostName to FQDN (requires sudo)
 
-2. **Development Tools**
-   - Xcode Command Line Tools
-   - MacPorts (optional)
-   - Package managers
+#### Ubuntu (`index.sh` runs, in order)
 
-3. **Shell Environment**
-   - Custom prompt
-   - Aliases and functions
-   - Path configuration
-   - Completion setup
+1. `ubuntu-essentials.sh` - Essential packages (build-essential, git, curl, zsh, vim, ripgrep, fd-find, htop, tree, npm)
+2. `ubuntu-git-setup.sh` - Git config and SSH key setup
+3. `claude.sh` - Claude Code memory integration
+4. `zshrc-sync.sh` - Shell configuration sync
+5. `tmux-sync.sh` - Tmux config and themes
+6. `motd-sync.sh` - Message of the day
+7. `ssh-sync.sh` - Local SSH management
+8. `tailscale-setup.sh` - Tailscale VPN
+9. `observability-collector.sh` - Prometheus node_exporter
+10. `setup-gpg-signing.sh` - Git GPG commit signing
+11. `hostname-fqdn.sh` - (skips on non-macOS)
 
-4. **Terminal Configuration**
-   - Tmux config with Manganese themes
-   - Ghostty terminal config and themes
+### Upgrading
 
-5. **Dotfiles Management**
-   - Smart sync system
-   - Claude Code integration
-   - SSH configuration
-   - Message of the day
+```bash
+cd ~/Developer/workspace/matdotcx/boblbee
+./scripts/upgrade.sh
+```
 
-#### Ubuntu Installation
-
-1. **Essential Packages**
-   - build-essential
-   - git, curl, zsh, vim
-   - tree, htop, ripgrep, fd-find
-   - npm (for Claude Code)
-
-2. **Development Tools**
-   - Claude Code (npm global install)
-   - Git configuration
-   - SSH key management
-
-3. **Shell Environment**
-   - zsh as default shell
-   - Cross-platform prompt
-   - Ubuntu-specific aliases
-   - npm global bin in PATH
-
-4. **Terminal Configuration**
-   - Tmux config with Manganese themes
-
-5. **Dotfiles Management**
-   - Simple git-based sync
-   - Claude Code integration
-   - Local SSH management
-   - Message of the day
+The upgrade script:
+- Pulls the latest from the current branch (auto-detected)
+- Checks for symlinks that need migration to copies
+- Re-runs all sync scripts
+- Preserves existing configurations
 
 ## Daily Workflow
 
-### Making Configuration Changes
+### Making Changes
 
-1. **Edit your configuration**
-   ```bash
-   # Option 1: Direct edit
-   vim ~/.zshrc
-   
-   # Option 2: Open in editor
-   bb-edit
-   ```
-
-2. **Sync changes**
-   ```bash
-   # Sync specific component
-   bb-sync-zshrc
-   
-   # Or sync everything
-   bb-sync
-   ```
-
-3. **Apply changes**
-   ```bash
-   bb-reload
-   ```
-
-4. **Commit to git**
-   ```bash
-   cd ~/Developer/workspace/matdotcx/boblbee
-   git add -A
-   git commit -m "feat: add new aliases"
-   git push
-   ```
+1. Edit your config directly (`vim ~/.zshrc`) or via `bb-edit`
+2. Sync: `bb-sync` (or `bb-sync-zshrc` for just shell)
+3. Apply: `bb-reload`
 
 ### Checking Status
 
 ```bash
-# Full status check
-bb-status
-
-# Git status
-cd ~/Developer/workspace/matdotcx/boblbee && git status
+bb-status         # Local sync status
+bb-status-fleet   # Status across all hosts
 ```
 
 ### Syncing Between Machines
 
-1. **On the source machine**
-   ```bash
-   bb-sync
-   # macOS:
-   cd ~/Developer/workspace/matdotcx/boblbee
-   # Ubuntu:
-   cd ~/boblbee
-   git push
-   ```
+```bash
+# On the source machine
+bb-sync
+cd ~/Developer/workspace/matdotcx/boblbee && git push
 
-2. **On the target machine**
-   ```bash
-   # macOS:
-   cd ~/Developer/workspace/matdotcx/boblbee
-   # Ubuntu:
-   cd ~/boblbee
-   git pull
-   bb-sync
-   bb-reload
-   ```
+# On the target machine
+cd ~/Developer/workspace/matdotcx/boblbee && git pull
+bb-sync
+bb-reload
+```
+
+Or use fleet sync to push to all hosts at once:
+```bash
+bb-sync-fleet
+```
 
 ## Script Reference
 
-### Setup Scripts
+### Setup & Orchestration
 
-#### index.sh
-Main installation orchestrator with platform detection:
-- **macOS**: Runs TouchID, Xcode, MacPorts, system preferences, Ghostty sync
-- **Ubuntu**: Runs essentials, git setup, Claude Code installation
-- **Both**: Claude setup, shell sync, tmux sync, motd sync, SSH sync, observability, hostname
+| Script | Platform | Description |
+|--------|----------|-------------|
+| `index.sh` | Both | Main installer - runs all setup scripts in dependency order |
+| `upgrade.sh` | Both | Safe upgrade: git pull, re-run syncs, preserve config |
+| `detect-os.sh` | Both | Provides `is_macos()`, `is_ubuntu()`, `has_icloud()` |
 
-#### dots.sh (macOS only)
-Configures macOS system preferences including:
-- Finder preferences
-- Dock settings
-- UI/UX configuration
-- System behavior
+### Sync Scripts
 
-#### ubuntu-essentials.sh (Ubuntu only)
-Installs essential Ubuntu packages:
-- Development tools (build-essential)
-- npm and Claude Code
-- Shell configuration
-- Directory setup
+| Script | Platform | Description |
+|--------|----------|-------------|
+| `zshrc-sync.sh` | Both | Three-way/two-way `.zshrc` sync via `sync_dotfile()` |
+| `motd-sync.sh` | Both | Three-way/two-way `.motd` sync via `sync_dotfile()` |
+| `tmux-sync.sh` | Both | Bidirectional sync for `tmux.conf`, `tmux-base.conf`, and theme files |
+| `ghostty-sync.sh` | macOS | Bidirectional config sync + bidirectional theme sync (Manganese Dark/Light) |
+| `ssh-sync.sh` | Both | macOS: copy portable files from iCloud, store keys in Keychain. Ubuntu: permissions only |
+| `claude-sync.sh` | Both | Commit Claude memory changes to git |
+| `claude.sh` | Both | Initial Claude Code setup (config dir, symlink to user.md) |
 
-#### ubuntu-git-setup.sh (Ubuntu only)
-Configures git for shared workflow:
-- Git global configuration
-- SSH key setup and management
-- GitHub token configuration
-- Cross-platform compatibility
+### Platform Setup
 
-#### claude.sh
-Sets up Claude Code memory integration:
-- Creates config directory
-- Establishes symlinks
-- Preserves existing preferences
+| Script | Platform | Description |
+|--------|----------|-------------|
+| `dots.sh` | macOS | System preferences: Finder, Dock, UI/UX, security |
+| `macports.sh` | macOS | Install MacPorts, configure `/etc/paths.d/macports` |
+| `touchid-sudo.sh` | macOS | Enable TouchID for sudo |
+| `xcode.sh` | macOS | Install Xcode Command Line Tools |
+| `ubuntu-essentials.sh` | Ubuntu | Install packages, npm, configure zsh as default shell |
+| `ubuntu-git-setup.sh` | Ubuntu | Git global config, SSH key setup |
+| `hostname-fqdn.sh` | macOS | Set HostName to `LocalHostName.domain` from DNS search domains (skips Tailscale) |
+| `tailscale-setup.sh` | Both | Install and configure Tailscale VPN |
+| `setup-gpg-signing.sh` | Both | Configure Git GPG commit signing |
+| `pam-ssh-agent-sudo.sh` | macOS | Build and install `pam_ssh_agent_auth` for passwordless sudo via SSH agent |
 
-#### ssh-sync.sh
-Manages SSH configuration with platform detection:
-- **macOS**: Detects iCloud availability, creates symlinks when appropriate
-- **Ubuntu**: Local SSH management, permission setting
-- **Both**: Preserves permissions, backs up existing configs
+### Observability
 
-#### zshrc-sync.sh
-Handles shell configuration sync with platform detection:
-- **macOS with iCloud**: Symlinks to iCloud, syncs to git backup
-- **macOS without iCloud**: Bidirectional sync between git and home
-- **Ubuntu**: Simple bidirectional sync between git and home
-- **All**: Maintains proper permissions and backups
+| Script | Platform | Description |
+|--------|----------|-------------|
+| `observability-collector.sh` | Both | Install node_exporter and register with helium |
+| `install-collector.sh` | Both | Download and install node_exporter for the correct platform/arch |
 
-#### tmux-sync.sh
-Syncs tmux configuration and themes:
-- Bidirectional sync based on file modification time
-- Syncs main config to `~/.tmux.conf`
-- Syncs base and theme configs to `~/.config/tmux/`
-- Commits local changes back to dotfiles when newer
+### Fleet
 
-#### ghostty-sync.sh (macOS only)
-Syncs Ghostty terminal configuration and themes:
-- Config synced to `~/Library/Application Support/com.mitchellh.ghostty/config`
-- Manganese Dark/Light themes synced to themes directory
-- Skips entirely on non-macOS platforms
+| Script | Description |
+|--------|-------------|
+| `status-fleet.sh` | One SSH round-trip per host: checks commit, zshrc type/hash, plugins, MacPorts, agent dir perms |
+| `sync-fleet.sh` | Fetches via HTTPS (no agent forwarding needed), merges, runs sync scripts on each host |
+| `run-on-hosts.sh` | Run arbitrary commands across hosts in `hosts/elements.txt` |
 
-#### motd-sync.sh
-Syncs message of the day with platform detection:
-- **macOS with iCloud**: Symlinks to iCloud, syncs to git backup
-- **macOS without iCloud**: Symlinks to dotfiles
-- **Ubuntu**: Symlinks to dotfiles
-- Three-way sync picks newest version across all locations
+## Fleet Management
 
-#### hostname-fqdn.sh (macOS only)
-Sets macOS HostName to FQDN using DNS search domain:
-- Combines LocalHostName with DNS search domain
-- Skips Tailscale domains
-- No-ops if already set correctly
-- Run during setup, not during upgrade
+### Host List
 
-#### pam-ssh-agent-sudo.sh (macOS only)
-Enables passwordless sudo via SSH agent authentication:
-- Builds pam_ssh_agent_auth from source with necessary patches
-- Installs PAM module to /usr/local/lib/pam/
-- Configures sudoers to preserve SSH_AUTH_SOCK
-- Configures PAM to use ssh-agent authentication
+Hosts are listed in `hosts/elements.txt`, one per line. Lines starting with `#` are ignored.
 
-After installation, sudo authenticates via your forwarded SSH agent keys.
-Requires: Xcode CLI tools, OpenSSL via MacPorts.
+### Status Checks
 
-**Usage:**
+`bb-status-fleet` (or `./scripts/status-fleet.sh`) gathers per-host info in one SSH call:
+
+| Column | Green | Yellow | Red |
+|--------|-------|--------|-----|
+| COMMIT | Matches local HEAD | Different commit (drift) | `norepo` |
+| ZSHRC | `file` (correct) | `symlink` (needs migration) | `missing` |
+| ZSHRC-HASH | Matches repo hash | Different hash (drift) | - |
+| PLUGINS | Loaded | - | `not loaded` |
+| MACPORTS | `yes` | `no` | - |
+| AGENTDIR | `700` or `absent` | - | Wrong permissions |
+
+### Fleet Sync
+
+`bb-sync-fleet` (or `./scripts/sync-fleet.sh`):
+1. SSHs to each host
+2. Fetches over HTTPS (public repo, no agent forwarding dependency)
+3. Fast-forward merges
+4. Runs `zshrc-sync.sh`, `ssh-sync.sh`, `tmux-sync.sh`, `motd-sync.sh`
+
+Environment variables:
+- `PARALLEL=1` - Run all hosts concurrently
+- `DRY_RUN=1` - Print what would run without executing
+- `HOSTS_FILE=path` - Override default host list
+
+## Observability
+
+### How It Works
+
+During `index.sh` setup:
+1. `observability-collector.sh` runs automatically
+2. Installs `node_exporter` for the platform (version pinned in `config.sh`)
+3. Creates a systemd service (Linux) or LaunchAgent (macOS)
+4. Registers with helium via SSH (if reachable)
+5. Helium's Prometheus starts scraping metrics on port 9100
+
+Set `SKIP_OBSERVABILITY=1` to skip.
+
+### Manual Registration
+
+If helium wasn't reachable during setup:
 ```bash
-./pam-ssh-agent-sudo.sh           # Install
-./pam-ssh-agent-sudo.sh uninstall # Remove
+ssh -A helium '~/observability/scripts/register-host.sh $(hostname) <your-ip>'
 ```
-
-**Note:** If using Tailscale SSH, add the Tailscale ECDSA key to authorized_keys:
-```bash
-ssh-add -L >> ~/.ssh/authorized_keys
-```
-
-### Utility Scripts
-
-#### upgrade.sh
-Safely upgrades existing installations:
-- Backs up current configuration
-- Pulls latest changes
-- Runs necessary setup scripts
-- Preserves customizations
-
-#### new-machine.sh
-Helper for new machine setup with iCloud pre-configured.
-
-## Customization
-
-### Adding Custom Aliases
-
-1. Edit `.zshrc`
-2. Add your aliases in the appropriate section
-3. Run `bb-sync-zshrc`
-4. Reload with `bb-reload`
-
-### Modifying System Preferences
-
-1. Edit `scripts/dots.sh`
-2. Add or modify `defaults write` commands
-3. Test changes on a non-critical system first
-4. Document any new settings
-
-### Creating Project Templates
-
-1. Add templates to `templates/` directory
-2. Document usage in template header
-3. Include in git repository
 
 ## Troubleshooting
 
-### Common Issues
+### "bb-command not found"
 
-**"bb-command not found"**
 - Run `source ~/.zshrc` or `bb-reload`
-- Check if `.zshrc` was properly synced
-- Verify boblbee installation path
+- Verify boblbee is at `~/Developer/workspace/matdotcx/boblbee`
+- Check that `.zshrc` is a real file (not a broken symlink): `ls -la ~/.zshrc`
 
-**"Permission denied" errors**
-- Some scripts require sudo access
-- Check file permissions with `ls -la`
-- Ensure scripts are executable: `chmod +x scripts/*.sh`
+### SSH keeps asking for passphrase
 
-**Sync not working**
-- Run `bb-status` to check configuration
-- Verify git repository is accessible
-- Check iCloud Drive availability
-- Review sync script output for errors
+On macOS, run `bb-sync-ssh` - it calls `ssh-add --apple-use-keychain` to store passphrases in Keychain permanently. You'll be prompted once per key, then never again.
 
-**Changes not appearing**
-- Ensure you've run the appropriate sync command
-- Check if changes were saved to the correct location
-- Verify symlinks with `ls -la ~/.*`
+### iCloud files not syncing
+
+- Check iCloud Drive is enabled and the sync directory exists
+- `check_icloud()` verifies the directory is traversable (not evicted)
+- If iCloud is unavailable, scripts fall back to two-way sync automatically
+
+### Symlink detected where a file should be
+
+The refactored system uses copies, not symlinks. If a sync script finds a symlink at `~/.zshrc` or `~/.motd`, it automatically migrates it to a real file by reading the symlink target and creating a copy.
+
+### Fleet host unreachable
+
+- Verify Tailscale is running: `tailscale status`
+- Check SSH BatchMode works: `ssh -o BatchMode=yes hostname true`
+- The fleet scripts use `ConnectTimeout=5` - increase via `SSH_OPTS` env var if needed
 
 ### Manual Recovery
 
-If automated tools fail:
+```bash
+# Backup current state
+cp ~/.zshrc ~/.zshrc.backup
+cp -r ~/.ssh ~/.ssh.backup
 
-1. **Backup current state**
-   ```bash
-   cp ~/.zshrc ~/.zshrc.backup
-   cp -r ~/.ssh ~/.ssh.backup
-   ```
-
-2. **Reset configuration**
-   ```bash
-   cd ~/Developer/workspace/matdotcx/boblbee
-   git reset --hard origin/gold
-   git pull
-   ```
-
-3. **Reinstall**
-   ```bash
-   ./scripts/index.sh
-   ```
+# Reset and reinstall
+cd ~/Developer/workspace/matdotcx/boblbee
+git pull
+./scripts/index.sh
+```
 
 ### Debug Mode
 
-Enable verbose output:
 ```bash
-set -x  # Enable debug mode
+set -x
 bb-sync
-set +x  # Disable debug mode
+set +x
 ```
-
-## Contributing
-
-### Guidelines
-
-1. **Test thoroughly**: Changes should work on both iCloud and non-iCloud systems
-2. **Document changes**: Update README and DOCUMENTATION
-3. **Follow conventions**: Maintain consistent naming and style
-4. **Preserve compatibility**: Don't break existing installations
-
-### Testing Checklist
-
-Before submitting changes:
-- [ ] Test on fresh macOS installation
-- [ ] Test on fresh Ubuntu 24.04 installation
-- [ ] Test on system with existing configuration
-- [ ] Test macOS with iCloud enabled
-- [ ] Test macOS without iCloud
-- [ ] Test Ubuntu CLI-only environment
-- [ ] Verify upgrade path works on both platforms
-- [ ] Update documentation
-- [ ] Add helpful error messages
-
-### Code Style
-
-- Use consistent indentation (2 spaces)
-- Add clear comments for complex logic
-- Include error handling
-- Make scripts idempotent when possible
-- Follow existing naming conventions
-
-### Submitting Changes
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Update documentation
-6. Submit pull request
-
-## Security Considerations
-
-- Never commit secrets or credentials
-- SSH keys remain in user control
-- Scripts request sudo only when necessary
-- Backups created before destructive operations
-- No telemetry or phone-home features
-
-## Support
-
-- Check existing issues on GitHub
-- Read error messages carefully
-- Use `bb-status` for diagnostics
-- Review script source for understanding
-- Ask questions via GitHub issues
 
 ---
 
-Remember: These are dotfiles. Read, understand, and customize them to your needs.
+Remember: These are dotfiles. Read, understand, and customise them to your needs.
