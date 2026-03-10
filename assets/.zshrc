@@ -183,30 +183,26 @@ gh() { init_ssh; command gh "$@"; }
 
 # Lazy load plugins for faster startup
 __load_plugins() {
-    local plugin_base=""
+    # Candidate prefixes in priority order — first match per plugin wins.
+    local -a prefixes=(
+        /opt/local/share      # MacPorts
+        /usr/share            # apt / distro packages
+        /opt/homebrew/share   # Homebrew (Apple Silicon) — fallback only
+        /usr/local/share      # Homebrew (Intel) — fallback only
+    )
 
-    # Use direct paths instead of brew --prefix (saves ~30-50ms)
-    if [[ -d "/opt/homebrew/share" ]]; then
-        # Homebrew Apple Silicon
-        plugin_base="/opt/homebrew/share"
-    elif [[ -d "/usr/local/share" ]]; then
-        # Homebrew Intel
-        plugin_base="/usr/local/share"
-    elif [[ -d "/opt/local/share" ]]; then
-        # MacPorts
-        plugin_base="/opt/local/share"
-    else
-        return 1
-    fi
+    local p
+    for p in $prefixes; do
+        [[ -f "$p/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh" ]] && {
+            source "$p/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"; break
+        }
+    done
+    for p in $prefixes; do
+        [[ -f "$p/zsh-autosuggestions/zsh-autosuggestions.zsh" ]] && {
+            source "$p/zsh-autosuggestions/zsh-autosuggestions.zsh"; break
+        }
+    done
 
-    # Load plugins if they exist
-    local syntax_hl="$plugin_base/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
-    local autosugg="$plugin_base/zsh-autosuggestions/zsh-autosuggestions.zsh"
-
-    [[ -f "$syntax_hl" ]] && source "$syntax_hl"
-    [[ -f "$autosugg" ]] && source "$autosugg"
-
-    # Configure autosuggestions
     ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE='fg=240'
     bindkey '^ ' autosuggest-accept  # Ctrl+Space to accept
 
