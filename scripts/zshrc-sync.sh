@@ -4,6 +4,10 @@
 # Title: zshrc-sync
 # Description: Smart .zshrc sync that handles iCloud Drive on macOS and simple sync on Ubuntu
 # Source: https://github.com/matdotcx/boblbee
+#
+# macOS + iCloud strategy: ~/.zshrc is a real local file (not a symlink).
+# iCloud is a sync participant for cross-host sharing, not a live mount —
+# live symlinks break when iCloud evicts/delays the file on boot.
 #########################################################
 
 # Source OS detection
@@ -276,61 +280,58 @@ elif check_icloud; then
         log_message "ERROR" "Failed to copy $newest_file to $ICLOUD_ZSHRC"
       fi
     fi
+
+    # Update home if needed (real local file, not symlink — synced here, not live-mounted)
+    if [ ! -L "$HOME_ZSHRC" ] && [ "$newest_file" != "$HOME_ZSHRC" ] && ! diff -q "$newest_file" "$HOME_ZSHRC" >/dev/null 2>&1; then
+      echo -e "${YELLOW}Updating home from $(basename "$newest_file")${NC}"
+      if ! backup_zshrc; then
+        log_message "WARN" "Backup failed, continuing with caution"
+      fi
+      if check_permissions "$HOME_ZSHRC" && cp "$newest_file" "$HOME_ZSHRC" 2>/dev/null; then
+        echo -e "${GREEN}Home .zshrc updated${NC}"
+        files_updated=true
+      else
+        echo -e "${RED}Failed to update home .zshrc${NC}"
+        log_message "ERROR" "Failed to copy $newest_file to $HOME_ZSHRC"
+      fi
+    fi
     
     if [ "$files_updated" = false ]; then
       echo -e "${GREEN}All versions are already in sync${NC}"
     fi
   fi
   
-  # Ensure home .zshrc is symlinked to iCloud
-  symlink_correct=false
+  # Ensure home .zshrc is a real local file (migrate from symlink if needed)
   if [ -L "$HOME_ZSHRC" ]; then
-    current_target="$(readlink "$HOME_ZSHRC" 2>/dev/null)"
-    if [ "$current_target" = "$ICLOUD_ZSHRC" ] || [ "$(cd "$(dirname "$HOME_ZSHRC")" && realpath "$current_target" 2>/dev/null)" = "$(realpath "$ICLOUD_ZSHRC" 2>/dev/null)" ]; then
-      echo -e "${GREEN}.zshrc is already correctly symlinked to iCloud${NC}"
-      symlink_correct=true
-    else
-      log_message "INFO" "Symlink exists but points to wrong target: $current_target"
-    fi
-  fi
-  
-  if [ "$symlink_correct" = false ]; then
-    # Backup existing .zshrc if it's a regular file
-    if ! backup_zshrc; then
-      log_message "WARN" "Backup failed, continuing with caution"
-    fi
-    
-    # Remove existing .zshrc (file or wrong symlink)
+    echo -e "${YELLOW}Migrating: replacing iCloud symlink with local copy${NC}"
+    link_target="$(readlink "$HOME_ZSHRC")"
     if ! rm -f "$HOME_ZSHRC" 2>/dev/null; then
-      echo -e "${RED}Failed to remove existing .zshrc${NC}"
-      log_message "ERROR" "Failed to remove $HOME_ZSHRC"
+      echo -e "${RED}Failed to remove symlink${NC}"
       exit 1
     fi
-    
-    # Create symlink to iCloud
-    if ! check_permissions "$HOME_ZSHRC"; then
-      log_message "ERROR" "No write permission for home directory"
-      exit 1
-    fi
-    # Verify target file exists before creating symlink
-    if [ ! -f "$ICLOUD_ZSHRC" ]; then
-      echo -e "${RED}Cannot create symlink - iCloud target file does not exist${NC}"
-      log_message "ERROR" "iCloud file $ICLOUD_ZSHRC does not exist, falling back to dotfiles-only mode"
-      # Fall through to non-iCloud mode below
+    # Prefer the link target if readable, else fall back to iCloud path
+    src="$link_target"
+    [ -f "$src" ] || src="$ICLOUD_ZSHRC"
+    if cp "$src" "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${GREEN}~/.zshrc is now a local copy${NC}"
     else
-      if ! ln -s "$ICLOUD_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
-        echo -e "${RED}Failed to create symlink to iCloud Drive${NC}"
-        log_message "ERROR" "Failed to create symlink from $HOME_ZSHRC to $ICLOUD_ZSHRC"
-        exit 1
-      fi
-      echo -e "${GREEN}Created symlink: ~/.zshrc → iCloud Drive${NC}"
+      echo -e "${RED}Migration failed — restoring symlink${NC}"
+      ln -s "$link_target" "$HOME_ZSHRC" 2>/dev/null
+      exit 1
+    fi
+  elif [ ! -f "$HOME_ZSHRC" ]; then
+    echo -e "${YELLOW}Installing ~/.zshrc from iCloud${NC}"
+    if cp "$ICLOUD_ZSHRC" "$HOME_ZSHRC" 2>/dev/null; then
+      echo -e "${GREEN}Installed${NC}"
+    else
+      echo -e "${RED}Install failed${NC}"
+      exit 1
     fi
   fi
-  
+
   echo ""
-  echo -e "${BLUE}Setup: iCloud Drive (primary) ↔ Dotfiles (backup)${NC}"
-  echo "Edit .zshrc in iCloud Drive for immediate effect"
-  echo "Changes will be automatically synced to dotfiles and committed"
+  echo -e "${BLUE}Setup: Home (local copy) ↔ iCloud ↔ Dotfiles${NC}"
+  echo "~/.zshrc is a local file — run this script to sync changes across hosts"
   
 else
   echo -e "${BLUE}macOS without iCloud Drive - using dotfiles only${NC}"
