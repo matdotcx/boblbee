@@ -67,7 +67,13 @@ check_icloud() {
 get_file_mtime() {
     local file="$1"
     if [ -L "$file" ]; then
-        file="$(readlink "$file")"
+        # Resolve symlink to absolute path (readlink alone returns relative on some systems)
+        local link_target
+        link_target="$(readlink "$file")"
+        case "$link_target" in
+            /*) file="$link_target" ;;
+            *)  file="$(cd "$(dirname "$file")" && cd "$(dirname "$link_target")" && pwd)/$(basename "$link_target")" ;;
+        esac
     fi
     if [ -f "$file" ]; then
         if is_macos; then
@@ -139,30 +145,33 @@ commit_dotfiles_changes() {
     shift
     local files=("$@")
 
-    cd "$DOTFILES_DIR" || return 1
+    # Run in a subshell so the cd doesn't affect the caller's cwd
+    (
+        cd "$DOTFILES_DIR" || exit 1
 
-    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        if git add "${files[@]}" 2>/dev/null; then
-            if git diff --staged --quiet; then
-                echo -e "${BLUE}No changes to commit${NC}"
-                return 0
-            else
-                if git commit -m "$commit_msg" 2>/dev/null; then
-                    echo -e "${GREEN}Changes committed to git: $commit_msg${NC}"
-                    return 0
+        if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            if git add "${files[@]}" 2>/dev/null; then
+                if git diff --staged --quiet; then
+                    echo -e "${BLUE}No changes to commit${NC}"
+                    exit 0
                 else
-                    echo -e "${YELLOW}Git commit failed, but file was updated${NC}"
-                    return 1
+                    if git commit -m "$commit_msg" 2>/dev/null; then
+                        echo -e "${GREEN}Changes committed to git: $commit_msg${NC}"
+                        exit 0
+                    else
+                        echo -e "${YELLOW}Git commit failed, but file was updated${NC}"
+                        exit 1
+                    fi
                 fi
+            else
+                echo -e "${YELLOW}Git add failed, but file was updated${NC}"
+                exit 1
             fi
         else
-            echo -e "${YELLOW}Git add failed, but file was updated${NC}"
-            return 1
+            echo -e "${BLUE}Not in a git repository, skipping commit${NC}"
+            exit 0
         fi
-    else
-        echo -e "${BLUE}Not in a git repository, skipping commit${NC}"
-        return 0
-    fi
+    )
 }
 
 ###############################################################################
@@ -187,7 +196,7 @@ sync_dotfile() {
     # Check repo source exists
     if [ ! -f "$repo_file" ]; then
         echo -e "${RED}✗ Source file not found: $repo_file${NC}"
-        exit 1
+        return 1
     fi
 
     local use_icloud=false
@@ -276,7 +285,7 @@ sync_dotfile() {
                 echo -e "${GREEN}Installed $display_name${NC}"
             else
                 echo -e "${RED}Failed to install $display_name${NC}"
-                exit 1
+                return 1
             fi
         fi
     fi
@@ -286,7 +295,7 @@ sync_dotfile() {
         echo -e "${YELLOW}Migrating: replacing symlink with local copy${NC}"
         local link_target
         link_target="$(readlink "$home_file")"
-        rm -f "$home_file" 2>/dev/null || { echo -e "${RED}Failed to remove symlink${NC}"; exit 1; }
+        rm -f "$home_file" 2>/dev/null || { echo -e "${RED}Failed to remove symlink${NC}"; return 1; }
         local src="$link_target"
         [ -f "$src" ] || src="$repo_file"
         if cp "$src" "$home_file" 2>/dev/null; then
@@ -294,7 +303,7 @@ sync_dotfile() {
         else
             echo -e "${RED}Migration failed — restoring symlink${NC}"
             ln -s "$link_target" "$home_file" 2>/dev/null
-            exit 1
+            return 1
         fi
     elif [ ! -f "$home_file" ]; then
         local best_source="$repo_file"
@@ -302,7 +311,7 @@ sync_dotfile() {
             best_source="$icloud_file"
         fi
         echo -e "${YELLOW}Installing ~/$display_name${NC}"
-        cp "$best_source" "$home_file" 2>/dev/null || { echo -e "${RED}Install failed${NC}"; exit 1; }
+        cp "$best_source" "$home_file" 2>/dev/null || { echo -e "${RED}Install failed${NC}"; return 1; }
         echo -e "${GREEN}Installed${NC}"
     fi
 

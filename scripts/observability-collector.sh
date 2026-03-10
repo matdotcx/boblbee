@@ -46,15 +46,9 @@ detect_exporter_port() {
     return 1
 }
 
-# Function to check if exporter is already running
+# Function to check if exporter is installed AND serving metrics
 check_existing_exporter() {
-    if curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1; then
-        return 0
-    fi
-    if [ -f ~/bin/node_exporter ] || command -v node_exporter >/dev/null 2>&1; then
-        return 0
-    fi
-    return 1
+    curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1
 }
 
 # Function to determine reachable helium address

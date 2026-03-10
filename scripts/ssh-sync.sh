@@ -5,9 +5,10 @@
 # Description: Set up SSH configuration - copy from iCloud Drive on macOS, local management on Ubuntu
 # Source: https://github.com/matdotcx/boblbee
 #
-# macOS strategy: iCloud is the source of truth for portable SSH files.
+# macOS strategy: iCloud is the source of truth for SSH keys (read-only seed).
 # ~/.ssh is a real local directory populated by COPYING from iCloud (not symlinked).
-# iCloud files are NEVER modified or deleted — only read.
+# Keys are only copied FROM iCloud, never written back.
+# Config files (config, authorized_keys) sync bidirectionally (newest wins).
 #########################################################
 
 # Source shared libraries
@@ -24,14 +25,21 @@ echo ""
 ICLOUD_SSH="$ICLOUD_SYNC_PATH/.ssh"
 HOME_SSH="$HOME/.ssh"
 
-# Portable files to sync from iCloud (keys, config, authorized_keys)
-PORTABLE_FILES=(
+# Key files: seeded from iCloud, never written back (iCloud → local only)
+KEY_FILES=(
     id_rsa id_rsa.pub
     id_ed25519 id_ed25519.pub
     id_github id_github.pub
+)
+
+# Config files: synced bidirectionally (newest wins between local and iCloud)
+CONFIG_FILES=(
     config
     authorized_keys
 )
+
+# All portable files (keys + config) for initial copy / migration
+PORTABLE_FILES=("${KEY_FILES[@]}" "${CONFIG_FILES[@]}")
 
 # Local-only files to preserve during migration (not synced from iCloud)
 LOCAL_FILES=(
@@ -93,17 +101,26 @@ copy_from_icloud() {
     local copied=0
     local skipped=0
 
+    local failed=0
     for fname in "${PORTABLE_FILES[@]}"; do
         local src="$ICLOUD_SSH/$fname"
         local dst="$dest/$fname"
         if [ -f "$src" ]; then
-            cp -p "$src" "$dst"
-            copied=$((copied + 1))
+            if cp -p "$src" "$dst" 2>/dev/null; then
+                copied=$((copied + 1))
+            else
+                echo -e "${RED}✗ Failed to copy $fname${NC}"
+                failed=$((failed + 1))
+            fi
         else
             skipped=$((skipped + 1))
         fi
     done
-    echo -e "${GREEN}✓ Copied $copied file(s) from iCloud ($skipped not present in source)${NC}"
+    if [ "$failed" -gt 0 ]; then
+        echo -e "${YELLOW}✓ Copied $copied file(s) from iCloud ($failed failed, $skipped not present)${NC}"
+    else
+        echo -e "${GREEN}✓ Copied $copied file(s) from iCloud ($skipped not present in source)${NC}"
+    fi
 }
 
 # Function to sync newer files from iCloud into existing dir
@@ -111,23 +128,85 @@ sync_from_icloud() {
     local updated=0
     local current=0
 
-    for fname in "${PORTABLE_FILES[@]}"; do
+    # Keys: iCloud → local only (never write back)
+    local failed=0
+    for fname in "${KEY_FILES[@]}"; do
         local src="$ICLOUD_SSH/$fname"
         local dst="$HOME_SSH/$fname"
         if [ -f "$src" ]; then
             if [ ! -f "$dst" ] || [ "$src" -nt "$dst" ]; then
-                cp -p "$src" "$dst"
-                updated=$((updated + 1))
+                if cp -p "$src" "$dst" 2>/dev/null; then
+                    updated=$((updated + 1))
+                else
+                    echo -e "${RED}✗ Failed to copy $fname${NC}"
+                    failed=$((failed + 1))
+                fi
             else
                 current=$((current + 1))
             fi
         fi
     done
 
-    if [ "$updated" -gt 0 ]; then
-        echo -e "${GREEN}✓ Updated $updated file(s) from iCloud ($current already current)${NC}"
+    if [ "$failed" -gt 0 ]; then
+        echo -e "${YELLOW}✓ Updated $updated key file(s) from iCloud ($failed failed, $current already current)${NC}"
+    elif [ "$updated" -gt 0 ]; then
+        echo -e "${GREEN}✓ Updated $updated key file(s) from iCloud ($current already current)${NC}"
     else
-        echo -e "${GREEN}✓ All $current file(s) already up to date${NC}"
+        echo -e "${GREEN}✓ All $current key file(s) already up to date${NC}"
+    fi
+
+    # Config files: bidirectional (newest wins)
+    sync_config_bidirectional
+}
+
+# Bidirectional sync for config files (newest-mtime-wins between local and iCloud)
+sync_config_bidirectional() {
+    local to_icloud=0
+    local to_local=0
+    local in_sync=0
+
+    for fname in "${CONFIG_FILES[@]}"; do
+        local icloud_file="$ICLOUD_SSH/$fname"
+        local local_file="$HOME_SSH/$fname"
+
+        # Neither exists — skip
+        if [ ! -f "$icloud_file" ] && [ ! -f "$local_file" ]; then
+            continue
+        fi
+
+        # Only one exists — copy to the other
+        if [ ! -f "$icloud_file" ] && [ -f "$local_file" ]; then
+            cp -p "$local_file" "$icloud_file" 2>/dev/null && to_icloud=$((to_icloud + 1))
+            continue
+        fi
+        if [ ! -f "$local_file" ] && [ -f "$icloud_file" ]; then
+            cp -p "$icloud_file" "$local_file" 2>/dev/null && to_local=$((to_local + 1))
+            continue
+        fi
+
+        # Both exist — compare
+        if diff -q "$local_file" "$icloud_file" >/dev/null 2>&1; then
+            in_sync=$((in_sync + 1))
+            continue
+        fi
+
+        local local_mtime icloud_mtime
+        local_mtime=$(get_file_mtime "$local_file")
+        icloud_mtime=$(get_file_mtime "$icloud_file")
+
+        if [ "$local_mtime" -gt "$icloud_mtime" ]; then
+            echo -e "${YELLOW}Local $fname is newer — pushing to iCloud${NC}"
+            cp -p "$local_file" "$icloud_file" 2>/dev/null && to_icloud=$((to_icloud + 1))
+        else
+            echo -e "${YELLOW}iCloud $fname is newer — pulling to local${NC}"
+            cp -p "$icloud_file" "$local_file" 2>/dev/null && to_local=$((to_local + 1))
+        fi
+    done
+
+    if [ "$to_icloud" -gt 0 ] || [ "$to_local" -gt 0 ]; then
+        echo -e "${GREEN}✓ Config sync: $to_local pulled from iCloud, $to_icloud pushed to iCloud ($in_sync already current)${NC}"
+    else
+        echo -e "${GREEN}✓ Config files already in sync${NC}"
     fi
 }
 

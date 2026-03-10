@@ -46,7 +46,8 @@ ZSHRC_HASH=$(md5sum "$BOBLBEE_DIR/assets/.zshrc" 2>/dev/null | cut -c1-8 \
 if [[ $# -gt 0 ]]; then
     HOSTS=("$@")
 else
-    mapfile -t HOSTS < <(grep -v '^\s*#' "$HOSTS_FILE" | grep -v '^\s*$')
+    HOSTS=()
+    while IFS= read -r line; do HOSTS+=("$line"); done < <(grep -v '^\s*#' "$HOSTS_FILE" | grep -v '^\s*$')
 fi
 
 printf "Local HEAD: %s   zshrc hash: %s\n\n" "$LOCAL_HEAD" "$ZSHRC_HASH"
@@ -102,39 +103,48 @@ REMOTE
         continue
     fi
 
-    # parse key=value lines
-    declare -A f=()
-    while IFS='=' read -r k v; do f["$k"]="$v"; done <<< "$out"
+    # parse key=value lines (bash 3.2 compatible — no associative arrays)
+    commit="" ztype="" zhash="" plugins="" mp="" ap=""
+    while IFS='=' read -r k v; do
+        case "$k" in
+            repo_commit)  commit="$v" ;;
+            zshrc_type)   ztype="$v" ;;
+            zshrc_hash)   zhash="$v" ;;
+            plugins)      plugins="$v" ;;
+            macports)     mp="$v" ;;
+            agent_perms)  ap="$v" ;;
+        esac
+    done <<< "$out"
 
     # render fields with colour
-    commit="${f[repo_commit]:-?}"
+    commit="${commit:-?}"
     if [[ "$commit" == "$LOCAL_HEAD" ]]; then c_commit=$(ok "$commit")
     elif [[ "$commit" == "norepo" ]];     then c_commit=$(bad "norepo"); drift=1
     else                                       c_commit=$(warn "$commit"); drift=1
     fi
 
-    ztype="${f[zshrc_type]:-?}"
+    ztype="${ztype:-?}"
     if [[ "$ztype" == "file" ]];       then c_ztype=$(ok file)
     elif [[ "$ztype" == "symlink" ]];  then c_ztype=$(warn symlink); drift=1
     else                                    c_ztype=$(bad "$ztype"); drift=1
     fi
 
-    zhash="${f[zshrc_hash]:-?}"
+    zhash="${zhash:-?}"
     if [[ "$zhash" == "$ZSHRC_HASH" ]]; then c_zhash=$(ok "$zhash")
     else                                     c_zhash=$(warn "$zhash"); drift=1
     fi
 
-    plugins="${f[plugins]:-?}"
+    plugins="${plugins:-?}"
     if [[ "$plugins" == "none" ]]; then c_plugins=$(bad "not loaded"); drift=1
     else                                c_plugins=$(dim "${plugins##*/share/}")
     fi
 
-    mp="${f[macports]:-?}"
+    mp="${mp:-?}"
     if [[ "$mp" == "yes" ]]; then c_mp=$(ok yes)
     else                          c_mp=$(warn no)
     fi
 
-    ap="${f[agent_perms]:-?}"
+    ap="${ap:-?}"
     if [[ "$ap" == "700" || "$ap" == "absent" ]]; then c_ap=$(ok "$ap")
     else                                               c_ap=$(bad "$ap"); drift=1
     fi

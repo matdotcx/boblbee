@@ -9,6 +9,7 @@
 # Source shared libraries
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/lib.sh"
 
 echo "=== FQDN Hostname Setup ==="

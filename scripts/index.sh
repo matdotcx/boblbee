@@ -6,30 +6,37 @@
 # Source: https://github.com/matdotcx/boblbee
 #########################################################
 
+# Ensure we're running from the scripts directory (run_script uses ./script)
+cd "$(dirname "$0")" || exit 1
+
 # Source OS detection
-source "$(dirname "$0")/detect-os.sh"
+source "./detect-os.sh"
 
 # Note: Some scripts require sudo privileges.
 # They will ask for password when needed.
 
 # Function to run script with error checking
+# Executes via the script's own shebang (not forced bash) so zsh scripts work.
 run_script() {
     local script="$1"
-    local use_sudo="$2"
+    local use_sudo="${2:-}"
 
     if [ ! -f "$script" ]; then
         echo "Error: Script $script not found"
         exit 1
     fi
 
+    # Ensure executable
+    chmod +x "$script" 2>/dev/null || true
+
     echo "Running $script..."
     if [ "$use_sudo" = "sudo" ]; then
-        if ! sudo bash "$script"; then
+        if ! sudo "./$script"; then
             echo "Error: $script failed"
             exit 1
         fi
     else
-        if ! bash "$script"; then
+        if ! "./$script"; then
             echo "Error: $script failed"
             exit 1
         fi
@@ -53,7 +60,6 @@ if is_ubuntu; then
     run_script "tailscale-setup.sh"
     run_script "observability-collector.sh"
     run_script "setup-gpg-signing.sh"
-    run_script "hostname-fqdn.sh"
 
     echo ""
     echo "Ubuntu setup complete!"

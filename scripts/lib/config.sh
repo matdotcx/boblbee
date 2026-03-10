@@ -41,13 +41,22 @@ REPO_HTTPS="https://github.com/matdotcx/boblbee.git"
 # Helpers
 ###############################################################################
 
-# Auto-detect the default branch from the remote (cached per script run)
+# Detect the default branch from the remote (cached per script run).
+# Queries origin's HEAD ref so the result is stable regardless of local checkout.
 get_default_branch() {
     if [[ -z "${_BOBLBEE_DEFAULT_BRANCH:-}" ]]; then
+        local repo_dir="${DOTFILES_DIR:-$BOBLBEE_CANONICAL_PATH}"
+        # Try the remote HEAD symref first (e.g. "refs/remotes/origin/HEAD -> origin/gold")
         _BOBLBEE_DEFAULT_BRANCH=$(
-            git -C "${DOTFILES_DIR:-$BOBLBEE_CANONICAL_PATH}" \
-                rev-parse --abbrev-ref HEAD 2>/dev/null || echo "gold"
+            git -C "$repo_dir" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null \
+                | sed 's|refs/remotes/origin/||'
         )
+        # Fallback: if origin/HEAD isn't set, use the local branch
+        if [[ -z "$_BOBLBEE_DEFAULT_BRANCH" ]]; then
+            _BOBLBEE_DEFAULT_BRANCH=$(
+                git -C "$repo_dir" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "gold"
+            )
+        fi
     fi
     echo "$_BOBLBEE_DEFAULT_BRANCH"
 }

@@ -1147,7 +1147,10 @@ zedspace() {
 # Boblbee Dotfiles Management
 ###############################################################################
 
-# Canonical boblbee directory
+# Canonical boblbee directory — intentionally hardcoded here because .zshrc
+# is loaded at shell init before any boblbee scripts run, so we can't source
+# scripts/lib/config.sh (which defines the same value as BOBLBEE_CANONICAL_PATH).
+# If the canonical path changes, update both this line and config.sh.
 BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
 
 alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,claude,ssh,motd}, bb-status, bb-status-fleet, bb-sync-fleet, bb-edit"'

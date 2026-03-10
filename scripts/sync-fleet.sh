@@ -37,7 +37,8 @@ BRANCH=$(get_default_branch)
 if [[ $# -gt 0 ]]; then
     HOSTS=("$@")
 else
-    mapfile -t HOSTS < <(grep -v '^\s*#' "$HOSTS_FILE" | grep -v '^\s*$')
+    HOSTS=()
+    while IFS= read -r line; do HOSTS+=("$line"); done < <(grep -v '^\s*#' "$HOSTS_FILE" | grep -v '^\s*$')
 fi
 
 # Remote payload — self-contained so we only need one SSH
