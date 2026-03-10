@@ -1,0 +1,42 @@
+# Manganese Light Theme for Ghostty
+
+# ANSI Colours (0-15)
+# Black and bright black (charcoal variants)
+palette = 0=#232323
+palette = 8=#404040
+
+# Red and bright red
+palette = 1=#cc3300
+palette = 9=#e64d1a
+
+# Green and bright green
+palette = 2=#2a664d
+palette = 10=#408060
+
+# Yellow and bright yellow (orange variants)
+palette = 3=#ff7900
+palette = 11=#ff9933
+
+# Blue and bright blue
+palette = 4=#0079ff
+palette = 12=#3399ff
+
+# Magenta and bright magenta
+palette = 5=#cc3366
+palette = 13=#e6668f
+
+# Cyan and bright cyan
+palette = 6=#00998f
+palette = 14=#00b3a6
+
+# White and bright white (paper variants)
+palette = 7=#d9d5d0
+palette = 15=#f8f5f0
+
+# Main colours
+background = #f8f5f0
+foreground = #232323
+cursor-color = #ff7900
+cursor-text = #f8f5f0
+selection-background = #ffcc99
+selection-foreground = #232323
