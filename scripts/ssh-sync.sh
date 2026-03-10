@@ -99,6 +99,9 @@ strip_quarantine() {
 clean_agent_sockets() {
     local agent_dir="$HOME_SSH/agent"
     if [ -d "$agent_dir" ]; then
+        # iCloud-sourced dirs can arrive without the execute bit (mode 600),
+        # which blocks find from traversing and sshd from creating sockets.
+        chmod 700 "$agent_dir" 2>/dev/null
         echo "Cleaning stale agent sockets..."
         find "$agent_dir" -type s -delete 2>/dev/null
         # Remove agent dir if empty
