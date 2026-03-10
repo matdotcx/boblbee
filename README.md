@@ -89,6 +89,9 @@ bb-sync-ghostty# Sync Ghostty terminal config (macOS only)
 bb-sync-claude # Sync Claude Code preferences
 bb-sync-ssh    # Sync SSH configuration (iCloud only)
 bb-sync-motd   # Sync message of the day
+
+bb-status-fleet # Show config status across all hosts (one-line-per-host)
+bb-sync-fleet   # Pull boblbee + run sync on every host in hosts/elements.txt
 ```
 
 ### Utilities

@@ -44,6 +44,13 @@ All boblbee commands follow the `bb-*` naming convention for easy discovery and 
 | `bb-sync-ssh` | Sync SSH configuration (iCloud only) |
 | `bb-sync-motd` | Sync message of the day |
 
+### Fleet Commands
+
+| Command | Description |
+|---------|-------------|
+| `bb-status-fleet` | Report status across all hosts (commit, zshrc type/hash, plugins, MacPorts, agent dir perms) |
+| `bb-sync-fleet` | Pull boblbee + run sync scripts on every host in `hosts/elements.txt`; uses HTTPS fetch so agent forwarding isn't required |
+
 ### Utility Commands
 
 | Command | Description |

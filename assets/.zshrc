@@ -1156,7 +1156,7 @@ elif [[ -d "/workspace/matdotcx/boblbee" ]]; then
   BOBLBEE_DIR="/workspace/matdotcx/boblbee"
 fi
 
-alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,claude,ssh,motd}, bb-status, bb-edit"'
+alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,claude,ssh,motd}, bb-status, bb-status-fleet, bb-sync-fleet, bb-edit"'
 alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
 alias bb-upgrade="$BOBLBEE_DIR/scripts/upgrade.sh"
 alias bb-sync-zshrc="$BOBLBEE_DIR/scripts/zshrc-sync.sh"
@@ -1165,6 +1165,8 @@ alias bb-sync-ghostty="$BOBLBEE_DIR/scripts/ghostty-sync.sh"
 alias bb-sync-claude="$BOBLBEE_DIR/scripts/claude-sync.sh"
 alias bb-sync-ssh="$BOBLBEE_DIR/scripts/ssh-sync.sh"
 alias bb-sync-motd="$BOBLBEE_DIR/scripts/motd-sync.sh"
+alias bb-status-fleet="$BOBLBEE_DIR/scripts/status-fleet.sh"
+alias bb-sync-fleet="$BOBLBEE_DIR/scripts/sync-fleet.sh"
 alias bb-reload="exec ${SHELL} -l"
 
 bb-sync() {
@@ -1188,7 +1190,11 @@ bb-sync() {
 bb-status() {
     echo "=== Boblbee Status ==="
     [[ -d "$BOBLBEE_DIR" ]] && echo "✓ Boblbee directory found" || echo "✗ Boblbee directory not found"
-    [[ -L "$HOME/.zshrc" ]] && echo "  .zshrc: symlinked" || echo "  .zshrc: regular file"
+    if [[ -L "$HOME/.zshrc" ]]; then
+        echo "  .zshrc: symlinked (needs migration — run bb-sync-zshrc)"
+    else
+        echo "  .zshrc: local file (correct)"
+    fi
     if is_macos; then
         if [[ -L "$HOME/.ssh" ]]; then
             echo "  .ssh: symlinked to iCloud (needs migration — run bb-sync-ssh)"
