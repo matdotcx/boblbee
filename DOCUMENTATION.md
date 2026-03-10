@@ -156,9 +156,6 @@ boblbee/
 │   ├── observability-collector.sh # Prometheus node_exporter (run during setup)
 │   ├── install-collector.sh # node_exporter installer helper
 │   └── run-on-hosts.sh     # Run commands across multiple hosts
-├── macports/               # MacPorts Portfile
-│   ├── Portfile
-│   └── README.md
 └── templates/              # Starter templates
     └── CLAUDE.md           # Project memory template
 ```

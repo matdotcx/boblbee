@@ -163,7 +163,6 @@ boblbee/
 │   ├── detect-os.sh         # OS detection utility
 │   ├── ubuntu-*.sh          # Ubuntu-specific setup scripts
 │   └── ...                  # macOS system setup, observability, optional scripts
-├── macports/                # MacPorts Portfile
 └── templates/               # Starter templates
     └── CLAUDE.md            # Project memory template
 ```
@@ -242,37 +241,6 @@ Don't use this if you're not at ease reading basic shell scripts, interpreting A
 - **Backup first**: Some scripts modify system settings
 - **Cross-platform**: Works on macOS and Ubuntu 24.04+
 - **Requires admin**: Some features need sudo access
-
-## MacPorts Installation (Experimental)
-
-A MacPorts Portfile is included for future use but is not yet the primary install path. The `macports.sh` script currently builds MacPorts from source and installs core packages directly. The Portfile defines three installation variants:
-
-- **Default** (`+essentials`): Core tools plus zsh enhancements, fzf, ripgrep, tree, GitHub CLI
-- **Development** (`+development`): Adds Python testing tools, linters, and system utilities
-- **Complete** (`+complete`): Everything above plus tmux, deno, and additional tools
-
-### Installation Variants
-
-```bash
-# Basic installation with essentials (recommended)
-sudo port install boblbee +essentials
-
-# Add development tools
-sudo port install boblbee +development  
-
-# Complete installation
-sudo port install boblbee +complete
-```
-
-### Dependencies Included
-
-The MacPorts installation automatically handles all dependencies identified in the `.zshrc` analysis:
-- **Core**: zsh, git, curl, python3, ssh, coreutils
-- **Shell**: zsh-syntax-highlighting, zsh-autosuggestions  
-- **Tools**: fzf, ripgrep, tree, gh, nodejs/npm
-- **Optional**: pytest, ruff, pre-commit, htop, eza, tmux, deno, uv
-
-See [`macports/README.md`](macports/README.md) for detailed installation instructions and troubleshooting.
 
 ## Contributing
 
