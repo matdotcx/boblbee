@@ -50,11 +50,6 @@ get_package_manager() {
     fi
 }
 
-# Check if iCloud Drive is available (macOS only)
-has_icloud() {
-    is_macos && [[ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]]
-}
-
 # Get the appropriate home bin path
 get_user_bin_path() {
     if is_ubuntu; then
@@ -67,5 +62,5 @@ get_user_bin_path() {
 # Export functions if script is sourced
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]] || [[ "${ZSH_VERSION}" ]]; then
     # Script is being sourced
-    export -f is_macos is_ubuntu is_cli_only get_os_name get_package_manager has_icloud get_user_bin_path 2>/dev/null || true
+    export -f is_macos is_ubuntu is_cli_only get_os_name get_package_manager get_user_bin_path 2>/dev/null || true
 fi

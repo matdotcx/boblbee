@@ -22,14 +22,14 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOBLBEE_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source shared libraries
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
+
 HOSTS_FILE="${HOSTS_FILE:-$BOBLBEE_DIR/hosts/elements.txt}"
 SSH_OPTS="${SSH_OPTS:--o BatchMode=yes -o ConnectTimeout=5}"
-
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-DIM='\033[2m'
-NC='\033[0m'
 
 ok()   { printf "${GREEN}%s${NC}" "$1"; }
 bad()  { printf "${RED}%s${NC}" "$1"; }
@@ -46,7 +46,8 @@ ZSHRC_HASH=$(md5sum "$BOBLBEE_DIR/assets/.zshrc" 2>/dev/null | cut -c1-8 \
 if [[ $# -gt 0 ]]; then
     HOSTS=("$@")
 else
-    mapfile -t HOSTS < <(grep -v '^\s*#' "$HOSTS_FILE" | grep -v '^\s*$')
+    HOSTS=()
+    while IFS= read -r line; do HOSTS+=("$line"); done < <(grep -v '^\s*#' "$HOSTS_FILE" | grep -v '^\s*$')
 fi
 
 printf "Local HEAD: %s   zshrc hash: %s\n\n" "$LOCAL_HEAD" "$ZSHRC_HASH"
@@ -57,15 +58,14 @@ drift=0
 
 for h in "${HOSTS[@]}"; do
     # Gather everything in one SSH round-trip
+    # Uses single canonical path
     out=$(ssh $SSH_OPTS "$h" bash <<'REMOTE' 2>/dev/null
-        # boblbee repo location
-        for d in "$HOME/Developer/workspace/matdotcx/boblbee" \
-                 "$HOME/Developer/matdotcx/boblbee" \
-                 "$HOME/workspace/matdotcx/boblbee" \
-                 "/workspace/matdotcx/boblbee"; do
-            [[ -d "$d/.git" ]] && REPO="$d" && break
-        done
-        echo "repo_commit=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo "norepo")"
+        REPO="$HOME/Developer/workspace/matdotcx/boblbee"
+        if [[ -d "$REPO/.git" ]]; then
+            echo "repo_commit=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null)"
+        else
+            echo "repo_commit=norepo"
+        fi
 
         # zshrc: symlink or file, and content hash
         if [[ -L ~/.zshrc ]]; then
@@ -103,39 +103,48 @@ REMOTE
         continue
     fi
 
-    # parse key=value lines
-    declare -A f=()
-    while IFS='=' read -r k v; do f["$k"]="$v"; done <<< "$out"
+    # parse key=value lines (bash 3.2 compatible — no associative arrays)
+    commit="" ztype="" zhash="" plugins="" mp="" ap=""
+    while IFS='=' read -r k v; do
+        case "$k" in
+            repo_commit)  commit="$v" ;;
+            zshrc_type)   ztype="$v" ;;
+            zshrc_hash)   zhash="$v" ;;
+            plugins)      plugins="$v" ;;
+            macports)     mp="$v" ;;
+            agent_perms)  ap="$v" ;;
+        esac
+    done <<< "$out"
 
     # render fields with colour
-    commit="${f[repo_commit]:-?}"
+    commit="${commit:-?}"
     if [[ "$commit" == "$LOCAL_HEAD" ]]; then c_commit=$(ok "$commit")
     elif [[ "$commit" == "norepo" ]];     then c_commit=$(bad "norepo"); drift=1
     else                                       c_commit=$(warn "$commit"); drift=1
     fi
 
-    ztype="${f[zshrc_type]:-?}"
+    ztype="${ztype:-?}"
     if [[ "$ztype" == "file" ]];       then c_ztype=$(ok file)
     elif [[ "$ztype" == "symlink" ]];  then c_ztype=$(warn symlink); drift=1
     else                                    c_ztype=$(bad "$ztype"); drift=1
     fi
 
-    zhash="${f[zshrc_hash]:-?}"
+    zhash="${zhash:-?}"
     if [[ "$zhash" == "$ZSHRC_HASH" ]]; then c_zhash=$(ok "$zhash")
     else                                     c_zhash=$(warn "$zhash"); drift=1
     fi
 
-    plugins="${f[plugins]:-?}"
+    plugins="${plugins:-?}"
     if [[ "$plugins" == "none" ]]; then c_plugins=$(bad "not loaded"); drift=1
     else                                c_plugins=$(dim "${plugins##*/share/}")
     fi
 
-    mp="${f[macports]:-?}"
+    mp="${mp:-?}"
     if [[ "$mp" == "yes" ]]; then c_mp=$(ok yes)
     else                          c_mp=$(warn no)
     fi
 
-    ap="${f[agent_perms]:-?}"
+    ap="${ap:-?}"
     if [[ "$ap" == "700" || "$ap" == "absent" ]]; then c_ap=$(ok "$ap")
     else                                               c_ap=$(bad "$ap"); drift=1
     fi

@@ -5,58 +5,47 @@
 # Description: Set up SSH configuration - copy from iCloud Drive on macOS, local management on Ubuntu
 # Source: https://github.com/matdotcx/boblbee
 #
-# macOS strategy: iCloud is the source of truth for portable SSH files.
+# macOS strategy: iCloud is the source of truth for SSH keys (read-only seed).
 # ~/.ssh is a real local directory populated by COPYING from iCloud (not symlinked).
-# iCloud files are NEVER modified or deleted — only read.
+# Keys are only copied FROM iCloud, never written back.
+# Config files (config, authorized_keys) sync bidirectionally (newest wins).
 #########################################################
 
-# Source OS detection
-source "$(dirname "$0")/detect-os.sh"
-
-# Color codes
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
 
 echo "=== SSH Configuration Sync ==="
 echo ""
 
 # Paths
-ICLOUD_SSH="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Ark/Sync/System/.ssh"
+ICLOUD_SSH="$ICLOUD_SYNC_PATH/.ssh"
 HOME_SSH="$HOME/.ssh"
 
-# Portable files to sync from iCloud (keys, config, authorized_keys)
-PORTABLE_FILES=(
+# Key files: seeded from iCloud, never written back (iCloud → local only)
+KEY_FILES=(
     id_rsa id_rsa.pub
     id_ed25519 id_ed25519.pub
     id_github id_github.pub
+)
+
+# Config files: synced bidirectionally (newest wins between local and iCloud)
+CONFIG_FILES=(
     config
     authorized_keys
 )
+
+# All portable files (keys + config) for initial copy / migration
+PORTABLE_FILES=("${KEY_FILES[@]}" "${CONFIG_FILES[@]}")
 
 # Local-only files to preserve during migration (not synced from iCloud)
 LOCAL_FILES=(
     known_hosts
     known_hosts.old
 )
-
-# Function to check if iCloud Drive is available AND functional (macOS only)
-check_icloud() {
-    if ! is_macos; then
-        return 1
-    fi
-    local icloud_base="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
-    if [ ! -d "$icloud_base" ]; then
-        return 1
-    fi
-    # Test if we can actually read from iCloud
-    if [ ! -d "$ICLOUD_SSH" ]; then
-        return 1
-    fi
-    return 0
-}
 
 # Function to fix permissions on ~/.ssh and its contents
 fix_permissions() {
@@ -99,12 +88,9 @@ strip_quarantine() {
 clean_agent_sockets() {
     local agent_dir="$HOME_SSH/agent"
     if [ -d "$agent_dir" ]; then
-        # iCloud-sourced dirs can arrive without the execute bit (mode 600),
-        # which blocks find from traversing and sshd from creating sockets.
         chmod 700 "$agent_dir" 2>/dev/null
         echo "Cleaning stale agent sockets..."
         find "$agent_dir" -type s -delete 2>/dev/null
-        # Remove agent dir if empty
         rmdir "$agent_dir" 2>/dev/null && echo -e "${GREEN}✓ Removed empty agent directory${NC}" || true
     fi
 }
@@ -115,17 +101,26 @@ copy_from_icloud() {
     local copied=0
     local skipped=0
 
+    local failed=0
     for fname in "${PORTABLE_FILES[@]}"; do
         local src="$ICLOUD_SSH/$fname"
         local dst="$dest/$fname"
         if [ -f "$src" ]; then
-            cp -p "$src" "$dst"
-            copied=$((copied + 1))
+            if cp -p "$src" "$dst" 2>/dev/null; then
+                copied=$((copied + 1))
+            else
+                echo -e "${RED}✗ Failed to copy $fname${NC}"
+                failed=$((failed + 1))
+            fi
         else
             skipped=$((skipped + 1))
         fi
     done
-    echo -e "${GREEN}✓ Copied $copied file(s) from iCloud ($skipped not present in source)${NC}"
+    if [ "$failed" -gt 0 ]; then
+        echo -e "${YELLOW}✓ Copied $copied file(s) from iCloud ($failed failed, $skipped not present)${NC}"
+    else
+        echo -e "${GREEN}✓ Copied $copied file(s) from iCloud ($skipped not present in source)${NC}"
+    fi
 }
 
 # Function to sync newer files from iCloud into existing dir
@@ -133,23 +128,121 @@ sync_from_icloud() {
     local updated=0
     local current=0
 
-    for fname in "${PORTABLE_FILES[@]}"; do
+    # Keys: iCloud → local only (never write back)
+    local failed=0
+    for fname in "${KEY_FILES[@]}"; do
         local src="$ICLOUD_SSH/$fname"
         local dst="$HOME_SSH/$fname"
         if [ -f "$src" ]; then
             if [ ! -f "$dst" ] || [ "$src" -nt "$dst" ]; then
-                cp -p "$src" "$dst"
-                updated=$((updated + 1))
+                if cp -p "$src" "$dst" 2>/dev/null; then
+                    updated=$((updated + 1))
+                else
+                    echo -e "${RED}✗ Failed to copy $fname${NC}"
+                    failed=$((failed + 1))
+                fi
             else
                 current=$((current + 1))
             fi
         fi
     done
 
-    if [ "$updated" -gt 0 ]; then
-        echo -e "${GREEN}✓ Updated $updated file(s) from iCloud ($current already current)${NC}"
+    if [ "$failed" -gt 0 ]; then
+        echo -e "${YELLOW}✓ Updated $updated key file(s) from iCloud ($failed failed, $current already current)${NC}"
+    elif [ "$updated" -gt 0 ]; then
+        echo -e "${GREEN}✓ Updated $updated key file(s) from iCloud ($current already current)${NC}"
     else
-        echo -e "${GREEN}✓ All $current file(s) already up to date${NC}"
+        echo -e "${GREEN}✓ All $current key file(s) already up to date${NC}"
+    fi
+
+    # Config files: bidirectional (newest wins)
+    sync_config_bidirectional
+}
+
+# Bidirectional sync for config files (newest-mtime-wins between local and iCloud)
+sync_config_bidirectional() {
+    local to_icloud=0
+    local to_local=0
+    local in_sync=0
+
+    for fname in "${CONFIG_FILES[@]}"; do
+        local icloud_file="$ICLOUD_SSH/$fname"
+        local local_file="$HOME_SSH/$fname"
+
+        # Neither exists — skip
+        if [ ! -f "$icloud_file" ] && [ ! -f "$local_file" ]; then
+            continue
+        fi
+
+        # Only one exists — copy to the other
+        if [ ! -f "$icloud_file" ] && [ -f "$local_file" ]; then
+            cp -p "$local_file" "$icloud_file" 2>/dev/null && to_icloud=$((to_icloud + 1))
+            continue
+        fi
+        if [ ! -f "$local_file" ] && [ -f "$icloud_file" ]; then
+            cp -p "$icloud_file" "$local_file" 2>/dev/null && to_local=$((to_local + 1))
+            continue
+        fi
+
+        # Both exist — compare
+        if diff -q "$local_file" "$icloud_file" >/dev/null 2>&1; then
+            in_sync=$((in_sync + 1))
+            continue
+        fi
+
+        local local_mtime icloud_mtime
+        local_mtime=$(get_file_mtime "$local_file")
+        icloud_mtime=$(get_file_mtime "$icloud_file")
+
+        if [ "$local_mtime" -gt "$icloud_mtime" ]; then
+            echo -e "${YELLOW}Local $fname is newer — pushing to iCloud${NC}"
+            cp -p "$local_file" "$icloud_file" 2>/dev/null && to_icloud=$((to_icloud + 1))
+        else
+            echo -e "${YELLOW}iCloud $fname is newer — pulling to local${NC}"
+            cp -p "$icloud_file" "$local_file" 2>/dev/null && to_local=$((to_local + 1))
+        fi
+    done
+
+    if [ "$to_icloud" -gt 0 ] || [ "$to_local" -gt 0 ]; then
+        echo -e "${GREEN}✓ Config sync: $to_local pulled from iCloud, $to_icloud pushed to iCloud ($in_sync already current)${NC}"
+    else
+        echo -e "${GREEN}✓ Config files already in sync${NC}"
+    fi
+}
+
+# Function to ensure SSH keys are stored in macOS Keychain
+store_keys_in_keychain() {
+    if ! is_macos; then
+        return 0
+    fi
+    echo ""
+    echo -e "${BLUE}Ensuring SSH keys are in macOS Keychain...${NC}"
+
+    local keys_added=0
+    for key in id_rsa id_ed25519 id_github; do
+        local keyfile="$HOME_SSH/$key"
+        [ -f "$keyfile" ] || continue
+
+        # Check if this key is already loaded in the agent
+        local key_fingerprint
+        key_fingerprint=$(ssh-keygen -lf "$keyfile" 2>/dev/null | awk '{print $2}')
+        if [ -n "$key_fingerprint" ] && ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
+            echo -e "${GREEN}✓ $key already in agent${NC}"
+            continue
+        fi
+
+        # Try to add with Keychain (will prompt for passphrase if not stored)
+        echo -e "${YELLOW}Adding $key to agent (you may be prompted for the passphrase once)${NC}"
+        if ssh-add --apple-use-keychain "$keyfile" 2>/dev/null; then
+            echo -e "${GREEN}✓ $key added to Keychain — passphrase stored permanently${NC}"
+            keys_added=$((keys_added + 1))
+        else
+            echo -e "${YELLOW}Could not add $key (passphrase may be needed interactively)${NC}"
+        fi
+    done
+
+    if [ "$keys_added" -gt 0 ]; then
+        echo -e "${GREEN}✓ $keys_added key(s) stored in Keychain — no more passphrase prompts${NC}"
     fi
 }
 
@@ -194,15 +287,12 @@ elif check_icloud; then
         local_target="$(readlink "$HOME_SSH")"
         echo "  Current symlink target: $local_target"
 
-        # Create temp staging directory
         TMPDIR_MIGRATE="$HOME/.ssh.migration.$$"
         mkdir -m 700 "$TMPDIR_MIGRATE"
         echo "  Created staging directory: $TMPDIR_MIGRATE"
 
-        # Copy portable files from iCloud
         copy_from_icloud "$TMPDIR_MIGRATE"
 
-        # Preserve local-only files from the symlinked location
         for fname in "${LOCAL_FILES[@]}"; do
             src="$ICLOUD_SSH/$fname"
             if [ -f "$src" ]; then
@@ -211,15 +301,12 @@ elif check_icloud; then
             fi
         done
 
-        # Remove the symlink (only the pointer, not the iCloud target)
         rm "$HOME_SSH"
         echo -e "${GREEN}✓ Removed symlink (iCloud files untouched)${NC}"
 
-        # Move staging dir into place
         mv "$TMPDIR_MIGRATE" "$HOME_SSH"
         echo -e "${GREEN}✓ ~/.ssh is now a real local directory${NC}"
 
-        # Fix up
         fix_permissions
         strip_quarantine
         clean_agent_sockets
@@ -244,6 +331,9 @@ elif check_icloud; then
         fix_permissions
         strip_quarantine
     fi
+
+    # Store keys in Keychain so future SSH sessions don't prompt
+    store_keys_in_keychain
 
 else
     echo -e "${BLUE}No iCloud Drive detected${NC}"

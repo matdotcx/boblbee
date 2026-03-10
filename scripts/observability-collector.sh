@@ -6,23 +6,16 @@
 # Source: https://github.com/matdotcx/boblbee
 #########################################################
 
-# Source OS detection
-source "$(dirname "$0")/detect-os.sh"
-
-# Color codes
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
 
 echo "=== Observability Collector Setup ==="
 echo ""
 
-# Helium server (monitoring host)
-HELIUM_FQDN="helium.gl52.iaconelli.org"
-HELIUM_IP="10.52.1.26"
-SCRIPT_DIR="$(dirname "$0")"
 INSTALLER_SCRIPT="$SCRIPT_DIR/install-collector.sh"
 
 # Function to get local IP address
@@ -45,14 +38,7 @@ get_local_ip() {
 }
 
 # Function to detect which port the exporter is running on
-# Returns the port number, or empty if not running
 detect_exporter_port() {
-    # Check macOS exporter on 9101
-    if curl -s --connect-timeout 2 "http://localhost:9101/metrics" > /dev/null 2>&1; then
-        echo "9101"
-        return 0
-    fi
-    # Check node_exporter on 9100
     if curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1; then
         echo "9100"
         return 0
@@ -60,28 +46,9 @@ detect_exporter_port() {
     return 1
 }
 
-# Function to check if exporter is already running
+# Function to check if exporter is installed AND serving metrics
 check_existing_exporter() {
-    if is_macos; then
-        # Check for macOS exporter on port 9101
-        if curl -s --connect-timeout 2 "http://localhost:9101/metrics" > /dev/null 2>&1; then
-            return 0
-        fi
-        # Also check if LaunchDaemon exists
-        if [ -f /Library/LaunchDaemons/com.observability.macos-exporter.plist ]; then
-            return 0
-        fi
-    elif is_ubuntu; then
-        # Check for node_exporter on port 9100
-        if curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1; then
-            return 0
-        fi
-        # Check if node_exporter binary exists
-        if [ -f ~/bin/node_exporter ] || command -v node_exporter >/dev/null 2>&1; then
-            return 0
-        fi
-    fi
-    return 1
+    curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1
 }
 
 # Function to determine reachable helium address
@@ -124,7 +91,7 @@ register_with_helium() {
 
     # Use SSH agent forwarding to register
     if ssh -A -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$helium_addr" \
-        "~/observability/scripts/register-host.sh '$hostname' '$local_ip' '$exporter_port'" 2>/dev/null; then
+        "$HELIUM_REGISTER_SCRIPT '$hostname' '$local_ip' '$exporter_port'" 2>/dev/null; then
         echo -e "${GREEN}Registered with helium${NC}"
         return 0
     else
@@ -177,7 +144,7 @@ else
     echo "This machine will not be monitored until registered."
     echo ""
     echo "To register later, ensure connectivity to helium and run:"
-    echo "  ssh -A helium '~/observability/scripts/register-host.sh \$(hostname) \$(hostname -I | awk \"{print \\\$1}\")'"
+    echo "  ssh -A $HELIUM_FQDN '$HELIUM_REGISTER_SCRIPT \$(hostname) \$(hostname -I | awk \"{print \\\$1}\")'"
 fi
 
 echo ""

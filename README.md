@@ -6,26 +6,27 @@
 
 The name `boblbee` comes from [Point 65](https://boblbee.point65.com/pages/about-us-point-65-sweden) - a Swedish company founded in the late 90s to produce hard-case backpacks with spine protection, lumbar support, and loud colourways. I've used and loved them since the early 2000s, and carried my life in them, so it made sense to carry my digital detritus in one, too.
 
-What makes this particular collection special is its intelligent sync system - it automatically adapts to different platforms (macOS and Ubuntu) and environments (with or without iCloud Drive), includes comprehensive system configuration, and seamlessly integrates with modern tools like Claude Code. But at its heart, it's still just my dotfiles.
+What makes this particular collection special is its intelligent sync system - it automatically adapts to different platforms (macOS and Ubuntu) and environments (with or without iCloud Drive), includes comprehensive system configuration, fleet management across multiple hosts, and integrates with modern tools like Claude Code. But at its heart, it's still just my dotfiles.
 
 ## Key Features
 
 - **Cross-Platform**: Works on both macOS and Ubuntu with intelligent OS detection
-- **Smart Sync**: Automatically adapts to iCloud and non-iCloud environments
+- **Copy-Not-Symlink**: All dotfiles are real local files, never symlinks - immune to iCloud eviction and boot-time delays
+- **Three-Way Sync**: Newest-mtime-wins across home, git repo, and iCloud (when available)
+- **Shared Library Architecture**: Common helpers extracted to `scripts/lib/` - no duplicated code across scripts
+- **Fleet Management**: Status checks and sync across all hosts with one command
+- **SSH Keychain Integration**: macOS Keychain stores SSH passphrases permanently - no repeated prompts
 - **Claude Code Integration**: Syncs AI assistant preferences across devices
-- **Intelligent Configuration**: Shell, tmux, terminal, SSH, and system preferences management
-- **Observability Integration**: Automatic metrics collection and reporting to central monitoring
-- **Comprehensive Setup**: Full system configuration automation
-- **Modular Design**: Use what you need, ignore what you don't
+- **Observability**: Automatic Prometheus node_exporter setup with central registration
 
 ## Quick Start
 
 ### macOS Setup
 
 ```bash
-# Download and extract boblbee
-mkdir -p ~/Developer/workspace/matdotcx/ && cd ~/Developer/workspace/matdotcx
-curl -L http://github.com/matdotcx/boblbee/archive/ubuntu.tar.gz | tar zxf - && mv boblbee-ubuntu boblbee
+# Clone boblbee
+mkdir -p ~/Developer/workspace/matdotcx && cd ~/Developer/workspace/matdotcx
+git clone https://github.com/matdotcx/boblbee.git
 
 # Run the setup
 cd boblbee/scripts
@@ -36,36 +37,25 @@ cd boblbee/scripts
 
 ```bash
 # Clone boblbee
-git clone -b ubuntu https://github.com/matdotcx/boblbee.git ~/boblbee
+mkdir -p ~/Developer/workspace/matdotcx && cd ~/Developer/workspace/matdotcx
+git clone https://github.com/matdotcx/boblbee.git
 
 # Run the setup
-cd ~/boblbee/scripts
+cd boblbee/scripts
 ./index.sh
 ```
 
+Both platforms use the same canonical repo path: `~/Developer/workspace/matdotcx/boblbee`.
+
 This will:
-- **macOS**: Configure system preferences, install Xcode tools, set up MacPorts, sync Ghostty config
-- **Ubuntu**: Install build-essential, configure apt packages, set up npm and Claude Code
-- Install Claude Code integration and preferences
-- Configure shell with platform-specific smart sync
-- Sync tmux configuration and Manganese themes
-- Set up message of the day
-- Set up SSH (iCloud on macOS, local on Ubuntu)
-- Install observability collector and register with central monitoring
-- Set hostname to FQDN (macOS)
-- Create all necessary symlinks and configurations
+- **macOS**: Configure system preferences, install Xcode tools, set up MacPorts, sync Ghostty config, configure TouchID sudo, set up Tailscale, GPG signing, PAM SSH agent sudo, and FQDN hostname
+- **Ubuntu**: Install essential packages, configure git and SSH, set up npm and Claude Code, install Tailscale and GPG signing
+- **Both**: Sync shell config, tmux, motd, SSH keys, install Claude Code integration, set up observability collector
 
 ### Upgrading Existing Installation
 
-**macOS:**
 ```bash
 cd ~/Developer/workspace/matdotcx/boblbee
-./scripts/upgrade.sh
-```
-
-**Ubuntu:**
-```bash
-cd ~/boblbee
 ./scripts/upgrade.sh
 ```
 
@@ -82,16 +72,19 @@ prompthelp   # Understand shell prompt symbols
 
 ### Syncing
 ```bash
-bb-sync        # Sync all configurations
-bb-sync-zshrc  # Sync shell configuration
-bb-sync-tmux   # Sync tmux configuration and themes
-bb-sync-ghostty# Sync Ghostty terminal config (macOS only)
-bb-sync-claude # Sync Claude Code preferences
-bb-sync-ssh    # Sync SSH configuration (iCloud only)
-bb-sync-motd   # Sync message of the day
+bb-sync          # Sync all configurations
+bb-sync-zshrc    # Sync shell configuration
+bb-sync-tmux     # Sync tmux configuration and themes
+bb-sync-ghostty  # Sync Ghostty terminal config (macOS only)
+bb-sync-claude   # Sync Claude Code preferences
+bb-sync-ssh      # Sync SSH configuration
+bb-sync-motd     # Sync message of the day
+```
 
-bb-status-fleet # Show config status across all hosts (one-line-per-host)
-bb-sync-fleet   # Pull boblbee + run sync on every host in hosts/elements.txt
+### Fleet Management
+```bash
+bb-status-fleet  # Show config status across all hosts (one-line-per-host)
+bb-sync-fleet    # Pull boblbee + run sync on every host in hosts/elements.txt
 ```
 
 ### Utilities
@@ -102,47 +95,32 @@ bb-edit      # Open boblbee in your editor
 bb-reload    # Reload shell configuration
 ```
 
-### Optional Scripts (manual)
-```bash
-scripts/setup-gpg-signing.sh   # Configure Git GPG signing (uses git config email or pass as arg)
-scripts/tailscale-setup.sh     # Install and configure Tailscale VPN
-scripts/pam-ssh-agent-sudo.sh  # Enable sudo via SSH agent (macOS)
-```
-
-## Daily Usage
-
-After making changes to your configuration:
-
-```bash
-# Quick sync everything
-bb-sync
-
-# Check what needs syncing
-bb-status
-
-# Reload to apply changes
-bb-reload
-```
-
 ## Architecture
 
 ### Sync Strategy
 
-Boblbee uses an intelligent two-tier approach:
+All dotfiles are **real local files** - never symlinks. This avoids iCloud eviction breaking your shell on boot and removes the fragile dependency on iCloud file availability.
+
+The sync uses **newest-mtime-wins**: whichever copy (home, repo, or iCloud) was modified most recently becomes the source of truth and is propagated to the other locations.
 
 **macOS with iCloud Drive:**
-- Primary storage: iCloud Drive
-- Backup: Git repository
-- Files are symlinked for instant sync
+```
+~/.zshrc (local copy) <-> iCloud Drive <-> Git Repository
+```
+Three-way sync. iCloud provides cross-host sharing; git provides version history.
 
-**macOS without iCloud Drive:**
-- Primary storage: Git repository
-- Files are copied locally
+**macOS without iCloud / Ubuntu:**
+```
+~/.zshrc (local copy) <-> Git Repository
+```
+Two-way bidirectional sync.
 
-**Ubuntu (CLI servers):**
-- Primary storage: Git repository
-- Simple bidirectional sync
-- No iCloud dependency
+### Shared Libraries
+
+All scripts source from `scripts/lib/`:
+
+- **`lib.sh`** - Colour codes, logging, iCloud detection, file mtime comparison, backup, git commit helpers, and the unified `sync_dotfile()` function
+- **`config.sh`** - Centralised configuration: canonical repo path, iCloud paths, observability endpoints, fleet HTTPS remote, and `get_default_branch()` helper
 
 ### Directory Structure
 
@@ -158,79 +136,43 @@ boblbee/
 │   └── tmux-theme-*.conf    # Manganese tmux themes
 ├── claude/                  # Claude Code integration
 │   └── memory/
-│       └── user.md          # Your AI assistant preferences
-├── scripts/                 # Setup and sync scripts
+│       └── user.md          # Global AI assistant preferences
+├── hosts/
+│   └── elements.txt         # Fleet host list
+├── scripts/
+│   ├── lib/
+│   │   ├── config.sh        # Shared configuration values
+│   │   └── lib.sh           # Shared helper functions
 │   ├── index.sh             # Main installer (cross-platform)
 │   ├── upgrade.sh           # Upgrade existing installations
-│   ├── *-sync.sh            # Sync utilities (zshrc, tmux, ghostty, motd, claude, ssh)
-│   ├── detect-os.sh         # OS detection utility
-│   ├── ubuntu-*.sh          # Ubuntu-specific setup scripts
-│   └── ...                  # macOS system setup, observability, optional scripts
-└── templates/               # Starter templates
+│   ├── detect-os.sh         # OS detection (is_macos, is_ubuntu, has_icloud)
+│   ├── *-sync.sh            # Sync scripts (zshrc, tmux, ghostty, motd, claude, ssh)
+│   ├── dots.sh              # macOS system preferences
+│   ├── macports.sh          # macOS MacPorts setup
+│   ├── touchid-sudo.sh      # macOS TouchID for sudo
+│   ├── xcode.sh             # macOS Xcode CLI tools
+│   ├── ubuntu-essentials.sh # Ubuntu package installation
+│   ├── ubuntu-git-setup.sh  # Ubuntu git and SSH setup
+│   ├── setup-gpg-signing.sh # Git GPG signing
+│   ├── tailscale-setup.sh   # Tailscale VPN setup
+│   ├── pam-ssh-agent-sudo.sh # SSH agent sudo auth (macOS)
+│   ├── hostname-fqdn.sh     # FQDN hostname (macOS)
+│   ├── observability-collector.sh # Prometheus node_exporter setup
+│   ├── install-collector.sh # node_exporter binary installer
+│   ├── status-fleet.sh      # Fleet status reporting
+│   ├── sync-fleet.sh        # Fleet sync orchestration
+│   └── run-on-hosts.sh      # Run commands across hosts
+└── templates/
     └── CLAUDE.md            # Project memory template
 ```
 
-## Observability Integration
+## Observability
 
-During setup, boblbee installs and configures a Prometheus node exporter, reporting metrics to a central monitoring server (helium). Set `SKIP_OBSERVABILITY=1` before running setup to skip this.
+During setup, boblbee installs a Prometheus `node_exporter` and registers the host with a central monitoring server (helium). Set `SKIP_OBSERVABILITY=1` before running setup to skip this.
 
-### What Gets Installed
-
-- **Linux**: `node_exporter` on port 9100 (standard Prometheus exporter)
-- **macOS**: Detects existing macOS exporter on port 9101, or installs node_exporter
-
-### How It Works
-
-During `index.sh` setup:
-1. `observability-collector.sh` runs automatically
-2. Installs the appropriate exporter for the platform
-3. Creates a systemd service (Linux) or LaunchAgent (macOS)
-4. Registers with helium via SSH (if reachable)
-5. Helium's Prometheus starts scraping metrics immediately
-
-### Scripts
-
-| Script | Description |
-|--------|-------------|
-| `install-collector.sh` | Downloads and installs node_exporter for the correct platform/architecture |
-| `observability-collector.sh` | Wrapper that installs exporter and registers with helium |
-| `tailscale-setup.sh` | Optional - installs Tailscale for remote machines to reach helium |
-
-### Manual Registration
-
-If helium wasn't reachable during setup, register later:
-
-```bash
-ssh -A helium '~/observability/scripts/register-host.sh $(hostname) <your-ip> [port]'
-```
-
-The port argument is optional (default: 9100). Use 9101 for macOS exporter.
-
-## Customization
-
-### Shell Configuration
-
-The `.zshrc` includes:
-- Smart git-aware prompt
-- Useful aliases and functions
-- Development environment setup
-- Boblbee command suite
-
-### System Preferences
-
-Edit `scripts/dots.sh` to customize:
-- Finder preferences
-- Dock configuration
-- System UI/UX settings
-- Security preferences
-
-## Documentation
-
-For detailed information, see [DOCUMENTATION.md](DOCUMENTATION.md):
-- Complete setup instructions
-- Troubleshooting guide
-- Architecture details
-- Contributing guidelines
+- **Linux**: `node_exporter` on port 9100
+- **macOS**: `node_exporter` on port 9100, managed via LaunchAgent
+- Helium registration happens automatically over SSH if reachable
 
 ## What it's not
 
@@ -238,28 +180,13 @@ For detailed information, see [DOCUMENTATION.md](DOCUMENTATION.md):
 
 Don't use this if you're not at ease reading basic shell scripts, interpreting Apple's `defaults write` commands, or if you're unwilling to blast your machine config away and start over if something breaks.
 
-## Important Notes
+## Documentation
 
-- **Read before running**: Understand what each script does
-- **Backup first**: Some scripts modify system settings
-- **Cross-platform**: Works on macOS and Ubuntu 24.04+
-- **Requires admin**: Some features need sudo access
-
-## Contributing
-
-I welcome contributions that improve the project. If you've found a bug, have an idea for a feature, or want to improve the documentation:
-
-1. Fork the repository
-2. Test your changes on both macOS (with/without iCloud) and Ubuntu systems
-3. Make sure the upgrade path works for existing users
-4. Update the documentation if needed
-5. Submit a pull request with a clear description
-
-The best contributions are often the simplest ones - fixing typos, clarifying documentation, or adding error handling where it's missing.
+For detailed information, see [DOCUMENTATION.md](DOCUMENTATION.md).
 
 ## License
 
-This project is open source and available under the MIT License. Use it, modify it, learn from it, make it your own. If you build something cool with it, I'd love to hear about it.
+This project is open source and available under the MIT License.
 
 ---
 

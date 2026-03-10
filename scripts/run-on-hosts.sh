@@ -36,12 +36,11 @@
 
 set -e
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
 
 # Defaults
 SSH_OPTS="${SSH_OPTS:--A}"
@@ -49,10 +48,6 @@ DRY_RUN="${DRY_RUN:-0}"
 PARALLEL="${PARALLEL:-0}"
 STOP_ON_ERROR="${STOP_ON_ERROR:-0}"
 
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_host() { echo -e "${CYAN}[$1]${NC} $2"; }
 
 usage() {

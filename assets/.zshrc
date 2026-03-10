@@ -1147,14 +1147,11 @@ zedspace() {
 # Boblbee Dotfiles Management
 ###############################################################################
 
-# Auto-detect boblbee directory from common locations
-if [[ -d "$HOME/Developer/workspace/matdotcx/boblbee" ]]; then
-  BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
-elif [[ -d "$HOME/workspace/matdotcx/boblbee" ]]; then
-  BOBLBEE_DIR="$HOME/workspace/matdotcx/boblbee"
-elif [[ -d "/workspace/matdotcx/boblbee" ]]; then
-  BOBLBEE_DIR="/workspace/matdotcx/boblbee"
-fi
+# Canonical boblbee directory — intentionally hardcoded here because .zshrc
+# is loaded at shell init before any boblbee scripts run, so we can't source
+# scripts/lib/config.sh (which defines the same value as BOBLBEE_CANONICAL_PATH).
+# If the canonical path changes, update both this line and config.sh.
+BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
 
 alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,claude,ssh,motd}, bb-status, bb-status-fleet, bb-sync-fleet, bb-edit"'
 alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
@@ -1173,7 +1170,7 @@ bb-sync() {
     echo "=== Boblbee Full Sync ==="
     bb-sync-zshrc
     bb-sync-tmux
-    [[ "$OSTYPE" == "darwin"* ]] && bb-sync-ghostty
+    is_macos && bb-sync-ghostty
     bb-sync-motd
     bb-sync-claude
     bb-sync-ssh

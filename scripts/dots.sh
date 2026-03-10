@@ -262,34 +262,34 @@ else
 
     run_command "sudo systemsetup -setrestartpowerfailure on" "Enable restart on power failure"
     run_command "sudo systemsetup -setwaitforstartupafterpowerfailure 30" "Set wait for startup after power failure to 30 seconds"
-    fi
+fi
 
-    #########################################################
-    # Cleanup and Finalization
-    #########################################################
+#########################################################
+# Cleanup and Finalization
+#########################################################
 
-    echo ""
-    echo "Restarting affected applications…"
-    killall Finder Dock SystemUIServer
-    echo "FLushing DNS…"
-    dscacheutil -flushcache
-    echo "Waiting for applications to restart…"
-    sleep 5  # Give applications time to restart
+echo ""
+echo "Restarting affected applications…"
+killall Finder Dock SystemUIServer
+echo "Flushing DNS…"
+dscacheutil -flushcache
+echo "Waiting for applications to restart…"
+sleep 5  # Give applications time to restart
 
-    echo ""
-    echo "Verifying critical settings…"
-    current_color=$(defaults read -g AppleAccentColor)
-    if [ "$current_color" != "$accent_color" ]; then
-        echo -e "${YELLOW}[WARNING]${NC} Accent color may not have been set correctly."
-    else
-        echo -e "${GREEN}[OK]${NC} Accent color verified successfully."
-    fi
+echo ""
+echo "Verifying critical settings…"
+current_color=$(defaults read -g AppleAccentColor)
+if [ "$current_color" != "$accent_color" ]; then
+    echo -e "${YELLOW}[WARNING]${NC} Accent color may not have been set correctly."
+else
+    echo -e "${GREEN}[OK]${NC} Accent color verified successfully."
+fi
 
-    echo ""
-    echo "#########################################################"
-    echo "Setup complete at $(date)."
-    echo "Please log out and log back in, or restart your Mac"
-    echo "to ensure all changes are applied."
-    echo "#########################################################"
-    echo ""
-    echo "Log file has been saved to $LOG_FILE"
+echo ""
+echo "#########################################################"
+echo "Setup complete at $(date)."
+echo "Please log out and log back in, or restart your Mac"
+echo "to ensure all changes are applied."
+echo "#########################################################"
+echo ""
+echo "Log file has been saved to $LOG_FILE"

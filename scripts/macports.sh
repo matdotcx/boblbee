@@ -1,19 +1,16 @@
+#!/bin/zsh
+
 #########################################################
-# Title; macports
-# Description; Building macports from source
-# Source; https://github.com/matdotcx/
+# Title: macports
+# Description: Building macports from source
+# Source: https://github.com/matdotcx/
 #########################################################
 
-#!/bin/zsh
 # Ask for the administrator password upfront
 sudo -v
 
 # Keep-alive: update existing `sudo` time stamp until we have finished
 while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
-
-# Save original script directory for later use
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BOBLBEE_DIR="$(dirname "$SCRIPT_DIR")"
 
 # Define timestamp variable
 timestamp=$(date +%d-%m-%Y_%H.%M.%S)
@@ -28,7 +25,7 @@ if [ -f "/opt/local/bin/port" ]; then
     current_time=$(date +%s)
     time_diff=$((current_time - install_time))
     hours_old=$((time_diff / 3600))
-    
+
     if [ $hours_old -lt 24 ]; then
         echo "MacPorts was installed $hours_old hours ago (less than 24 hours)."
         read -p "Do you want to skip MacPorts installation? (y/N): " skip_install
@@ -96,13 +93,11 @@ fi
 
 make distclean
 
-# Adds the apropriate path for MacPorts to /etc/paths.d
+# Write /etc/paths.d/macports (overwrite, not append — prevents duplicates)
 echo ""
 echo "Adding /opt/local as a local path"
 
-sudo touch /etc/paths.d/macports
-echo '/opt/local/bin' | sudo tee -a /etc/paths.d/macports
-echo '/opt/local/sbin' | sudo tee -a /etc/paths.d/macports
+printf '%s\n' '/opt/local/bin' '/opt/local/sbin' | sudo tee /etc/paths.d/macports > /dev/null
 
 # Update PATH for current session
 export PATH="/opt/local/bin:/opt/local/sbin:$PATH"

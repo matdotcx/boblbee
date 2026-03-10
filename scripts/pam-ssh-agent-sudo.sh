@@ -23,28 +23,23 @@
 
 set -e
 
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
+
 VERSION="0.10.3"
 BUILD_DIR="/tmp/pam_ssh_agent_auth-build"
 INSTALL_DIR="/usr/local/lib/pam"
 PAM_MODULE="pam_ssh_agent_auth.so"
 
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-NC='\033[0m'
-
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
-log_warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
-
 check_requirements() {
     log_info "Checking requirements..."
 
-    if [[ "$(uname)" != "Darwin" ]]; then
+    if ! is_macos; then
         log_error "This script is for macOS only"
-        exit 1
+        exit 0
     fi
 
     if ! xcode-select -p &>/dev/null; then
