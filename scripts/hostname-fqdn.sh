@@ -6,16 +6,10 @@
 # Source: https://github.com/matdotcx/boblbee
 #########################################################
 
-# Source OS detection
+# Source shared libraries
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 source "$SCRIPT_DIR/detect-os.sh"
-
-# Color codes
-GREEN="\033[0;32m"
-RED="\033[0;31m"
-YELLOW="\033[0;33m"
-BLUE="\033[0;34m"
-NC="\033[0m"
+source "$SCRIPT_DIR/lib/lib.sh"
 
 echo "=== FQDN Hostname Setup ==="
 echo ""

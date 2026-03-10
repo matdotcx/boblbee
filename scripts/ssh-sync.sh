@@ -10,21 +10,18 @@
 # iCloud files are NEVER modified or deleted — only read.
 #########################################################
 
-# Source OS detection
-source "$(dirname "$0")/detect-os.sh"
-
-# Color codes
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
 
 echo "=== SSH Configuration Sync ==="
 echo ""
 
 # Paths
-ICLOUD_SSH="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Ark/Sync/System/.ssh"
+ICLOUD_SSH="$ICLOUD_SYNC_PATH/.ssh"
 HOME_SSH="$HOME/.ssh"
 
 # Portable files to sync from iCloud (keys, config, authorized_keys)
@@ -41,22 +38,6 @@ LOCAL_FILES=(
     known_hosts
     known_hosts.old
 )
-
-# Function to check if iCloud Drive is available AND functional (macOS only)
-check_icloud() {
-    if ! is_macos; then
-        return 1
-    fi
-    local icloud_base="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
-    if [ ! -d "$icloud_base" ]; then
-        return 1
-    fi
-    # Test if we can actually read from iCloud
-    if [ ! -d "$ICLOUD_SSH" ]; then
-        return 1
-    fi
-    return 0
-}
 
 # Function to fix permissions on ~/.ssh and its contents
 fix_permissions() {
@@ -99,12 +80,9 @@ strip_quarantine() {
 clean_agent_sockets() {
     local agent_dir="$HOME_SSH/agent"
     if [ -d "$agent_dir" ]; then
-        # iCloud-sourced dirs can arrive without the execute bit (mode 600),
-        # which blocks find from traversing and sshd from creating sockets.
         chmod 700 "$agent_dir" 2>/dev/null
         echo "Cleaning stale agent sockets..."
         find "$agent_dir" -type s -delete 2>/dev/null
-        # Remove agent dir if empty
         rmdir "$agent_dir" 2>/dev/null && echo -e "${GREEN}✓ Removed empty agent directory${NC}" || true
     fi
 }
@@ -153,6 +131,42 @@ sync_from_icloud() {
     fi
 }
 
+# Function to ensure SSH keys are stored in macOS Keychain
+store_keys_in_keychain() {
+    if ! is_macos; then
+        return 0
+    fi
+    echo ""
+    echo -e "${BLUE}Ensuring SSH keys are in macOS Keychain...${NC}"
+
+    local keys_added=0
+    for key in id_rsa id_ed25519 id_github; do
+        local keyfile="$HOME_SSH/$key"
+        [ -f "$keyfile" ] || continue
+
+        # Check if this key is already loaded in the agent
+        local key_fingerprint
+        key_fingerprint=$(ssh-keygen -lf "$keyfile" 2>/dev/null | awk '{print $2}')
+        if [ -n "$key_fingerprint" ] && ssh-add -l 2>/dev/null | grep -q "$key_fingerprint"; then
+            echo -e "${GREEN}✓ $key already in agent${NC}"
+            continue
+        fi
+
+        # Try to add with Keychain (will prompt for passphrase if not stored)
+        echo -e "${YELLOW}Adding $key to agent (you may be prompted for the passphrase once)${NC}"
+        if ssh-add --apple-use-keychain "$keyfile" 2>/dev/null; then
+            echo -e "${GREEN}✓ $key added to Keychain — passphrase stored permanently${NC}"
+            keys_added=$((keys_added + 1))
+        else
+            echo -e "${YELLOW}Could not add $key (passphrase may be needed interactively)${NC}"
+        fi
+    done
+
+    if [ "$keys_added" -gt 0 ]; then
+        echo -e "${GREEN}✓ $keys_added key(s) stored in Keychain — no more passphrase prompts${NC}"
+    fi
+}
+
 # Main logic - platform-specific behavior
 if is_ubuntu; then
     echo -e "${BLUE}Ubuntu detected - local SSH management${NC}"
@@ -194,15 +208,12 @@ elif check_icloud; then
         local_target="$(readlink "$HOME_SSH")"
         echo "  Current symlink target: $local_target"
 
-        # Create temp staging directory
         TMPDIR_MIGRATE="$HOME/.ssh.migration.$$"
         mkdir -m 700 "$TMPDIR_MIGRATE"
         echo "  Created staging directory: $TMPDIR_MIGRATE"
 
-        # Copy portable files from iCloud
         copy_from_icloud "$TMPDIR_MIGRATE"
 
-        # Preserve local-only files from the symlinked location
         for fname in "${LOCAL_FILES[@]}"; do
             src="$ICLOUD_SSH/$fname"
             if [ -f "$src" ]; then
@@ -211,15 +222,12 @@ elif check_icloud; then
             fi
         done
 
-        # Remove the symlink (only the pointer, not the iCloud target)
         rm "$HOME_SSH"
         echo -e "${GREEN}✓ Removed symlink (iCloud files untouched)${NC}"
 
-        # Move staging dir into place
         mv "$TMPDIR_MIGRATE" "$HOME_SSH"
         echo -e "${GREEN}✓ ~/.ssh is now a real local directory${NC}"
 
-        # Fix up
         fix_permissions
         strip_quarantine
         clean_agent_sockets
@@ -244,6 +252,9 @@ elif check_icloud; then
         fix_permissions
         strip_quarantine
     fi
+
+    # Store keys in Keychain so future SSH sessions don't prompt
+    store_keys_in_keychain
 
 else
     echo -e "${BLUE}No iCloud Drive detected${NC}"

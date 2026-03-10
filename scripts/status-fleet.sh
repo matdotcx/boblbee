@@ -22,14 +22,14 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOBLBEE_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source shared libraries
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
+
 HOSTS_FILE="${HOSTS_FILE:-$BOBLBEE_DIR/hosts/elements.txt}"
 SSH_OPTS="${SSH_OPTS:--o BatchMode=yes -o ConnectTimeout=5}"
-
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-DIM='\033[2m'
-NC='\033[0m'
 
 ok()   { printf "${GREEN}%s${NC}" "$1"; }
 bad()  { printf "${RED}%s${NC}" "$1"; }
@@ -57,15 +57,14 @@ drift=0
 
 for h in "${HOSTS[@]}"; do
     # Gather everything in one SSH round-trip
+    # Uses single canonical path
     out=$(ssh $SSH_OPTS "$h" bash <<'REMOTE' 2>/dev/null
-        # boblbee repo location
-        for d in "$HOME/Developer/workspace/matdotcx/boblbee" \
-                 "$HOME/Developer/matdotcx/boblbee" \
-                 "$HOME/workspace/matdotcx/boblbee" \
-                 "/workspace/matdotcx/boblbee"; do
-            [[ -d "$d/.git" ]] && REPO="$d" && break
-        done
-        echo "repo_commit=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null || echo "norepo")"
+        REPO="$HOME/Developer/workspace/matdotcx/boblbee"
+        if [[ -d "$REPO/.git" ]]; then
+            echo "repo_commit=$(git -C "$REPO" rev-parse --short HEAD 2>/dev/null)"
+        else
+            echo "repo_commit=norepo"
+        fi
 
         # zshrc: symlink or file, and content hash
         if [[ -L ~/.zshrc ]]; then

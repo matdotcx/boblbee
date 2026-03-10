@@ -20,20 +20,18 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BOBLBEE_DIR="$(dirname "$SCRIPT_DIR")"
+
+# Source shared libraries
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
+
 HOSTS_FILE="${HOSTS_FILE:-$BOBLBEE_DIR/hosts/elements.txt}"
 SSH_OPTS="${SSH_OPTS:--A -o BatchMode=yes -o ConnectTimeout=5}"
 PARALLEL="${PARALLEL:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-# HTTPS remote (public repo — avoids dependency on agent forwarding for pull)
-REPO_HTTPS="https://github.com/matdotcx/boblbee.git"
-BRANCH=$(git -C "$BOBLBEE_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "gold")
+BRANCH=$(get_default_branch)
 
 # Hosts: from args or from file
 if [[ $# -gt 0 ]]; then
@@ -43,15 +41,11 @@ else
 fi
 
 # Remote payload — self-contained so we only need one SSH
+# Uses single canonical path per user's decision
 REMOTE_CMD=$(cat <<EOF
 set -e
-for d in "\$HOME/Developer/workspace/matdotcx/boblbee" \\
-         "\$HOME/Developer/matdotcx/boblbee" \\
-         "\$HOME/workspace/matdotcx/boblbee" \\
-         "/workspace/matdotcx/boblbee"; do
-    [[ -d "\$d/.git" ]] && REPO="\$d" && break
-done
-[[ -z "\$REPO" ]] && { echo "FAIL: boblbee repo not found"; exit 1; }
+REPO="\$HOME/Developer/workspace/matdotcx/boblbee"
+[[ -d "\$REPO/.git" ]] || { echo "FAIL: boblbee repo not found at \$REPO"; exit 1; }
 
 cd "\$REPO"
 # Fetch over HTTPS then merge — avoids agent-forwarding dependency
@@ -61,6 +55,7 @@ git merge -q --ff-only FETCH_HEAD || { echo "FAIL: merge failed (local changes?)
 ./scripts/zshrc-sync.sh  > /dev/null 2>&1 || echo "WARN: zshrc-sync failed"
 ./scripts/ssh-sync.sh    > /dev/null 2>&1 || echo "WARN: ssh-sync failed"
 ./scripts/tmux-sync.sh   > /dev/null 2>&1 || echo "WARN: tmux-sync failed"
+./scripts/motd-sync.sh   > /dev/null 2>&1 || echo "WARN: motd-sync failed"
 
 echo "OK: \$(git rev-parse --short HEAD)"
 EOF

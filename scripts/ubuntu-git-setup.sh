@@ -9,21 +9,13 @@
 
 set -e
 
-# Source OS detection
-source "$(dirname "$0")/detect-os.sh"
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Logging functions
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+# Alias for backwards compat within this script
+log_warning() { log_warn "$1"; }
 
 # Check if running on Ubuntu
 if ! is_ubuntu; then

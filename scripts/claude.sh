@@ -6,6 +6,10 @@
 # Source: https://github.com/matdotcx/
 #########################################################
 
+# Resolve the repo root regardless of where we're invoked from
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+BOBLBEE_DIR="$(dirname "$SCRIPT_DIR")"
+
 echo "Setting up Claude Code..."
 
 # Check if Claude Code is already installed
@@ -46,7 +50,7 @@ if [ -f ~/.config/claude/memory/user.md ]; then
   mv ~/.config/claude/memory/user.md ~/.config/claude/memory/user.md.backup
 fi
 
-ln -sf "$PWD/claude/memory/user.md" ~/.config/claude/memory/user.md
+ln -sf "$BOBLBEE_DIR/claude/memory/user.md" ~/.config/claude/memory/user.md
 echo "✓ Claude Code user memory linked"
 
 # Check if link was successful

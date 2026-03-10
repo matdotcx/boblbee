@@ -21,47 +21,19 @@
 
 set -e
 
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/config.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
+
 # Configuration
-NODE_EXPORTER_VERSION="1.10.2"
 INSTALL_DIR="$HOME/bin"
 LOG_DIR="$HOME/logs"
 PORT="${1:-9100}"
 
-# Colors
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
-
-# ============================================================================
-# Helper functions
-# ============================================================================
-
-log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}[OK]${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
-}
-
-# ============================================================================
-# Platform detection (adapted from boblbee/scripts/detect-os.sh)
-# ============================================================================
-
-is_macos() {
-    [[ "$OSTYPE" == "darwin"* ]]
-}
-
+# Alias for Linux detection (not in detect-os.sh)
 is_linux() {
     [[ "$OSTYPE" == "linux-gnu"* ]]
 }

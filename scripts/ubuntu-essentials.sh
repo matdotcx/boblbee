@@ -9,21 +9,13 @@
 
 set -e
 
-# Source OS detection
-source "$(dirname "$0")/detect-os.sh"
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+source "$SCRIPT_DIR/detect-os.sh"
+source "$SCRIPT_DIR/lib/lib.sh"
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-# Logging functions
-log_info() { echo -e "${BLUE}[INFO]${NC} $1"; }
-log_success() { echo -e "${GREEN}[SUCCESS]${NC} $1"; }
-log_warning() { echo -e "${YELLOW}[WARNING]${NC} $1"; }
-log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
+# Alias for backwards compat within this script
+log_warning() { log_warn "$1"; }
 
 # Check if running on Ubuntu
 if ! is_ubuntu; then
@@ -86,22 +78,7 @@ if [[ ":$PATH:" != *":$HOME/.npm-global/bin:"* ]]; then
     log_info "Added npm global bin to PATH for current session"
 fi
 
-# Install Claude Code globally
-log_info "Installing Claude Code..."
-if command -v claude >/dev/null 2>&1; then
-    log_success "Claude Code already installed"
-else
-    npm install -g @anthropic-ai/claude-code
-    log_success "Claude Code installed successfully"
-fi
-
-# Verify Claude Code installation
-if command -v claude >/dev/null 2>&1; then
-    claude_version=$(claude --version 2>/dev/null || echo "unknown")
-    log_success "Claude Code is available (version: $claude_version)"
-else
-    log_warning "Claude Code installation may not be complete. PATH update required."
-fi
+# Claude Code is installed by scripts/claude.sh (run separately by index.sh)
 
 # Set zsh as default shell if not already set
 current_shell=$(getent passwd "$USER" | cut -d: -f7)

@@ -50,9 +50,13 @@ get_package_manager() {
     fi
 }
 
-# Check if iCloud Drive is available (macOS only)
+# Check if iCloud Drive is available and not evicted (macOS only)
 has_icloud() {
-    is_macos && [[ -d "$HOME/Library/Mobile Documents/com~apple~CloudDocs" ]]
+    is_macos || return 1
+    local icloud_base="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+    [[ -d "$icloud_base" ]] || return 1
+    # Verify directory is actually materialised, not an evicted placeholder
+    ls "$icloud_base" >/dev/null 2>&1
 }
 
 # Get the appropriate home bin path

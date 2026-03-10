@@ -1147,14 +1147,8 @@ zedspace() {
 # Boblbee Dotfiles Management
 ###############################################################################
 
-# Auto-detect boblbee directory from common locations
-if [[ -d "$HOME/Developer/workspace/matdotcx/boblbee" ]]; then
-  BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
-elif [[ -d "$HOME/workspace/matdotcx/boblbee" ]]; then
-  BOBLBEE_DIR="$HOME/workspace/matdotcx/boblbee"
-elif [[ -d "/workspace/matdotcx/boblbee" ]]; then
-  BOBLBEE_DIR="/workspace/matdotcx/boblbee"
-fi
+# Canonical boblbee directory
+BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
 
 alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,claude,ssh,motd}, bb-status, bb-status-fleet, bb-sync-fleet, bb-edit"'
 alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
@@ -1173,7 +1167,7 @@ bb-sync() {
     echo "=== Boblbee Full Sync ==="
     bb-sync-zshrc
     bb-sync-tmux
-    [[ "$OSTYPE" == "darwin"* ]] && bb-sync-ghostty
+    is_macos && bb-sync-ghostty
     bb-sync-motd
     bb-sync-claude
     bb-sync-ssh

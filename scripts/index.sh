@@ -16,12 +16,12 @@ source "$(dirname "$0")/detect-os.sh"
 run_script() {
     local script="$1"
     local use_sudo="$2"
-    
+
     if [ ! -f "$script" ]; then
         echo "Error: Script $script not found"
         exit 1
     fi
-    
+
     echo "Running $script..."
     if [ "$use_sudo" = "sudo" ]; then
         if ! sudo bash "$script"; then
@@ -41,7 +41,7 @@ run_script() {
 if is_ubuntu; then
     echo "Starting boblbee setup for Ubuntu..."
     echo ""
-    
+
     # Ubuntu setup sequence
     run_script "ubuntu-essentials.sh"
     run_script "ubuntu-git-setup.sh"
@@ -50,18 +50,20 @@ if is_ubuntu; then
     run_script "tmux-sync.sh"
     run_script "motd-sync.sh"
     run_script "ssh-sync.sh"
+    run_script "tailscale-setup.sh"
     run_script "observability-collector.sh"
-    run_script "hostname-fqdn.sh" "sudo"
+    run_script "setup-gpg-signing.sh"
+    run_script "hostname-fqdn.sh"
 
     echo ""
     echo "Ubuntu setup complete!"
     echo "Please log out and back in to use zsh as your default shell."
     echo "Or run: exec zsh"
-    
+
 elif is_macos; then
     echo "Starting boblbee setup for macOS..."
     echo ""
-    
+
     # Original macOS setup sequence
     run_script "touchid-sudo.sh" "sudo"
     run_script "xcode.sh"
@@ -73,12 +75,15 @@ elif is_macos; then
     run_script "ghostty-sync.sh"
     run_script "motd-sync.sh"
     run_script "ssh-sync.sh"
+    run_script "tailscale-setup.sh"
     run_script "observability-collector.sh"
+    run_script "pam-ssh-agent-sudo.sh"
+    run_script "setup-gpg-signing.sh"
     run_script "hostname-fqdn.sh" "sudo"
 
     echo ""
     echo "macOS setup complete!"
-    
+
 else
     echo "Unsupported operating system: $(uname -s)"
     echo "This script supports macOS and Ubuntu only."

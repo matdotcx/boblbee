@@ -2,25 +2,27 @@
 
 #########################################################
 # Title: claude-sync
-# Description: Sync Claude memory changes back to dotfiles
-# Source: https://github.com/matdotcx/
+# Description: Commit Claude memory changes to git (if any)
+# Source: https://github.com/matdotcx/boblbee
 #########################################################
 
-cd "$(dirname "${BASH_SOURCE}")"/../
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+source "$SCRIPT_DIR/lib/lib.sh"
 
-# Check if the source file exists
-if [ ! -f ~/.config/claude/memory/user.md ]; then
-  echo "No Claude memory file found at ~/.config/claude/memory/user.md"
-  exit 1
+MEMORY_FILE="$DOTFILES_DIR/claude/memory/user.md"
+
+if [ ! -f "$MEMORY_FILE" ]; then
+    echo "No Claude memory file found at $MEMORY_FILE"
+    exit 0
 fi
 
-# Copy the current memory to dotfiles
-cp ~/.config/claude/memory/user.md claude/memory/user.md
+cd "$DOTFILES_DIR" || exit 1
 
 # Check if there are changes
-if git diff --quiet claude/memory/user.md; then
-  echo "No changes to Claude memory"
-  exit 0
+if git diff --quiet claude/memory/user.md 2>/dev/null; then
+    echo "No changes to Claude memory"
+    exit 0
 fi
 
 # Show the changes
@@ -31,8 +33,8 @@ git diff claude/memory/user.md
 read -p "Commit these changes? (y/n) " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-  git add claude/memory/user.md
-  read -p "Commit message: " msg
-  git commit -m "chore: ${msg:-update claude memory}"
-  echo "Changes committed!"
+    git add claude/memory/user.md
+    read -p "Commit message: " msg
+    git commit -m "chore: ${msg:-update claude memory}"
+    echo "Changes committed!"
 fi
