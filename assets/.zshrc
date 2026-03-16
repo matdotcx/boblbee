@@ -25,7 +25,7 @@ if is_ubuntu; then
     export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:$HOME/bin:/usr/local/bin:$PATH"
 else
     # macOS PATH
-    export PATH="$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+    export PATH="$HOME/Library/Python/3.12/bin:$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
 
     # Package manager paths (optimized - skip brew --prefix call)
     if [[ -d "/opt/homebrew" ]]; then
@@ -1054,6 +1054,18 @@ elif is_ubuntu; then
         alias lock="loginctl lock-session"
     fi
 fi
+
+###############################################################################
+# RMC - Apple Music Remote (helium only)
+###############################################################################
+
+rmc() {
+    if [[ "$(hostname -s)" != "helium" ]]; then
+        echo "rmc: not available on $(hostname -s) — requires helium" >&2
+        return 1
+    fi
+    command rmc "$@"
+}
 
 ###############################################################################
 # FZF Integration
