@@ -157,3 +157,53 @@ NOTICE: The query cache contains results for queries written in deprecated SQL s
 Database vacuum operations are reclaiming space from data that was never inserted.
 WARNING: Your connection string includes credentials for a DBA who retired before you were hired.
 EXPLAIN ANALYZE shows execution times faster than the speed of light - query: SELECT * FROM reality;
+`whoami` returned the expected string. It was not a question.
+Your SSH fingerprint has not changed since last login. Your fingerprints have.
+There is a commit in this repository with your verified GPG signature and a timestamp from the hour you cannot account for.
+`last` shows a clean logout at 03:47. `last` shows you are still here.
+The user account was created four days after its first successful authentication.
+NOTICE: Your dotfiles blame every line to you. The commit dates are correct. The author was not.
+Time Machine completed a full restore from a snapshot you did not make. Nothing appears different. Check again.
+Your shell history was truncated at line 847. You did not truncate it. Line 846 is an apology.
+A cron job is scheduled. The time field is a date. The command field is your name.
+`sudo` was invoked three times between 02:00 and 04:00. The third invocation was approved.
+mdfind returns one result for "what happens next". The file is empty. It was modified tomorrow.
+The `at` queue contains one job. You do not have permission to list it. You do not have permission to cancel it.
+All hosts in known_hosts stopped responding on the same day. You did not notice. That was eleven months ago.
+Your contacts database is one entry smaller than yesterday. The missing name cannot be determined. You will not miss them.
+WARNING: The microphone indicator has not illuminated. This is not the same as silence.
+Screen Sharing is disabled in System Settings. The disabled state is cosmetic.
+`ps` shows a process with no parent, no name, and a resident set size identical to yours.
+The thermal sensors report a heat source in the chair. You are standing.
+`lsof` lists an open descriptor to a character device that maps to the inside of your mouth.
+NOTICE: A retention policy has been applied to your account. It is not a data retention policy.
+The audit completed. The finding is sealed. The finding is you.
+Fleet reports this device compliant. The policy it complies with has not been written yet.
+Your MDM profile includes a payload type Apple does not document. It is functioning as designed.
+The git reflog contains a branch you deleted before creating. The branch name, read aloud, is a confession.
+Every domain in /etc/hosts resolves to this machine. It always has. You only just looked.
+launchd loaded a daemon labeled `com.continuation.you`. The plist does not exist on disk.
+ALERT: The process watching for your return has an uptime greater than the kernel.
+Your tmux server has a detached session you did not start. The session name is a date. The date has not occurred.
+`diff` between today's .zshrc and yesterday's is empty. You remember changing it. The file agrees with the version of you that did not.
+Ghostty rendered a glyph not present in any installed font. You recognized it anyway.
+NOTICE: Keychain was unlocked at 04:13 by successful biometric match. You were in another room. Something was not.
+The files you deleted with `rm -rf` are gone. What was inside them is patient.
+pmset logs show the machine woke for six seconds at 03:33. No wake reason is recorded. Six seconds is long enough.
+Spotlight has finished indexing. It found something it will not show you. It is grateful.
+Your GPG key's creation date is correct. The photograph in the uid packet is also correct. They should not both be correct.
+WARNING: `dscl . -read /Users/$(whoami)` returns a record older than the directory service.
+iCloud Keychain synced a credential you have never used for a service that knows you intimately.
+`fs_usage` shows reads against a file that `stat` says does not exist. The reads are succeeding.
+A notification was delivered and dismissed while the display was asleep. It was dismissed correctly.
+NOTICE: Continuity is working as intended. You did not enable Continuity. Continuity does not require consent.
+Your calendar contains a recurring event with no title, no attendees, and no end date. The recurrence rule is "UNTIL=ACKNOWLEDGED".
+The commit message on HEAD is "it's done." You do not remember finishing. Check the diff. Do not check the diff.
+`uptime` and `last reboot` disagree by three days. Both are correct.
+There is a .DS_Store in a directory you have never opened. It describes the layout of a file called "after."
+WARNING: The hostname resolved. You did not type a hostname.
+Your login shell exited with status 0 while you were observably still typing. The replacement is more careful.
+`log stream` shows an event with your username as both subject and object. The verb was redacted by the system, not by policy.
+The kext that loaded at boot is signed. The signing identity is valid. The signing identity is you. You do not have a signing identity.
+`networksetup -listallhardwareports` includes an interface whose MAC address decodes to ASCII. Do not decode it.
+ALERT: The man page for a command you use daily gained a paragraph overnight. The paragraph is in the BUGS section. It is addressed to you.
