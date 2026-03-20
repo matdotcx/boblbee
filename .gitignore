@@ -25,3 +25,9 @@ Temporary Items
 .apdisk
 # Explicitly track .zshrc
 !.zshrc
+
+# Local config (contains IPs, hostnames, paths — not for public repos)
+scripts/lib/config.local.sh
+
+# Real host inventory
+hosts/elements.txt

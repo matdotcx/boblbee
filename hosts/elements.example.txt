@@ -1,0 +1,4 @@
+# Element-named hosts — copy to elements.txt and fill in your fleet
+# host1
+# host2
+# host3

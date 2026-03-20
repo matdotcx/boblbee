@@ -33,6 +33,21 @@ INSTALL_DIR="$HOME/bin"
 LOG_DIR="$HOME/logs"
 PORT="${1:-9100}"
 
+# Get listen address: prefer Tailscale IP (reachable by Prometheus), fall back
+# to localhost.  NEVER default to 0.0.0.0 — node_exporter should not be
+# world-reachable on public interfaces.
+get_listen_address() {
+    local ts_ip
+    ts_ip=$(tailscale ip -4 2>/dev/null)
+    if [[ -n "$ts_ip" ]]; then
+        echo "$ts_ip"
+        return 0
+    fi
+    echo "127.0.0.1"
+}
+
+LISTEN_ADDRESS="${2:-$(get_listen_address)}"
+
 # Alias for Linux detection (not in detect-os.sh)
 is_linux() {
     [[ "$OSTYPE" == "linux-gnu"* ]]
@@ -127,7 +142,7 @@ configure_macos_service() {
     <key>ProgramArguments</key>
     <array>
         <string>${INSTALL_DIR}/node_exporter</string>
-        <string>--web.listen-address=0.0.0.0:${PORT}</string>
+        <string>--web.listen-address=${LISTEN_ADDRESS}:${PORT}</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -181,7 +196,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=${INSTALL_DIR}/node_exporter --web.listen-address=0.0.0.0:${PORT}
+ExecStart=${INSTALL_DIR}/node_exporter --web.listen-address=${LISTEN_ADDRESS}:${PORT}
 Restart=always
 RestartSec=10
 
@@ -250,7 +265,7 @@ main() {
     arch=$(get_arch)
 
     log_info "Detected platform: ${os}-${arch}"
-    log_info "Target port: ${PORT}"
+    log_info "Listen address: ${LISTEN_ADDRESS}:${PORT}"
     log_info "Install directory: ${INSTALL_DIR}"
     echo ""
 
@@ -283,7 +298,7 @@ main() {
         echo -e "${GREEN}   Installation Complete${NC}"
         echo -e "${BLUE}════════════════════════════════════════════════════════════${NC}"
         echo ""
-        echo "Metrics endpoint: http://$(hostname):${PORT}/metrics"
+        echo "Metrics endpoint: http://${LISTEN_ADDRESS}:${PORT}/metrics"
         echo ""
         echo "Commands:"
         if is_macos; then

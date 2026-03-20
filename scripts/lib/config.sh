@@ -13,20 +13,24 @@
 BOBLBEE_CANONICAL_PATH="$HOME/Developer/workspace/matdotcx/boblbee"
 
 ###############################################################################
-# iCloud layout (macOS)
+# Local overrides (IPs, hostnames, paths — gitignored)
 ###############################################################################
 
-ICLOUD_BASE="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
-ICLOUD_SYNC_DIR="Ark/Sync/System"
-ICLOUD_SYNC_PATH="$ICLOUD_BASE/$ICLOUD_SYNC_DIR"
+_CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -f "$_CONFIG_DIR/config.local.sh" ]]; then
+    source "$_CONFIG_DIR/config.local.sh"
+else
+    echo "WARNING: scripts/lib/config.local.sh not found" >&2
+    echo "  Copy config.example.sh to config.local.sh and fill in your values." >&2
+    source "$_CONFIG_DIR/config.example.sh"
+fi
+
+unset _CONFIG_DIR
 
 ###############################################################################
-# Observability / monitoring
+# Versions
 ###############################################################################
-
-HELIUM_FQDN="helium.gl52.iaconelli.org"
-HELIUM_IP="10.52.1.26"
-HELIUM_REGISTER_SCRIPT="~/observability/scripts/register-host.sh"
 
 NODE_EXPORTER_VERSION="1.10.2"
 
