@@ -13,20 +13,49 @@
 BOBLBEE_CANONICAL_PATH="$HOME/Developer/workspace/matdotcx/boblbee"
 
 ###############################################################################
-# Local overrides (IPs, hostnames, paths — gitignored)
+# iCloud layout (macOS only)
 ###############################################################################
 
-_CONFIG_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-if [[ -f "$_CONFIG_DIR/config.local.sh" ]]; then
-    source "$_CONFIG_DIR/config.local.sh"
-else
-    echo "WARNING: scripts/lib/config.local.sh not found" >&2
-    echo "  Copy config.example.sh to config.local.sh and fill in your values." >&2
-    source "$_CONFIG_DIR/config.example.sh"
+if [[ "$OSTYPE" == "darwin"* ]]; then
+    ICLOUD_BASE="$HOME/Library/Mobile Documents/com~apple~CloudDocs"
+    ICLOUD_SYNC_DIR="Ark/Sync/System"
+    ICLOUD_SYNC_PATH="$ICLOUD_BASE/$ICLOUD_SYNC_DIR"
 fi
 
-unset _CONFIG_DIR
+###############################################################################
+# Observability / monitoring — derived from DNS, not hardcoded
+###############################################################################
+
+# Discover this host's domain, then derive helium's address.
+_detect_domain() {
+    # 1. hostname -d (works when domain is set via DHCP/DNS)
+    local d
+    d=$(hostname -d 2>/dev/null) && [[ -n "$d" && "$d" != "(none)" ]] && echo "$d" && return
+
+    # 2. hostname -f minus the short name
+    local fqdn
+    fqdn=$(hostname -f 2>/dev/null)
+    if [[ "$fqdn" == *.* ]]; then
+        echo "${fqdn#*.}"
+        return
+    fi
+
+    # 3. Tailscale FQDN (e.g. host.tail-net.ts.net → not useful, but the
+    #    search domain set by Split DNS often lands in resolv.conf)
+    d=$(grep '^search ' /etc/resolv.conf 2>/dev/null | awk '{print $2}')
+    [[ -n "$d" ]] && echo "$d" && return
+
+    # Give up — caller gets empty string
+    return 1
+}
+
+_DOMAIN=$(_detect_domain)
+
+HELIUM_FQDN="helium.${_DOMAIN:-int.iaconelli.org}"
+HELIUM_IP=$(dig +short "$HELIUM_FQDN" 2>/dev/null | head -1)
+HELIUM_REGISTER_SCRIPT="~/observability/scripts/register-host.sh"
+
+unset _DOMAIN
 
 ###############################################################################
 # Versions
