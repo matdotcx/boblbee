@@ -31,7 +31,7 @@
 #   DRY_RUN=1       Show what would run without executing
 #   PARALLEL=1      Run on all hosts simultaneously (default: sequential)
 #   STOP_ON_ERROR=1 Stop if any command fails (default: continue)
-#   SSH_OPTS="-A"   Additional SSH options (default: -A for agent forwarding)
+#   SSH_OPTS="-A"   Additional SSH options (default: none; set -A only when needed)
 #
 
 set -e
@@ -43,7 +43,7 @@ source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/lib.sh"
 
 # Defaults
-SSH_OPTS="${SSH_OPTS:--A}"
+SSH_OPTS="${SSH_OPTS:-}"
 DRY_RUN="${DRY_RUN:-0}"
 PARALLEL="${PARALLEL:-0}"
 STOP_ON_ERROR="${STOP_ON_ERROR:-0}"
@@ -65,7 +65,7 @@ Environment Variables:
   DRY_RUN=1       Show commands without executing
   PARALLEL=1      Run on all hosts simultaneously
   STOP_ON_ERROR=1 Stop if any command fails on a host
-  SSH_OPTS="-A"   SSH options (default: -A for agent forwarding)
+  SSH_OPTS="-A"   SSH options (default: none; set -A only when needed)
 
 Examples:
   $(basename "$0") update.txt hosts.txt

@@ -27,7 +27,7 @@ source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/lib.sh"
 
 HOSTS_FILE="${HOSTS_FILE:-$BOBLBEE_DIR/hosts/elements.txt}"
-SSH_OPTS="${SSH_OPTS:--A -o BatchMode=yes -o ConnectTimeout=5}"
+SSH_OPTS="${SSH_OPTS:--o BatchMode=yes -o ConnectTimeout=5}"
 PARALLEL="${PARALLEL:-0}"
 DRY_RUN="${DRY_RUN:-0}"
 
