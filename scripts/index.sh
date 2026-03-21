@@ -62,6 +62,7 @@ if is_ubuntu; then
     run_script "tailscale-setup.sh"
     run_script "observability-collector.sh"
     run_script "setup-gpg-signing.sh"
+    run_script "self-update.sh" "" "--install"
 
     echo ""
     echo "Ubuntu setup complete!"
@@ -99,6 +100,7 @@ elif is_macos; then
     run_script "observability-collector.sh"
     run_script "pam-ssh-agent-sudo.sh"
     run_script "setup-gpg-signing.sh"
+    run_script "self-update.sh" "" "--install"
 
     echo ""
     echo "macOS setup complete!"

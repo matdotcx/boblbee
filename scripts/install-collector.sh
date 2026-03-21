@@ -117,6 +117,9 @@ download_node_exporter() {
     mv "$tmp_dir/$filename/node_exporter" "$INSTALL_DIR/node_exporter"
     chmod +x "$INSTALL_DIR/node_exporter"
 
+    # Create textfile collector directory
+    mkdir -p "$PROMETHEUS_TEXTFILE_DIR"
+
     log_success "Installed to $INSTALL_DIR/node_exporter"
 }
 
@@ -143,6 +146,7 @@ configure_macos_service() {
     <array>
         <string>${INSTALL_DIR}/node_exporter</string>
         <string>--web.listen-address=${LISTEN_ADDRESS}:${PORT}</string>
+        <string>--collector.textfile.directory=${PROMETHEUS_TEXTFILE_DIR}</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -196,7 +200,7 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=${INSTALL_DIR}/node_exporter --web.listen-address=${LISTEN_ADDRESS}:${PORT}
+ExecStart=${INSTALL_DIR}/node_exporter --web.listen-address=${LISTEN_ADDRESS}:${PORT} --collector.textfile.directory=${PROMETHEUS_TEXTFILE_DIR}
 Restart=always
 RestartSec=10
 
