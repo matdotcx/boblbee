@@ -20,6 +20,8 @@ source "./detect-os.sh"
 run_script() {
     local script="$1"
     local use_sudo="${2:-}"
+    shift 2 2>/dev/null || shift $#
+    local extra_args=("$@")
 
     if [ ! -f "$script" ]; then
         echo "Error: Script $script not found"
@@ -31,12 +33,12 @@ run_script() {
 
     echo "Running $script..."
     if [ "$use_sudo" = "sudo" ]; then
-        if ! sudo "./$script"; then
+        if ! sudo "./$script" "${extra_args[@]}"; then
             echo "Error: $script failed"
             exit 1
         fi
     else
-        if ! "./$script"; then
+        if ! "./$script" "${extra_args[@]}"; then
             echo "Error: $script failed"
             exit 1
         fi
@@ -70,7 +72,19 @@ elif is_macos; then
     echo "Starting boblbee setup for macOS..."
     echo ""
 
+    # Prompt for computer name up front
+    current_name=$(scutil --get ComputerName 2>/dev/null || echo "Unknown")
+    echo "Current computer name: $current_name"
+    read -p "Enter new computer name (or press Enter to keep current): " input_name
+    if [[ -n "$input_name" && "$input_name" =~ ^[a-zA-Z0-9-]+$ ]]; then
+        HOST_SHORT_NAME="$input_name"
+    else
+        [[ -n "$input_name" ]] && echo "Invalid name. Using current name: $current_name"
+        HOST_SHORT_NAME="$current_name"
+    fi
+
     # Original macOS setup sequence
+    run_script "hostname-fqdn.sh" "sudo" "$HOST_SHORT_NAME"
     run_script "touchid-sudo.sh" "sudo"
     run_script "xcode.sh"
     run_script "macports.sh" "sudo"
@@ -85,7 +99,6 @@ elif is_macos; then
     run_script "observability-collector.sh"
     run_script "pam-ssh-agent-sudo.sh"
     run_script "setup-gpg-signing.sh"
-    run_script "hostname-fqdn.sh" "sudo"
 
     echo ""
     echo "macOS setup complete!"

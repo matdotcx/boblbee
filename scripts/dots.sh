@@ -30,28 +30,8 @@ echo "Current user: $CURRENT_USER (ID: $USER_ID)"
 # User-Configurable Variables
 #########################################################
 
-# Get current computer name
-current_name=$(scutil --get ComputerName 2>/dev/null || echo "Unknown")
-
-# Prompt for computer name
-echo "Current computer name: $current_name"
-read -p "Enter new computer name (or press Enter to keep current): " input_name
-
-if [[ -n "$input_name" ]]; then
-    # Validate input (no spaces or special characters for hostname compatibility)
-    if [[ "$input_name" =~ ^[a-zA-Z0-9-]+$ ]]; then
-        COMPUTER_NAME="$input_name"
-    else
-        echo "Invalid name. Using current name: $current_name"
-        COMPUTER_NAME="$current_name"
-    fi
-else
-    COMPUTER_NAME="$current_name"
-fi
-
 MACOS_UI_COLOR="orange" # Set your desired UI color here
 
-echo "Computer name set to: $COMPUTER_NAME"
 echo "UI color set to: $MACOS_UI_COLOR"
 
 #########################################################
@@ -122,11 +102,7 @@ get_macos_color_values() {
 echo "Configuring system settings…"
 
 echo ""
-echo "Setting computer name…"
-run_command "sudo scutil --set ComputerName '$COMPUTER_NAME'" "Set computer name"
-run_command "sudo scutil --set HostName '$COMPUTER_NAME'" "Set host name"
-run_command "sudo scutil --set LocalHostName '$COMPUTER_NAME'" "Set local host name"
-run_command "sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string '$COMPUTER_NAME'" "Set NetBIOS name"
+echo "Hostname already configured by hostname-fqdn.sh — skipping"
 
 echo ""
 echo "Setting macOS UI color…"

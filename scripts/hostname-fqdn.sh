@@ -12,7 +12,7 @@ source "$SCRIPT_DIR/detect-os.sh"
 source "$SCRIPT_DIR/lib/config.sh"
 source "$SCRIPT_DIR/lib/lib.sh"
 
-echo "=== FQDN Hostname Setup ==="
+echo "=== Hostname Setup ==="
 echo ""
 
 if ! is_macos; then
@@ -20,10 +20,15 @@ if ! is_macos; then
   exit 0
 fi
 
-# Get current LocalHostName (short hostname)
-SHORT_NAME=$(scutil --get LocalHostName 2>/dev/null)
+# Accept optional short name argument (for first-run renaming)
+if [ -n "$1" ]; then
+  SHORT_NAME="$1"
+else
+  SHORT_NAME=$(scutil --get LocalHostName 2>/dev/null)
+fi
+
 if [ -z "$SHORT_NAME" ]; then
-  echo -e "${RED}Could not determine LocalHostName${NC}"
+  echo -e "${RED}Could not determine hostname${NC}"
   exit 1
 fi
 
@@ -35,21 +40,17 @@ if [ -z "$DOMAIN" ]; then
 fi
 
 FQDN="${SHORT_NAME}.${DOMAIN}"
-CURRENT=$(scutil --get HostName 2>/dev/null)
 
-if [ "$CURRENT" = "$FQDN" ]; then
-  echo -e "${GREEN}HostName already set to $FQDN${NC}"
-  exit 0
-fi
-
+echo -e "${BLUE}ComputerName:${NC} $SHORT_NAME"
 echo -e "${BLUE}LocalHostName:${NC} $SHORT_NAME"
 echo -e "${BLUE}Domain:${NC} $DOMAIN"
-echo -e "${BLUE}Setting HostName to:${NC} $FQDN"
+echo -e "${BLUE}HostName (FQDN):${NC} $FQDN"
 echo ""
 
-if sudo scutil --set HostName "$FQDN"; then
-  echo -e "${GREEN}HostName set to $FQDN${NC}"
-else
-  echo -e "${RED}Failed to set HostName${NC}"
-  exit 1
-fi
+# Set all hostname variants
+sudo scutil --set ComputerName "$SHORT_NAME"
+sudo scutil --set LocalHostName "$SHORT_NAME"
+sudo scutil --set HostName "$FQDN"
+sudo defaults write /Library/Preferences/SystemConfiguration/com.apple.smb.server NetBIOSName -string "$SHORT_NAME"
+
+echo -e "${GREEN}All hostnames set (FQDN: $FQDN)${NC}"
