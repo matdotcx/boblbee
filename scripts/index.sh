@@ -90,6 +90,30 @@ configure_git_identity() {
     echo ""
 }
 
+# Switch boblbee's origin remote from HTTPS to SSH.
+# The initial clone uses HTTPS because it works before SSH keys are set up,
+# but once setup is complete we want SSH for push access.
+switch_remote_to_ssh() {
+    local repo_dir
+    repo_dir="$(cd "$(dirname "$0")/.." && pwd)"
+    local current_url
+    current_url=$(git -C "$repo_dir" remote get-url origin 2>/dev/null)
+
+    if [[ "$current_url" == https://github.com/* ]]; then
+        # Convert https://github.com/owner/repo.git → git@github.com:owner/repo.git
+        local ssh_url
+        ssh_url=$(echo "$current_url" | sed 's|https://github.com/|git@github.com:|')
+        git -C "$repo_dir" remote set-url origin "$ssh_url"
+        echo ""
+        echo "Switched boblbee remote from HTTPS to SSH:"
+        echo "  $current_url → $ssh_url"
+    elif [[ "$current_url" == git@github.com:* ]]; then
+        echo "Boblbee remote is already SSH: $current_url"
+    else
+        echo "Boblbee remote is not a GitHub URL — leaving as-is: $current_url"
+    fi
+}
+
 # Platform-specific setup
 if is_ubuntu; then
     echo "Starting boblbee setup for Ubuntu..."
@@ -111,6 +135,8 @@ if is_ubuntu; then
     run_script "observability-collector.sh"
     run_script "setup-gpg-signing.sh"
     run_script "self-update.sh" "" "--install"
+
+    switch_remote_to_ssh
 
     echo ""
     echo "Ubuntu setup complete!"
@@ -152,6 +178,8 @@ elif is_macos; then
     run_script "pam-ssh-agent-sudo.sh"
     run_script "setup-gpg-signing.sh"
     run_script "self-update.sh" "" "--install"
+
+    switch_remote_to_ssh
 
     echo ""
     echo "macOS setup complete!"
