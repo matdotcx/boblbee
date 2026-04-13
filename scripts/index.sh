@@ -46,10 +46,58 @@ run_script() {
     sleep 3
 }
 
+# Prompt for git identity if not already configured.
+# Sets git config --global so all subsequent scripts (GPG signing, commits,
+# etc.) have the identity available from the start.
+configure_git_identity() {
+    local current_name current_email
+
+    current_name=$(git config --global user.name 2>/dev/null || echo "")
+    current_email=$(git config --global user.email 2>/dev/null || echo "")
+
+    if [[ -n "$current_name" && -n "$current_email" ]]; then
+        echo "Git identity already configured: $current_name <$current_email>"
+        return 0
+    fi
+
+    echo ""
+    echo "Git identity is not yet configured on this machine."
+
+    if [[ -z "$current_name" ]]; then
+        read -p "Enter your full name for git commits: " input_name
+        if [[ -n "$input_name" ]]; then
+            git config --global user.name "$input_name"
+            echo "  user.name set to: $input_name"
+        else
+            echo "  Skipped — you can set this later with: git config --global user.name \"Your Name\""
+        fi
+    else
+        echo "  user.name already set: $current_name"
+    fi
+
+    if [[ -z "$current_email" ]]; then
+        read -p "Enter your email for git commits: " input_email
+        if [[ -n "$input_email" ]]; then
+            git config --global user.email "$input_email"
+            echo "  user.email set to: $input_email"
+        else
+            echo "  Skipped — you can set this later with: git config --global user.email \"you@example.com\""
+        fi
+    else
+        echo "  user.email already set: $current_email"
+    fi
+
+    echo ""
+}
+
 # Platform-specific setup
 if is_ubuntu; then
     echo "Starting boblbee setup for Ubuntu..."
     echo ""
+
+    # Ubuntu git identity is handled interactively by ubuntu-git-setup.sh,
+    # but configure early so claude.sh and other scripts can use it too.
+    configure_git_identity
 
     # Ubuntu setup sequence
     run_script "ubuntu-essentials.sh"
@@ -83,6 +131,9 @@ elif is_macos; then
         [[ -n "$input_name" ]] && echo "Invalid name. Using current name: $current_name"
         HOST_SHORT_NAME="$current_name"
     fi
+
+    # Prompt for git identity early so GPG signing and commits work
+    configure_git_identity
 
     # Original macOS setup sequence
     run_script "hostname-fqdn.sh" "sudo" "$HOST_SHORT_NAME"

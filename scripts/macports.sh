@@ -28,11 +28,11 @@ if [ -f "/opt/local/bin/port" ]; then
 
     if [ $hours_old -lt 24 ]; then
         echo "MacPorts was installed $hours_old hours ago (less than 24 hours)."
-        read -p "Do you want to skip MacPorts installation? (y/N): " skip_install
-        if [[ $skip_install =~ ^[Yy]$ ]]; then
-            echo "Skipping MacPorts installation."
+        echo "Skipping reinstallation. To force a reinstall, pass --force."
+        if [[ "${1:-}" != "--force" ]]; then
             exit 0
         fi
+        echo "  --force specified, continuing with reinstall..."
     fi
 fi
 
@@ -118,4 +118,4 @@ sudo chown -R macports:admin /opt/local/var/macports/sources/ 2>/dev/null || tru
 
 # Install essential packages directly
 echo "Installing essential packages..."
-sudo /opt/local/bin/port install zsh-autosuggestions zsh-syntax-highlighting git curl
+sudo /opt/local/bin/port install zsh-autosuggestions zsh-syntax-highlighting git curl gnupg2

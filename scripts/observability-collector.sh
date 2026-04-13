@@ -18,12 +18,32 @@ echo ""
 
 INSTALLER_SCRIPT="$SCRIPT_DIR/install-collector.sh"
 
+# Get Tailscale IP, handling both CLI and App Store installations.
+# Falls back to grepping network interfaces for a 100.x.x.x CGNAT address
+# (Tailscale's assigned range) when the CLI is unavailable.
+get_tailscale_ip() {
+    # 1. Try the tailscale CLI (works on Linux / standalone macOS installs)
+    local ts_ip
+    ts_ip=$(tailscale ip -4 2>/dev/null) && [[ -n "$ts_ip" ]] && { echo "$ts_ip"; return 0; }
+
+    # 2. Grep network interfaces for Tailscale's CGNAT range (100.64.0.0/10)
+    #    This covers the Mac App Store version where the CLI is not on PATH.
+    if is_macos; then
+        ts_ip=$(ifconfig 2>/dev/null | grep -A1 'utun' | grep 'inet ' | grep -oE '100\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    else
+        ts_ip=$(ip -4 addr show 2>/dev/null | grep -oE '100\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    fi
+    [[ -n "$ts_ip" ]] && { echo "$ts_ip"; return 0; }
+
+    return 1
+}
+
 # Function to get local IP address
 # Prefers Tailscale IP if available (for remote machines)
 get_local_ip() {
     # Try Tailscale IP first (works for remote machines)
     local tailscale_ip
-    tailscale_ip=$(tailscale ip -4 2>/dev/null)
+    tailscale_ip=$(get_tailscale_ip)
     if [[ -n "$tailscale_ip" ]]; then
         echo "$tailscale_ip"
         return 0
@@ -39,6 +59,13 @@ get_local_ip() {
 
 # Function to detect which port the exporter is running on
 detect_exporter_port() {
+    # Check on Tailscale IP first, then fall back to localhost
+    local ts_ip
+    ts_ip=$(get_tailscale_ip)
+    if [[ -n "$ts_ip" ]] && curl -s --connect-timeout 2 "http://${ts_ip}:9100/metrics" > /dev/null 2>&1; then
+        echo "9100"
+        return 0
+    fi
     if curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1; then
         echo "9100"
         return 0
@@ -46,8 +73,29 @@ detect_exporter_port() {
     return 1
 }
 
-# Function to check if exporter is installed AND serving metrics
+# Function to check if exporter is installed AND serving metrics on the
+# correct address. Returns 1 if the exporter is running but bound to the
+# wrong address (e.g. localhost when a Tailscale IP is now available),
+# so the caller knows to reconfigure.
 check_existing_exporter() {
+    local ts_ip
+    ts_ip=$(get_tailscale_ip)
+
+    if [[ -n "$ts_ip" ]]; then
+        # Tailscale is available — exporter MUST be on the Tailscale IP
+        if curl -s --connect-timeout 2 "http://${ts_ip}:9100/metrics" > /dev/null 2>&1; then
+            return 0
+        fi
+        # Exporter may be running on localhost — that needs reconfiguring
+        if curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1; then
+            echo -e "${YELLOW}Exporter is running on localhost but Tailscale IP ${ts_ip} is available${NC}"
+            echo -e "${YELLOW}Reconfiguring to bind to Tailscale IP...${NC}"
+            return 1
+        fi
+        return 1
+    fi
+
+    # No Tailscale — localhost is acceptable
     curl -s --connect-timeout 2 "http://localhost:9100/metrics" > /dev/null 2>&1
 }
 
@@ -100,7 +148,7 @@ register_with_helium() {
     fi
 }
 
-# Check if collector is already installed
+# Check if collector is already installed and on the correct address
 if check_existing_exporter; then
     exporter_port=$(detect_exporter_port)
     echo -e "${GREEN}Exporter already installed and running on port ${exporter_port}${NC}"

@@ -33,12 +33,32 @@ INSTALL_DIR="$HOME/bin"
 LOG_DIR="$HOME/logs"
 PORT="${1:-9100}"
 
+# Get Tailscale IP, handling both CLI and App Store installations.
+# Falls back to grepping network interfaces for a 100.x.x.x CGNAT address
+# (Tailscale's assigned range) when the CLI is unavailable.
+get_tailscale_ip() {
+    # 1. Try the tailscale CLI (works on Linux / standalone macOS installs)
+    local ts_ip
+    ts_ip=$(tailscale ip -4 2>/dev/null) && [[ -n "$ts_ip" ]] && { echo "$ts_ip"; return 0; }
+
+    # 2. Grep network interfaces for Tailscale's CGNAT range (100.64.0.0/10)
+    #    This covers the Mac App Store version where the CLI is not on PATH.
+    if is_macos; then
+        ts_ip=$(ifconfig 2>/dev/null | grep -A1 'utun' | grep 'inet ' | grep -oE '100\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    else
+        ts_ip=$(ip -4 addr show 2>/dev/null | grep -oE '100\.[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+    fi
+    [[ -n "$ts_ip" ]] && { echo "$ts_ip"; return 0; }
+
+    return 1
+}
+
 # Get listen address: prefer Tailscale IP (reachable by Prometheus), fall back
 # to localhost.  NEVER default to 0.0.0.0 — node_exporter should not be
 # world-reachable on public interfaces.
 get_listen_address() {
     local ts_ip
-    ts_ip=$(tailscale ip -4 2>/dev/null)
+    ts_ip=$(get_tailscale_ip)
     if [[ -n "$ts_ip" ]]; then
         echo "$ts_ip"
         return 0
@@ -234,18 +254,20 @@ verify_installation() {
 
     log_info "Verifying node_exporter is running..."
 
-    if curl -s "http://localhost:${PORT}/metrics" > /dev/null 2>&1; then
-        log_success "node_exporter is running on port ${PORT}"
+    # Check the actual listen address, not localhost — the exporter may be
+    # bound to a Tailscale IP or other non-loopback address.
+    if curl -s "http://${LISTEN_ADDRESS}:${PORT}/metrics" > /dev/null 2>&1; then
+        log_success "node_exporter is running on ${LISTEN_ADDRESS}:${PORT}"
 
         # Show a sample metric
         local sample
-        sample=$(curl -s "http://localhost:${PORT}/metrics" | grep "^node_uname_info" | head -1)
+        sample=$(curl -s "http://${LISTEN_ADDRESS}:${PORT}/metrics" | grep "^node_uname_info" | head -1)
         if [[ -n "$sample" ]]; then
             log_info "Sample metric: $sample"
         fi
         return 0
     else
-        log_error "node_exporter is not responding on port ${PORT}"
+        log_error "node_exporter is not responding on ${LISTEN_ADDRESS}:${PORT}"
         log_info "Check logs in $LOG_DIR/node-exporter.log"
         return 1
     fi

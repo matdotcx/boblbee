@@ -15,13 +15,23 @@ source "$SCRIPT_DIR/lib/lib.sh"
 echo "=== Tailscale Setup ==="
 echo ""
 
+# Get Tailscale IP by grepping network interfaces for the CGNAT range.
+# Works regardless of whether the CLI is available (covers App Store installs).
+get_tailscale_ip_from_interfaces() {
+    if is_macos; then
+        ifconfig 2>/dev/null | grep -A1 'utun' | grep 'inet ' | grep -oE '100\.[0-9]+\.[0-9]+\.[0-9]+' | head -1
+    else
+        ip -4 addr show 2>/dev/null | grep -oE '100\.[0-9]+\.[0-9]+\.[0-9]+' | head -1
+    fi
+}
+
 # Function to check if Tailscale is installed
 check_tailscale_installed() {
     if command -v tailscale >/dev/null 2>&1; then
         return 0
     fi
 
-    # macOS may have it in /Applications
+    # macOS may have it in /Applications (App Store version)
     if is_macos && [ -d "/Applications/Tailscale.app" ]; then
         return 0
     fi
@@ -29,15 +39,30 @@ check_tailscale_installed() {
     return 1
 }
 
+# Function to check if the tailscale CLI is usable
+check_tailscale_cli() {
+    command -v tailscale >/dev/null 2>&1 && tailscale version >/dev/null 2>&1
+}
+
 # Function to check if Tailscale is connected
 check_tailscale_connected() {
-    if tailscale status >/dev/null 2>&1; then
+    # Try the CLI first
+    if check_tailscale_cli; then
         local status
         status=$(tailscale status --json 2>/dev/null | grep -o '"BackendState":"[^"]*"' | cut -d'"' -f4)
         if [ "$status" = "Running" ]; then
             return 0
         fi
     fi
+
+    # Fall back to checking for a Tailscale IP on the interfaces
+    # (covers App Store installs where the CLI is not available)
+    local ts_ip
+    ts_ip=$(get_tailscale_ip_from_interfaces)
+    if [[ -n "$ts_ip" ]]; then
+        return 0
+    fi
+
     return 1
 }
 
@@ -123,9 +148,30 @@ connect_tailscale() {
     fi
 }
 
+# Warn about App Store CLI limitations and explain how boblbee handles it
+warn_appstore_cli() {
+    echo ""
+    echo -e "${YELLOW}Note: The Mac App Store version of Tailscale does not provide a${NC}"
+    echo -e "${YELLOW}CLI binary on the PATH. The embedded binary inside the .app bundle${NC}"
+    echo -e "${YELLOW}crashes when invoked directly due to sandbox/bundle-identifier issues.${NC}"
+    echo ""
+    echo -e "${BLUE}Boblbee scripts work around this by detecting the Tailscale IP from${NC}"
+    echo -e "${BLUE}network interfaces (looking for addresses in the 100.x.x.x CGNAT range)${NC}"
+    echo -e "${BLUE}rather than relying on the tailscale CLI. No action is required.${NC}"
+    echo ""
+    echo "If you need the CLI for manual use, consider the standalone installer:"
+    echo "  https://tailscale.com/download/mac"
+    echo ""
+}
+
 # Main logic
 if check_tailscale_installed; then
     echo -e "${GREEN}Tailscale is installed${NC}"
+
+    # Warn if this is the App Store version without a working CLI
+    if is_macos && [ -d "/Applications/Tailscale.app" ] && ! check_tailscale_cli; then
+        warn_appstore_cli
+    fi
 
     if check_tailscale_connected; then
         echo -e "${GREEN}Tailscale is connected${NC}"
@@ -133,7 +179,14 @@ if check_tailscale_installed; then
 
         # Show status
         echo -e "${BLUE}Tailscale Status:${NC}"
-        tailscale status 2>/dev/null || echo "  (run 'tailscale status' to see details)"
+        if check_tailscale_cli; then
+            tailscale status 2>/dev/null || echo "  (run 'tailscale status' to see details)"
+        else
+            local ts_ip
+            ts_ip=$(get_tailscale_ip_from_interfaces)
+            echo "  Tailscale IP: ${ts_ip:-unknown}"
+            echo "  (CLI not available — install standalone version for full status output)"
+        fi
         echo ""
 
         echo -e "${GREEN}Tailscale setup complete!${NC}"
@@ -171,7 +224,13 @@ if check_tailscale_connected; then
     echo -e "${GREEN}Tailscale setup complete!${NC}"
     echo ""
     echo "Your Tailscale IP:"
-    tailscale ip -4 2>/dev/null || echo "  (authenticate to see IP)"
+    if check_tailscale_cli; then
+        tailscale ip -4 2>/dev/null || echo "  (authenticate to see IP)"
+    else
+        local ts_ip
+        ts_ip=$(get_tailscale_ip_from_interfaces)
+        echo "  ${ts_ip:-  (authenticate to see IP)}"
+    fi
 else
     echo -e "${YELLOW}Tailscale authentication pending${NC}"
     echo "Complete authentication to finish setup."

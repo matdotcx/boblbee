@@ -18,21 +18,30 @@ echo "Setting up Claude Code..."
 
 # Check if Claude Code is already installed
 if ! command -v claude &> /dev/null; then
-    # Check if npm is available, install if not
-    if ! command -v npm &> /dev/null; then
+    # Locate npm — it may not be on PATH yet if MacPorts was just installed
+    NPM_BIN=""
+    if command -v npm &> /dev/null; then
+        NPM_BIN="npm"
+    elif [ -x /opt/local/bin/npm ]; then
+        NPM_BIN="/opt/local/bin/npm"
+    fi
+
+    if [ -z "$NPM_BIN" ]; then
         echo "npm not found, installing via MacPorts..."
         if command -v port &> /dev/null; then
             sudo port install npm10 nodejs22
-        elif [ -f /opt/local/bin/port ]; then
+        elif [ -x /opt/local/bin/port ]; then
             sudo /opt/local/bin/port install npm10 nodejs22
         else
             echo "✗ MacPorts not found. Please install npm manually."
             exit 1
         fi
+        NPM_BIN="/opt/local/bin/npm"
     fi
 
     echo "Installing Claude Code via npm..."
-    sudo npm install -g @anthropic-ai/claude-code
+    # Use the resolved absolute path so sudo's restricted PATH is not an issue
+    sudo "$NPM_BIN" install -g @anthropic-ai/claude-code
 
     if ! command -v claude &> /dev/null; then
         echo "✗ Failed to install Claude Code"
