@@ -1153,12 +1153,13 @@ zedspace() {
 # If the canonical path changes, update both this line and config.sh.
 BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
 
-alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,claude,ssh,motd}, bb-status, bb-status-fleet, bb-sync-fleet, bb-edit"'
+alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,zed,claude,ssh,motd}, bb-status, bb-status-fleet, bb-sync-fleet, bb-edit"'
 alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
 alias bb-upgrade="$BOBLBEE_DIR/scripts/upgrade.sh"
 alias bb-sync-zshrc="$BOBLBEE_DIR/scripts/zshrc-sync.sh"
 alias bb-sync-tmux="$BOBLBEE_DIR/scripts/tmux-sync.sh"
 alias bb-sync-ghostty="$BOBLBEE_DIR/scripts/ghostty-sync.sh"
+alias bb-sync-zed="$BOBLBEE_DIR/scripts/zed-sync.sh"
 alias bb-sync-claude="$BOBLBEE_DIR/scripts/claude-sync.sh"
 alias bb-sync-ssh="$BOBLBEE_DIR/scripts/ssh-sync.sh"
 alias bb-sync-motd="$BOBLBEE_DIR/scripts/motd-sync.sh"
@@ -1171,6 +1172,7 @@ bb-sync() {
     bb-sync-zshrc
     bb-sync-tmux
     is_macos && bb-sync-ghostty
+    is_macos && bb-sync-zed
     bb-sync-motd
     bb-sync-claude
     bb-sync-ssh

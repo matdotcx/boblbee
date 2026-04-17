@@ -45,7 +45,8 @@ flowchart TD
         m5 --> m6["zshrc-sync.sh"]
         m6 --> m7["tmux-sync.sh"]
         m7 --> m8["ghostty-sync.sh"]
-        m8 --> m9["motd-sync.sh"]
+        m8 --> m8b["zed-sync.sh"]
+        m8b --> m9["motd-sync.sh"]
         m9 --> m10["ssh-sync.sh"]
         m10 --> m11["tailscale-setup.sh"]
         m11 --> m12["observability-collector.sh"]
@@ -82,7 +83,8 @@ flowchart TD
     tmux --> ghostty_check{"is_macos?"}
     ghostty_check -->|yes| ghostty["bb-sync-ghostty<br/>(ghostty-sync.sh)"]
     ghostty_check -->|no| motd
-    ghostty --> motd["bb-sync-motd<br/>(motd-sync.sh)"]
+    ghostty --> zed["bb-sync-zed<br/>(zed-sync.sh)"]
+    zed --> motd["bb-sync-motd<br/>(motd-sync.sh)"]
     motd --> claude["bb-sync-claude<br/>(claude-sync.sh)"]
     claude --> ssh["bb-sync-ssh<br/>(ssh-sync.sh)"]
     ssh --> push_check{"unpushed<br/>commits?"}
@@ -272,6 +274,9 @@ flowchart TD
 │  ├── assets/tmux*.conf        ←→ home (2-way, newest wins)
 │  ├── assets/ghostty-config    ←→ ~/Library/.../ghostty (2-way)
 │  ├── assets/ghostty-themes/   ←→ ~/.config/ghostty/themes (2-way)
+│  ├── assets/zed/settings.json ←→ ~/.config/zed/ (2-way)
+│  ├── assets/zed/keymap.json   ←→ ~/.config/zed/ (2-way)
+│  ├── assets/zed/themes/       ←→ ~/.config/zed/themes/ (2-way)
 │  ├── claude/memory/user.md    ←→ ~/.config/claude/memory (2-way)
 │  └── scripts/lib/{config,lib}.sh
 │

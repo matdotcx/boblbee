@@ -78,7 +78,7 @@ main() {
     # 4. Check for missing scripts
     echo "4. Checking for new scripts..."
     missing_scripts=()
-    for script in "claude.sh" "claude-sync.sh" "zshrc-sync.sh" "tmux-sync.sh" "ghostty-sync.sh" "motd-sync.sh" "upgrade.sh"; do
+    for script in "claude.sh" "claude-sync.sh" "zshrc-sync.sh" "tmux-sync.sh" "ghostty-sync.sh" "zed-sync.sh" "motd-sync.sh" "upgrade.sh"; do
         if [ ! -f "$SCRIPT_DIR/$script" ]; then
             missing_scripts+=("$script")
         fi
@@ -105,6 +105,7 @@ main() {
     echo "- Sync tmux configuration and themes"
     if is_macos; then
         echo "- Sync Ghostty terminal configuration"
+        echo "- Sync Zed editor configuration"
     fi
     echo "- Sync message of the day"
     echo "- Verify SSH sync setup"
@@ -140,6 +141,10 @@ main() {
     if is_macos; then
         echo "Setting up Ghostty terminal configuration..."
         "$SCRIPT_DIR/ghostty-sync.sh"
+        echo ""
+
+        echo "Setting up Zed editor configuration..."
+        "$SCRIPT_DIR/zed-sync.sh"
         echo ""
     fi
 

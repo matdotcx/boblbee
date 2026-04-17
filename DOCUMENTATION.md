@@ -40,6 +40,7 @@ All boblbee commands follow the `bb-*` naming convention. They're defined as she
 | `bb-sync-zshrc` | Sync shell configuration (three-way with iCloud, or two-way) |
 | `bb-sync-tmux` | Sync tmux configuration and Manganese themes |
 | `bb-sync-ghostty` | Sync Ghostty terminal config and themes (macOS only) |
+| `bb-sync-zed` | Sync Zed editor config and themes (macOS only) |
 | `bb-sync-claude` | Commit Claude Code preferences to git |
 | `bb-sync-ssh` | Sync SSH configuration (copies from iCloud on macOS) |
 | `bb-sync-motd` | Sync message of the day |
@@ -192,13 +193,14 @@ source ~/.zshrc    # or: exec zsh
 6. `zshrc-sync.sh` - Shell configuration sync
 7. `tmux-sync.sh` - Tmux config and Manganese themes
 8. `ghostty-sync.sh` - Ghostty terminal config and themes
-9. `motd-sync.sh` - Message of the day
-10. `ssh-sync.sh` - SSH keys from iCloud + Keychain storage
-11. `tailscale-setup.sh` - Tailscale VPN
-12. `observability-collector.sh` - Prometheus node_exporter
-13. `pam-ssh-agent-sudo.sh` - SSH agent sudo authentication
-14. `setup-gpg-signing.sh` - Git GPG commit signing
-15. `hostname-fqdn.sh` - Set HostName to FQDN (requires sudo)
+9. `zed-sync.sh` - Zed editor config and themes
+10. `motd-sync.sh` - Message of the day
+11. `ssh-sync.sh` - SSH keys from iCloud + Keychain storage
+12. `tailscale-setup.sh` - Tailscale VPN
+13. `observability-collector.sh` - Prometheus node_exporter
+14. `pam-ssh-agent-sudo.sh` - SSH agent sudo authentication
+15. `setup-gpg-signing.sh` - Git GPG commit signing
+16. `hostname-fqdn.sh` - Set HostName to FQDN (requires sudo)
 
 #### Ubuntu (`index.sh` runs, in order)
 
@@ -278,6 +280,7 @@ bb-sync-fleet
 | `motd-sync.sh` | Both | Three-way/two-way `.motd` sync via `sync_dotfile()` |
 | `tmux-sync.sh` | Both | Bidirectional sync for `tmux.conf`, `tmux-base.conf`, and theme files |
 | `ghostty-sync.sh` | macOS | Bidirectional config sync + bidirectional theme sync (Manganese Dark/Light) |
+| `zed-sync.sh` | macOS | Bidirectional sync for Zed `settings.json`, `keymap.json`, and themes |
 | `ssh-sync.sh` | Both | macOS: copy portable files from iCloud, store keys in Keychain. Ubuntu: permissions only |
 | `claude-sync.sh` | Both | Commit Claude memory changes to git |
 | `claude.sh` | Both | Initial Claude Code setup (config dir, symlink to user.md) |

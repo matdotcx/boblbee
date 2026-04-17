@@ -171,6 +171,7 @@ elif is_macos; then
     run_script "zshrc-sync.sh"
     run_script "tmux-sync.sh"
     run_script "ghostty-sync.sh"
+    run_script "zed-sync.sh"
     run_script "motd-sync.sh"
     run_script "ssh-sync.sh"
     run_script "tailscale-setup.sh"
