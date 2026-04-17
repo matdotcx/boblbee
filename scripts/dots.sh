@@ -130,6 +130,7 @@ run_command "/usr/libexec/PlistBuddy -c \"Set :DesktopViewSettings:IconViewSetti
 run_command "/usr/libexec/PlistBuddy -c \"Set :FK_StandardViewSettings:IconViewSettings:showItemInfo true\" ~/Library/Preferences/com.apple.finder.plist" "Show item info in standard Finder views"
 run_command "defaults write NSGlobalDomain AppleShowAllExtensions -bool true" "Show all file extensions"
 run_command "defaults write com.apple.finder ShowPathbar -bool true" "Show Finder path bar"
+run_command "defaults write com.apple.finder _FXShowPosixPathInTitle -bool true" "Show POSIX path in Finder title"
 run_command "defaults write com.apple.finder ShowStatusBar -bool true" "Show Finder status bar"
 run_command "defaults write com.apple.finder NewWindowTarget -string \"PfHm\"" "Set new Finder windows to home folder"
 run_command "defaults write com.apple.finder ShowHardDrivesOnDesktop -bool false" "Hide hard drives on desktop"
