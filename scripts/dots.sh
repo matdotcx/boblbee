@@ -147,6 +147,7 @@ run_command "defaults write NSGlobalDomain PMPrintingExpandedStateForPrint2 -boo
 run_command "defaults write NSGlobalDomain com.apple.springing.enabled -bool true" "Enable spring loading for directories"
 run_command "defaults write NSGlobalDomain com.apple.springing.delay -float 0" "Remove the spring loading delay for directories"
 run_command "defaults write NSGlobalDomain AppleShowScrollBars -string \"Always\"" "Always show scrollbars"
+run_command "defaults write -g NSMenuEnableActionImages -bool NO" "Disable menu action images"
 run_command "defaults write com.apple.AppleMultitouchTrackpad ForceSuppressed -int 1" "Disable force click"
 run_command "defaults write com.apple.AppleMultitouchMouse MouseButtonMode -string \"TwoButton\"" "Enable two-button mouse"
 run_command "defaults write com.apple.driver.AppleBluetoothMultitouch.mouse MouseButtonMode -string \"TwoButton\"" "Enable two-button Bluetooth mouse"
