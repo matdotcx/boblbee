@@ -154,6 +154,9 @@ run_command "defaults write com.apple.driver.AppleBluetoothMultitouch.mouse Mous
 run_command "defaults write NSGlobalDomain com.apple.sound.beep.feedback -integer 1" "Enable sound feedback"
 run_command "defaults write com.apple.PowerChime ChimeOnAllHardware -bool true" "Enable power chime"
 run_command "defaults write com.apple.TimeMachine DoNotOfferNewDisksForBackup -bool true" "Disable Time Machine new disk prompt"
+run_command "defaults write NSGlobalDomain NSTableViewDefaultSizeMode -int 1" "Set sidebar icon size to small"
+run_command "defaults write NSGlobalDomain AppleWindowTabbingMode -string \"always\"" "Always prefer tabs when opening documents"
+run_command "defaults write NSGlobalDomain AppleMenuBarVisibleInFullscreen -bool true" "Show menu bar in fullscreen"
 
 echo ""
 echo "Configuring Dock…"
@@ -165,7 +168,14 @@ run_command "defaults write com.apple.dock largesize -int 96" "Set Dock tile max
 
 
 echo ""
+echo "Configuring Window Manager…"
+run_command "defaults write com.apple.WindowManager EnableStandardClickToShowDesktop -bool false" "Disable click desktop to show desktop"
+run_command "defaults write com.apple.WindowManager AppWindowGroupingBehavior -int 1" "Group windows by application"
+run_command "defaults write com.apple.WindowManager HideDesktop -bool true" "Hide desktop items when tiling"
+
+echo ""
 echo "Configuring Menu Bar…"
+run_command "defaults write com.apple.controlcenter AutoHideMenuBarOption -int 3" "Always auto-hide menu bar"
 run_command "defaults -currentHost write com.apple.controlcenter BatteryShowPercentage -bool true" "Show battery percentage"
 run_command "defaults write com.apple.menuextra.clock IsAnalog -int 0" "Enable digital clock"
 run_command "defaults write com.apple.menuextra.clock Show24Hour -int 1" "Enable 24-hour clock"
