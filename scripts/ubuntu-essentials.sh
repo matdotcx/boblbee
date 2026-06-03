@@ -44,6 +44,7 @@ essential_packages=(
     "curl"
     "zsh"
     "vim"
+    "tmux"
     "tree"
     "htop"
     "ripgrep"
