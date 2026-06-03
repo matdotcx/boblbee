@@ -49,8 +49,8 @@ export BUN_INSTALL="$HOME/.bun"
 ###############################################################################
 
 if [[ -n "$SSH_CONNECTION" || -n "$SSH_TTY" ]] && [[ -z "$TMUX" ]] && command -v tmux &>/dev/null; then
-    # Attach to existing session named 'ssh', or create one
-    tmux attach-session -t ssh 2>/dev/null || tmux new-session -s ssh
+    # Attach to existing session named 'ssh', or create one rooted in $HOME
+    tmux new-session -A -s ssh -c "$HOME"
 fi
 
 ###############################################################################
