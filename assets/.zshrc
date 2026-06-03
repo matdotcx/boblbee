@@ -149,7 +149,18 @@ bindkey '^I' __lazy_complete
 # ssh-add need it even before init_ssh runs via the git/ssh wrappers.
 if is_macos && [[ -z "$SSH_AUTH_SOCK" ]]; then
     _sock=$(find /private/tmp/com.apple.launchd.* -name Listeners -print -quit 2>/dev/null)
-    [[ -n "$_sock" ]] && export SSH_AUTH_SOCK="$_sock"
+    if [[ -n "$_sock" ]]; then
+        export SSH_AUTH_SOCK="$_sock"
+    else
+        # Fallback when no launchd-managed socket is present: persistent
+        # user-managed agent. Survives shell exit, reused across shells.
+        # Spawned only if no live agent is already listening.
+        export SSH_AUTH_SOCK="$HOME/.ssh/agent.sock"
+        if ! ssh-add -l >/dev/null 2>&1; then
+            rm -f "$SSH_AUTH_SOCK"
+            eval "$(ssh-agent -a "$SSH_AUTH_SOCK" -s)" >/dev/null
+        fi
+    fi
     unset _sock
 fi
 
