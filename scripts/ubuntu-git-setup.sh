@@ -64,34 +64,6 @@ configure_git_user() {
     fi
 }
 
-# Configure git settings to match macOS setup
-configure_git_settings() {
-    log_info "Configuring git settings..."
-    
-    # Core settings
-    git config --global init.defaultBranch main
-    git config --global core.autocrlf input
-    git config --global core.safecrlf true
-    git config --global pull.rebase false
-    git config --global push.default simple
-    
-    # Editor preference
-    if command -v vim >/dev/null 2>&1; then
-        git config --global core.editor vim
-    fi
-    
-    # Aliases to match macOS workflow
-    git config --global alias.st status
-    git config --global alias.co checkout
-    git config --global alias.br branch
-    git config --global alias.ci commit
-    git config --global alias.unstage 'reset HEAD --'
-    git config --global alias.last 'log -1 HEAD'
-    git config --global alias.visual '!gitk'
-    
-    log_success "Git settings configured"
-}
-
 # Set up SSH key for git
 setup_ssh_key() {
     local ssh_dir="$HOME/.ssh"
@@ -209,7 +181,6 @@ test_git_setup() {
 # Main execution
 main() {
     configure_git_user
-    configure_git_settings
     setup_ssh_key
     setup_github_token
     test_git_setup

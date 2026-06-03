@@ -126,6 +126,7 @@ if is_ubuntu; then
     # Ubuntu setup sequence
     run_script "ubuntu-essentials.sh"
     run_script "ubuntu-git-setup.sh"
+    run_script "git-config-shared.sh"
     run_script "claude.sh"
     run_script "zshrc-sync.sh"
     run_script "tmux-sync.sh"
@@ -167,6 +168,7 @@ elif is_macos; then
     run_script "xcode.sh"
     run_script "macports.sh" "sudo"
     run_script "dots.sh"
+    run_script "git-config-shared.sh"
     run_script "claude.sh"
     run_script "zshrc-sync.sh"
     run_script "tmux-sync.sh"
