@@ -713,6 +713,18 @@ alias gac='git add -A && git commit -m'
 alias gst='git stash'
 alias gsp='git stash pop'
 
+# Cut a PR from current changes: branch off the default branch if needed, commit, push, open PR
+gpr() {
+    local msg="${1:?usage: gpr <commit message>}"
+    local branch=$(git branch --show-current)
+    if [[ "$branch" == "gold" || "$branch" == "main" || "$branch" == "master" ]]; then
+        local slug=$(echo "$msg" | tr '[:upper:] ' '[:lower:]-' | tr -cd 'a-z0-9-' | cut -c1-40)
+        branch="matdotcx/${slug}"
+        git checkout -b "$branch" || return
+    fi
+    git add -A && git commit -m "$msg" && git push -u origin "$branch" && gh pr create --fill
+}
+
 # Smart commit with pre-commit handling
 gcauto() {
     local message="${1:-Update}"
