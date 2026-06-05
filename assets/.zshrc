@@ -81,7 +81,6 @@ setopt AUTO_PUSHD                # Push directories onto stack
 setopt PUSHD_IGNORE_DUPS         # Don't duplicate directories
 setopt PUSHD_MINUS               # Reverse +/- meanings
 setopt AUTO_CD                   # cd by typing directory name
-setopt NO_MATCH                  # No error on no matches
 setopt CORRECT                   # Spelling correction for commands
 setopt INTERACTIVE_COMMENTS      # Allow comments in interactive shell
 unsetopt CORRECT_ALL             # Don't correct arguments
