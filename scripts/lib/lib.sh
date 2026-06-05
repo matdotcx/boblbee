@@ -137,6 +137,36 @@ backup_file() {
 # Git helpers
 ###############################################################################
 
+# Push the current branch to origin so other hosts stay in sync.
+# Must be called from within DOTFILES_DIR (e.g. the commit subshell).
+# On a non-fast-forward rejection, integrates remote work via pull --rebase
+# and retries; if that conflicts, aborts the rebase and warns rather than
+# leaving the repo mid-rebase.
+push_dotfiles_changes() {
+    if ! git remote get-url origin >/dev/null 2>&1; then
+        echo -e "${BLUE}No 'origin' remote, skipping push${NC}"
+        return 0
+    fi
+
+    local branch
+    branch=$(git rev-parse --abbrev-ref HEAD)
+
+    if git push origin "$branch" 2>/dev/null; then
+        echo -e "${GREEN}Pushed to origin/$branch${NC}"
+        return 0
+    fi
+
+    echo -e "${YELLOW}Push rejected — integrating remote changes with pull --rebase${NC}"
+    if git pull --rebase origin "$branch" 2>/dev/null && git push origin "$branch" 2>/dev/null; then
+        echo -e "${GREEN}Pushed to origin/$branch after rebase${NC}"
+        return 0
+    fi
+
+    git rebase --abort 2>/dev/null
+    echo -e "${RED}Push failed: remote diverged with conflicts. Resolve manually in $DOTFILES_DIR.${NC}"
+    return 1
+}
+
 # Commit changes in DOTFILES_DIR.
 # Usage: commit_dotfiles_changes "commit message" file1 [file2 ...]
 # Files are relative to DOTFILES_DIR (e.g. "assets/.zshrc").
@@ -157,6 +187,7 @@ commit_dotfiles_changes() {
                 else
                     if git commit -m "$commit_msg" 2>/dev/null; then
                         echo -e "${GREEN}Changes committed to git: $commit_msg${NC}"
+                        push_dotfiles_changes
                         exit 0
                     else
                         echo -e "${YELLOW}Git commit failed, but file was updated${NC}"
