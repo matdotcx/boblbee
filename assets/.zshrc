@@ -148,7 +148,7 @@ bindkey '^I' __lazy_complete
 # Set SSH_AUTH_SOCK eagerly — finding the socket is cheap, and commands like
 # ssh-add need it even before init_ssh runs via the git/ssh wrappers.
 if is_macos && [[ -z "$SSH_AUTH_SOCK" ]]; then
-    _sock=$(find /private/tmp/com.apple.launchd.* -name Listeners -print -quit 2>/dev/null)
+    _sock=$(find /private/tmp -maxdepth 2 -path '*com.apple.launchd.*' -name Listeners -print -quit 2>/dev/null)
     if [[ -n "$_sock" ]]; then
         export SSH_AUTH_SOCK="$_sock"
     else
