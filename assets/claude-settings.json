@@ -4,5 +4,8 @@
   },
   "tui": "fullscreen",
   "theme": "dark-daltonized",
-  "preferredNotifChannel": "terminal_bell"
+  "preferredNotifChannel": "terminal_bell",
+  "alwaysThinkingEnabled": true,
+  "agentPushNotifEnabled": true,
+  "voiceEnabled": false
 }
