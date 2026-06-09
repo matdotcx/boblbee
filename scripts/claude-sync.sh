@@ -2,11 +2,12 @@
 
 #########################################################
 # Title: claude-sync
-# Description: Bidirectional sync of Claude memory (copy strategy)
+# Description: Bidirectional sync of Claude memory + user settings (copy strategy)
 # Source: https://github.com/matdotcx/boblbee
 #
-# ~/.config/claude/memory/user.md is a real local file (not a symlink).
-# Newest-mtime-wins between local and repo, then auto-commits to git.
+# ~/.config/claude/memory/user.md and ~/.claude/settings.json are real local
+# files (not symlinks). Newest-mtime-wins between local and repo, then
+# auto-commits to git.
 #########################################################
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
@@ -18,6 +19,21 @@ source "$SCRIPT_DIR/lib/lib.sh"
 REPO_MEMORY="$DOTFILES_DIR/claude/memory/user.md"
 LOCAL_MEMORY="$HOME/.config/claude/memory/user.md"
 
+# Claude user-scope settings (global default; per-project .claude/settings*.json
+# sit above this in precedence and are never touched here).
+REPO_SETTINGS="$DOTFILES_DIR/assets/claude-settings.json"
+LOCAL_SETTINGS="$HOME/.claude/settings.json"
+
+echo "=== Claude Settings Sync ==="
+echo ""
+
+# Sync ~/.claude/settings.json first, unconditionally — the memory sync below
+# has early-exit branches, so settings would be skipped if it ran afterwards.
+# Newest-mtime-wins (2-way repo <-> home), matching the memory strategy.
+mkdir -p "$(dirname "$LOCAL_SETTINGS")"
+sync_dotfile "claude-settings.json" "$LOCAL_SETTINGS" "$REPO_SETTINGS" "" "assets/claude-settings.json"
+
+echo ""
 echo "=== Claude Memory Sync ==="
 echo ""
 

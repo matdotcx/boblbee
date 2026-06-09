@@ -1,0 +1,8 @@
+{
+  "enabledPlugins": {
+    "swift-lsp@claude-plugins-official": true
+  },
+  "tui": "fullscreen",
+  "theme": "dark-daltonized",
+  "preferredNotifChannel": "terminal_bell"
+}
