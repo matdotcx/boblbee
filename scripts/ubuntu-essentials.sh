@@ -53,6 +53,7 @@ essential_packages=(
     "unzip"
     "ca-certificates"
     "keychain"
+    "age"
 )
 
 for package in "${essential_packages[@]}"; do

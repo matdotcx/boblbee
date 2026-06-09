@@ -127,4 +127,4 @@ sudo chown -R macports:admin /opt/local/var/macports/sources/ 2>/dev/null || tru
 
 # Install essential packages directly
 echo "Installing essential packages..."
-sudo /opt/local/bin/port install zsh-autosuggestions zsh-syntax-highlighting git curl gnupg2 gh ripgrep tree fzf coreutils tmux
+sudo /opt/local/bin/port install zsh-autosuggestions zsh-syntax-highlighting git curl gnupg2 gh ripgrep tree fzf coreutils tmux age
