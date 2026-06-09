@@ -23,6 +23,26 @@ if [[ "$OSTYPE" == "darwin"* ]]; then
 fi
 
 ###############################################################################
+# ark-config — private config repo, sibling of boblbee (all platforms)
+###############################################################################
+#
+# Source of truth for secrets/configs that can't live in the public boblbee
+# repo. On hosts without iCloud Drive, this is the non-iCloud fallback that
+# delivers the SSH config + keys (see ssh-sync.sh / script/bootstrap).
+#
+# Layout:  ark-config/boblbee/{ssh_config,id_ed25519,id_rsa,id_github,...}
+
+# Canonical repo path (sibling of boblbee)
+ARK_CONFIG_PATH="$(dirname "$BOBLBEE_CANONICAL_PATH")/ark-config"
+ARK_BOBLBEE_DIR="$ARK_CONFIG_PATH/boblbee"
+
+# Bootstrap key: a single passphrase-less ed25519 key, seeded once per host from a
+# vault. It is BOTH the read-only GitHub deploy key for ark-config (so a host can
+# clone the private repo) and the age identity that decrypts the *.age secrets in
+# ark-config/boblbee/. Override the path with BOBLBEE_BOOTSTRAP_KEY if needed.
+BOOTSTRAP_KEY="${BOBLBEE_BOOTSTRAP_KEY:-$HOME/.config/boblbee/id_bootstrap}"
+
+###############################################################################
 # Observability / monitoring — derived from DNS, not hardcoded
 ###############################################################################
 

@@ -16,6 +16,7 @@ What makes this particular collection special is its intelligent sync system - i
 - **Shared Library Architecture**: Common helpers extracted to `scripts/lib/` - no duplicated code across scripts
 - **Fleet Management**: Status checks and sync across all hosts with one command
 - **SSH Keychain Integration**: macOS Keychain stores SSH passphrases permanently - no repeated prompts
+- **Encrypted SSH Secrets**: On hosts without iCloud, SSH keys/config come from the private [`ark-config`](#ssh-keys--private-config-ark-config) repo, encrypted at rest with `age` and unlocked by a single vault-held bootstrap key
 - **Claude Code Integration**: Syncs AI assistant preferences across devices
 - **Observability**: Automatic Prometheus node_exporter setup with central registration
 
@@ -58,6 +59,48 @@ This will:
 cd ~/Developer/workspace/matdotcx/boblbee
 ./scripts/upgrade.sh
 ```
+
+### SSH keys & private config (`ark-config`)
+
+> **Setup note — don't forget this on a new host.** SSH config and keys are **not**
+> stored in this (public) repo. They live in a **private companion repo,
+> [`ark-config`](https://github.com/matdotcx/ark-config)**, checked out as a sibling of
+> boblbee (`~/Developer/workspace/matdotcx/ark-config`).
+
+On a Mac signed into **iCloud Drive**, SSH material syncs from iCloud as before — no
+extra steps. On any host **without iCloud** (headless/CI/signed-out Macs, Ubuntu),
+`ssh-sync.sh` falls back to `ark-config`, where the private keys are stored **encrypted
+at rest** as `*.age` files. A single passphrase-less ed25519 key — **`id_bootstrap`** —
+unlocks everything: it's both the read-only GitHub **deploy key** that clones the private
+repo and the **`age` identity** that decrypts the keys. Keep it in your vault; seed it
+once per host.
+
+**Bringing up a brand-new host (one seed):**
+
+```bash
+# 0. age must be present:  sudo port install age  /  brew install age  /  apt install age
+
+# 1. seed the single bootstrap key from your vault
+install -m 600 /path/from/vault/id_bootstrap ~/.config/boblbee/id_bootstrap
+
+# 2. clone boblbee (public) and ark-config (private, via the deploy key)
+mkdir -p ~/Developer/workspace/matdotcx && cd ~/Developer/workspace/matdotcx
+git clone https://github.com/matdotcx/boblbee.git
+GIT_SSH_COMMAND="ssh -i ~/.config/boblbee/id_bootstrap -o IdentitiesOnly=yes" \
+  git clone git@github.com:matdotcx/ark-config.git
+
+# 3. run setup as normal — ssh-sync decrypts keys into ~/.ssh and links the config
+cd boblbee/scripts && ./index.sh
+```
+
+Override the key path with `BOBLBEE_BOOTSTRAP_KEY` if you keep it elsewhere. Full
+mechanism (including why config is symlinked but keys are decrypted) is in
+[DOCUMENTATION.md](DOCUMENTATION.md#ssh-special-case).
+
+**Re-implementing this yourself?** `ark-config` is just a private git repo with a
+per-consuming-repo directory layout (`ark-config/boblbee/…`); boblbee discovers it as a
+sibling via `ARK_CONFIG_PATH` in `scripts/lib/config.sh`. Point that at your own private
+repo and you get the same encrypted-secrets-with-one-bootstrap-key pattern.
 
 ## Command Reference
 
@@ -113,7 +156,9 @@ Three-way sync. iCloud provides cross-host sharing; git provides version history
 ```
 ~/.zshrc (local copy) <-> Git Repository
 ```
-Two-way bidirectional sync.
+Two-way bidirectional sync. SSH is the exception: without iCloud it sources keys/config
+from the private `ark-config` sibling repo instead — see
+[SSH keys & private config](#ssh-keys--private-config-ark-config).
 
 ### Shared Libraries
 
@@ -139,9 +184,12 @@ boblbee/
 │       └── user.md          # Global AI assistant preferences
 ├── hosts/
 │   └── elements.txt         # Fleet host list
+├── script/
+│   └── bootstrap            # Wire private configs from ark-config into place
+├── ssh_config.example       # Placeholder SSH config (used when ark-config is absent)
 ├── scripts/
 │   ├── lib/
-│   │   ├── config.sh        # Shared configuration values
+│   │   ├── config.sh        # Shared configuration values (incl. ark-config path)
 │   │   └── lib.sh           # Shared helper functions
 │   ├── index.sh             # Main installer (cross-platform)
 │   ├── upgrade.sh           # Upgrade existing installations

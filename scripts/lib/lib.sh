@@ -59,6 +59,16 @@ check_icloud() {
 }
 
 ###############################################################################
+# ark-config detection (private config repo cloned as a sibling of boblbee)
+###############################################################################
+
+# True when the ark-config repo is checked out and contains boblbee's private
+# material. This is the non-iCloud source of truth for SSH config + keys.
+check_ark_config() {
+    [ -d "$ARK_BOBLBEE_DIR" ] && [ -f "$ARK_BOBLBEE_DIR/ssh_config" ]
+}
+
+###############################################################################
 # File helpers
 ###############################################################################
 

@@ -146,9 +146,46 @@ Two-way sync. iCloud is skipped entirely.
 
 #### SSH (special case)
 
-SSH does not use `sync_dotfile()`. Instead, `ssh-sync.sh` copies **portable files** (keys, config, authorized_keys) from iCloud to `~/.ssh/` as a local directory. It never modifies iCloud files - read-only from iCloud, write to local. On macOS, it also stores key passphrases in Keychain via `ssh-add --apple-use-keychain` so you're never prompted again.
+SSH does not use `sync_dotfile()`. `ssh-sync.sh` picks a source in priority order:
 
-If `~/.ssh` is a symlink (legacy), it's automatically migrated to a real directory.
+1. **iCloud Drive** (preferred) — copies **portable files** (keys, config, authorized_keys) from iCloud to `~/.ssh/` as a local directory. Read-only from iCloud, write to local.
+2. **ark-config fallback** (no iCloud) — when iCloud Drive is absent, `script/bootstrap` symlinks `~/.ssh/config` to `ark-config/boblbee/ssh_config` and **decrypts** the private keys from `ark-config/boblbee/*.age` into `~/.ssh/`. This is the non-iCloud path that keeps headless / signed-out Macs (and any host with the private repo cloned) in sync. See the [ark-config](https://github.com/matdotcx/ark-config) convention.
+3. **local only** (neither available) — leaves `~/.ssh` untouched apart from fixing permissions.
+
+On macOS it also stores key passphrases in Keychain via `ssh-add --apple-use-keychain` so you're never prompted again. If `~/.ssh` is a symlink (legacy), it's automatically migrated to a real directory.
+
+Why keys are **decrypted/copied** but config is **symlinked** under the ark-config path: ssh enforces strict permissions and refuses keys it considers too exposed, and a private key symlinked into a git working tree is fragile (a branch switch or `git clean` would pull it out from under `ssh`). The config is safe to symlink, so edits flow straight back to the version-controlled repo.
+
+##### The bootstrap key (`id_bootstrap`)
+
+Private keys are stored in ark-config **encrypted at rest** as `*.age` files. A single
+passphrase-less ed25519 key, `id_bootstrap`, unlocks everything. It has two jobs:
+
+- **GitHub read-only deploy key** on ark-config, so a host can clone/pull the private repo.
+- **age identity**, so `script/bootstrap` can `age -d` the `*.age` secrets.
+
+It lives in a vault and is seeded once per host at `~/.config/boblbee/id_bootstrap`
+(`0600`, override with `BOBLBEE_BOOTSTRAP_KEY`). Because it's passphrase-less and stays on
+the host, the daily auto-sync decrypts non-interactively. The deploy key is what lets a
+**brand-new** host clone the private repo (step 2 below); once cloned, ongoing ark-config
+pulls use the normal `id_github` key that bootstrap decrypts into `~/.ssh`.
+
+**Provisioning a brand-new host — one seed:**
+
+```bash
+# 1. seed the single bootstrap key from your vault
+install -m 600 /path/from/vault/id_bootstrap ~/.config/boblbee/id_bootstrap
+
+# 2. clone boblbee (public) and ark-config (private, via the deploy key)
+git clone https://github.com/matdotcx/boblbee.git ~/Developer/workspace/matdotcx/boblbee
+GIT_SSH_COMMAND="ssh -i ~/.config/boblbee/id_bootstrap -o IdentitiesOnly=yes" \
+  git clone git@github.com:matdotcx/ark-config.git ~/Developer/workspace/matdotcx/ark-config
+
+# 3. run the sync — decrypts keys into ~/.ssh and links the config
+~/Developer/workspace/matdotcx/boblbee/scripts/ssh-sync.sh
+```
+
+Requires the `age` binary (`sudo port install age` / `brew install age` / `apt install age`).
 
 ## Installation Guide
 

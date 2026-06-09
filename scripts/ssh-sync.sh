@@ -335,9 +335,25 @@ elif check_icloud; then
     # Store keys in Keychain so future SSH sessions don't prompt
     store_keys_in_keychain
 
+elif check_ark_config; then
+    #############################################################
+    # NON-iCLOUD FALLBACK: pull SSH config + keys from ark-config
+    #############################################################
+    echo -e "${BLUE}No iCloud Drive — using ark-config as the SSH source${NC}"
+    if "$DOTFILES_DIR/script/bootstrap"; then
+        fix_permissions
+        strip_quarantine
+        clean_agent_sockets
+        store_keys_in_keychain
+    else
+        echo -e "${YELLOW}Bootstrap could not provision SSH from ark-config — leaving ~/.ssh untouched${NC}"
+        [ -d "$HOME_SSH" ] && fix_permissions
+    fi
+
 else
-    echo -e "${BLUE}No iCloud Drive detected${NC}"
+    echo -e "${BLUE}No iCloud Drive and no ark-config detected${NC}"
     echo "SSH configuration will remain local only"
+    echo "  (clone ark-config beside boblbee to enable the non-iCloud fallback)"
 
     if [ -d "$HOME_SSH" ]; then
         fix_permissions

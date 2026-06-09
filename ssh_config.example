@@ -1,0 +1,38 @@
+# boblbee SSH config — EXAMPLE / placeholder values
+#
+# The real config lives in the private ark-config repo
+# (ark-config/boblbee/ssh_config) and is linked into ~/.ssh/config by
+# `script/bootstrap` when ark-config is checked out as a sibling of boblbee.
+#
+# This file is only used as a fallback when ark-config is NOT available
+# (e.g. a public clone). Replace the placeholders with your own hosts.
+
+# Optional: include a tool-managed fragment (e.g. colima)
+# Include ~/.colima/ssh_config
+
+# Search these identities and add them to the agent
+AddKeysToAgent yes
+
+IdentityFile ~/.ssh/id_ed25519
+IdentityFile ~/.ssh/id_rsa
+IdentityFile ~/.ssh/id_github
+
+########################################################################
+###### Catch-all
+########################################################################
+
+Host *
+    UseKeychain yes
+
+########################################################################
+###### Example host
+########################################################################
+
+Host example
+    HostName example.internal
+    User youruser
+    PubkeyAcceptedKeyTypes +ssh-rsa
+    AddKeysToAgent yes
+    IgnoreUnknown UseKeychain
+    UseKeychain yes
+    IdentityFile ~/.ssh/id_ed25519

@@ -1,0 +1,147 @@
+#!/usr/bin/env bash
+
+#########################################################
+# Title: bootstrap
+# Description: Wire private configs from the ark-config repo into place.
+# Source: https://github.com/matdotcx/boblbee
+#
+# Convention (see github.com/matdotcx/ark-config):
+#   - If ark-config is checked out as a sibling of boblbee, symlink/copy the
+#     REAL private configs into place.
+#   - If not (public clone, no access), fall back to the in-repo *.example
+#     files with placeholder values.
+#
+# For SSH specifically this is boblbee's NON-iCLOUD fallback: hosts without
+# iCloud Drive get their ~/.ssh/config + keys from ark-config instead.
+#
+# Idempotent — safe to run repeatedly.
+#########################################################
+
+set -euo pipefail
+
+# Source shared libraries
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DOTFILES_DIR="$(dirname "$SCRIPT_DIR")"
+source "$DOTFILES_DIR/scripts/detect-os.sh"
+source "$DOTFILES_DIR/scripts/lib/config.sh"
+source "$DOTFILES_DIR/scripts/lib/lib.sh"
+
+HOME_SSH="$HOME/.ssh"
+AGE_BIN="$(command -v age || echo /opt/local/bin/age)"
+
+# Private key files distributed (encrypted) via ark-config. Each is stored as
+# <name>.age and decrypted with the bootstrap key into ~/.ssh/<name>. Public
+# halves (.pub) are stored alongside in the clear (they aren't secret) and copied
+# verbatim — a passphrase-protected private key can't yield its .pub non-interactively.
+SSH_PRIVATE_KEYS=(id_ed25519 id_rsa id_github)
+
+# Non-key secret files distributed encrypted (decrypted verbatim, no .pub).
+SSH_SECRET_FILES=(authorized_keys)
+
+echo "=== boblbee bootstrap ==="
+echo ""
+
+backup_if_real() {
+    # Back up a path only if it's a real file (not already our symlink)
+    local target="$1"
+    if [ -f "$target" ] && [ ! -L "$target" ]; then
+        local backup="${target}.bak.$(date +%Y%m%d-%H%M%S)"
+        cp -p "$target" "$backup"
+        echo -e "  ${DIM}backed up $(basename "$target") -> $(basename "$backup")${NC}"
+    fi
+}
+
+# Decrypt an ark-config *.age file into place safely:
+#   - umask 077 so the plaintext is never world-readable, even momentarily
+#   - write to a temp file, then atomic mv — a failed/corrupt decrypt can never
+#     leave a partial or empty key behind (the previous file stays untouched)
+decrypt_to() {
+    local src="$1" dst="$2" mode="$3"
+    local tmp="$dst.tmp.$$"
+    if ! ( umask 077; "$AGE_BIN" -d -i "$BOOTSTRAP_KEY" -o "$tmp" "$src" ); then
+        rm -f "$tmp"
+        echo -e "  ${RED}✗ failed to decrypt $(basename "$src")${NC}"
+        return 1
+    fi
+    chmod "$mode" "$tmp"
+    mv -f "$tmp" "$dst"
+}
+
+bootstrap_ssh_from_ark() {
+    echo -e "${BLUE}SSH: linking config + decrypting keys from ark-config${NC}"
+
+    # Preconditions for decryption.
+    if [ ! -x "$AGE_BIN" ] && ! command -v age >/dev/null 2>&1; then
+        echo -e "  ${RED}✗ age not installed${NC} — install it first:"
+        echo -e "      macOS (MacPorts): sudo port install age"
+        echo -e "      macOS (Homebrew): brew install age"
+        echo -e "      Ubuntu:           sudo apt install age"
+        return 1
+    fi
+    if [ ! -f "$BOOTSTRAP_KEY" ]; then
+        echo -e "  ${RED}✗ bootstrap key not found at $BOOTSTRAP_KEY${NC}"
+        echo -e "      Seed it from your vault, e.g.:"
+        echo -e "      install -m 600 /path/to/id_bootstrap \"$BOOTSTRAP_KEY\""
+        return 1
+    fi
+
+    [ -d "$HOME_SSH" ] || mkdir -m 700 "$HOME_SSH"
+
+    # Config: symlinked so edits flow back to the (version-controlled) ark repo.
+    backup_if_real "$HOME_SSH/config"
+    ln -sfn "$ARK_BOBLBEE_DIR/ssh_config" "$HOME_SSH/config"
+    echo -e "  ${GREEN}✓ config -> ark-config/boblbee/ssh_config${NC}"
+
+    # Private keys: decrypt <name>.age -> ~/.ssh/<name>; copy the (public,
+    # non-secret) <name>.pub verbatim — it can't be regenerated from a
+    # passphrase-protected key non-interactively.
+    local decrypted=0
+    for f in "${SSH_PRIVATE_KEYS[@]}"; do
+        local src="$ARK_BOBLBEE_DIR/$f.age"
+        [ -f "$src" ] || continue
+        decrypt_to "$src" "$HOME_SSH/$f" 600
+        if [ -f "$ARK_BOBLBEE_DIR/$f.pub" ]; then
+            cp -p "$ARK_BOBLBEE_DIR/$f.pub" "$HOME_SSH/$f.pub"
+            chmod 644 "$HOME_SSH/$f.pub"
+        fi
+        decrypted=$((decrypted + 1))
+    done
+
+    # Other secrets: decrypt verbatim.
+    for f in "${SSH_SECRET_FILES[@]}"; do
+        local src="$ARK_BOBLBEE_DIR/$f.age"
+        [ -f "$src" ] || continue
+        decrypt_to "$src" "$HOME_SSH/$f" 600
+        decrypted=$((decrypted + 1))
+    done
+
+    chmod 700 "$HOME_SSH"
+    echo -e "  ${GREEN}✓ decrypted $decrypted secret(s) into ~/.ssh${NC}"
+}
+
+bootstrap_ssh_from_example() {
+    echo -e "${YELLOW}SSH: ark-config not available — using example placeholders${NC}"
+    [ -d "$HOME_SSH" ] || mkdir -m 700 "$HOME_SSH"
+    local example="$DOTFILES_DIR/ssh_config.example"
+    if [ -f "$example" ] && [ ! -e "$HOME_SSH/config" ]; then
+        cp "$example" "$HOME_SSH/config"
+        chmod 644 "$HOME_SSH/config"
+        echo -e "  ${GREEN}✓ seeded ~/.ssh/config from ssh_config.example${NC}"
+        echo -e "  ${YELLOW}Edit it with real hosts, or clone ark-config and re-run.${NC}"
+    else
+        echo -e "  ${DIM}~/.ssh/config already present — leaving as-is${NC}"
+    fi
+}
+
+if check_ark_config; then
+    echo -e "${GREEN}✓ ark-config found at $ARK_CONFIG_PATH${NC}"
+    echo ""
+    bootstrap_ssh_from_ark
+else
+    echo -e "${YELLOW}ark-config not found (expected at $ARK_CONFIG_PATH)${NC}"
+    echo ""
+    bootstrap_ssh_from_example
+fi
+
+echo ""
+echo -e "${GREEN}✓ bootstrap complete${NC}"
