@@ -53,6 +53,7 @@ cd "\$REPO"
 git fetch -q "$REPO_HTTPS" "$BRANCH"
 git merge -q --ff-only FETCH_HEAD || { echo "FAIL: merge failed (local changes?)"; exit 1; }
 
+./scripts/claude-sync.sh > /dev/null 2>&1 || echo "WARN: claude-sync failed"
 ./scripts/zshrc-sync.sh  > /dev/null 2>&1 || echo "WARN: zshrc-sync failed"
 ./scripts/ssh-sync.sh    > /dev/null 2>&1 || echo "WARN: ssh-sync failed"
 ./scripts/tmux-sync.sh   > /dev/null 2>&1 || echo "WARN: tmux-sync failed"
