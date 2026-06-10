@@ -49,8 +49,11 @@ REPO="\$HOME/Developer/workspace/matdotcx/boblbee"
 [[ -d "\$REPO/.git" ]] || { echo "FAIL: boblbee repo not found at \$REPO"; exit 1; }
 
 cd "\$REPO"
-# Fetch over HTTPS then merge — avoids agent-forwarding dependency
-git fetch -q "$REPO_HTTPS" "$BRANCH"
+# Fetch over HTTPS then merge — avoids agent-forwarding dependency.
+# GIT_CONFIG_GLOBAL=/dev/null neutralises any host's url.*.insteadOf rewrite
+# (e.g. https://github.com/ -> git@github.com:) that would otherwise force the
+# anonymous HTTPS pull onto SSH and fail without a GitHub key.
+GIT_CONFIG_GLOBAL=/dev/null git fetch -q "$REPO_HTTPS" "$BRANCH"
 git merge -q --ff-only FETCH_HEAD || { echo "FAIL: merge failed (local changes?)"; exit 1; }
 
 ./scripts/claude-sync.sh > /dev/null 2>&1 || echo "WARN: claude-sync failed"
