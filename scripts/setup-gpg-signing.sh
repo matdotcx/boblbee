@@ -36,15 +36,19 @@ fi
 KEY_ID=$(gpg --list-secret-keys --keyid-format=long | grep -B 10 "$EMAIL" | grep "sec" | tail -1 | cut -d'/' -f2 | cut -d' ' -f1)
 
 if [ -z "$KEY_ID" ]; then
-    echo "No GPG key found for $EMAIL"
+    echo "No GPG key found for $EMAIL — skipping commit signing on this host."
     echo "Available keys:"
     gpg --list-secret-keys --keyid-format=long
     echo ""
-    echo "Troubleshooting:"
+    echo "To enable signing later, import a key and re-run this script:"
     echo "- If using GPG Keychain: Import your .asc secret key file"
-    echo "- If keys show above but email doesn't match, update EMAIL variable"
+    echo "- If keys show above but email doesn't match, pass the right one: ./setup-gpg-signing.sh you@example.com"
     echo "- If no keys shown: gpg --import your-secret-key.asc"
-    exit 1
+    # Don't leave signing enabled without a key — that would break every commit.
+    git config --global commit.gpgsign false
+    git config --global tag.gpgsign false
+    echo "✓ Continuing without GPG signing (this host commits unsigned)."
+    exit 0
 fi
 
 echo "Found GPG key: $KEY_ID"
