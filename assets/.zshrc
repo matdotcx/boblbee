@@ -360,6 +360,7 @@ preexec() {
 
 precmd() {
     local exit_code=$?
+    local last_cmd="$_last_command"
 
     # Handle command timing
     if [[ -n $timer ]]; then
@@ -411,6 +412,19 @@ precmd() {
     # Gated on $TMUX so we never interfere with tmux's own mouse handling.
     if [[ -z "$TMUX" ]]; then
         printf '\033[?1000l\033[?1002l\033[?1003l\033[?1006l\033[?1015l'
+
+        # The reset above stops new reports, but scroll events the terminal
+        # buffered *before* it took effect still sit in the input queue and
+        # replay as "<35;..M" garbage on this line (e.g. an ssh session to a
+        # mouse-enabled tmux dropped on laptop sleep/wake). Drain that one-time
+        # burst so you don't have to press Enter to clear it. Gated to remote-
+        # session commands so ordinary type-ahead is never discarded.
+        case "${${last_cmd%% *}:t}" in
+            ssh|mosh|et|sftp|scp|tmux)
+                local _flush
+                while read -t 0.1 -k 1 _flush 2>/dev/null; do :; done
+                ;;
+        esac
     fi
 
     # Show MOTD once with cached system info
@@ -1196,7 +1210,7 @@ zedspace() {
 # If the canonical path changes, update both this line and config.sh.
 BOBLBEE_DIR="$HOME/Developer/workspace/matdotcx/boblbee"
 
-alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,zed,claude,ssh,motd}, bb-status, bb-status-fleet, bb-sync-fleet, bb-edit"'
+alias bb-help='echo "Boblbee Commands: bb-setup, bb-upgrade, bb-sync, bb-sync-{zshrc,tmux,ghostty,zed,claude,ssh,motd}, bb-update, bb-status, bb-status-fleet, bb-sync-fleet, bb-update-fleet, bb-edit"'
 alias bb-setup="cd $BOBLBEE_DIR/scripts && ./index.sh"
 alias bb-upgrade="$BOBLBEE_DIR/scripts/upgrade.sh"
 alias bb-sync-zshrc="$BOBLBEE_DIR/scripts/zshrc-sync.sh"
@@ -1208,6 +1222,8 @@ alias bb-sync-ssh="$BOBLBEE_DIR/scripts/ssh-sync.sh"
 alias bb-sync-motd="$BOBLBEE_DIR/scripts/motd-sync.sh"
 alias bb-status-fleet="$BOBLBEE_DIR/scripts/status-fleet.sh"
 alias bb-sync-fleet="$BOBLBEE_DIR/scripts/sync-fleet.sh"
+alias bb-update="$BOBLBEE_DIR/scripts/system-update.sh"
+alias bb-update-fleet="$BOBLBEE_DIR/scripts/update-fleet.sh"
 alias bb-reload="exec ${SHELL} -l"
 
 bb-sync() {
