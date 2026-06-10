@@ -2,10 +2,10 @@
   "enabledPlugins": {
     "swift-lsp@claude-plugins-official": true
   },
+  "alwaysThinkingEnabled": true,
   "tui": "fullscreen",
   "theme": "dark-daltonized",
   "preferredNotifChannel": "terminal_bell",
-  "alwaysThinkingEnabled": true,
   "agentPushNotifEnabled": true,
   "voiceEnabled": false
 }
