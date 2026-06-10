@@ -404,6 +404,15 @@ precmd() {
     # Set terminal title
     echo -ne "\033]0;${HOST%%.*} - $(basename $SHELL)\007"
 
+    # Mouse-tracking safety net: only at a bare shell (no $TMUX). When tmux or
+    # a full-screen app dies uncleanly it can leave the terminal in mouse-
+    # reporting mode, so scrolling spews garbage like "<35;80;10M" at the
+    # prompt. Disabling the tracking modes here clears it on the next prompt.
+    # Gated on $TMUX so we never interfere with tmux's own mouse handling.
+    if [[ -z "$TMUX" ]]; then
+        printf '\033[?1000l\033[?1002l\033[?1003l\033[?1006l\033[?1015l'
+    fi
+
     # Show MOTD once with cached system info
     if [[ -z "$MOTD_SHOWN" ]]; then
         print -P "\n» salva nos, stella maris!"
