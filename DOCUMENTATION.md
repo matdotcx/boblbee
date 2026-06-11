@@ -51,11 +51,13 @@ All boblbee commands follow the `bb-*` naming convention. They're defined as she
 |---------|-------------|
 | `bb-status-fleet` | One-line-per-host status: commit, zshrc type/hash, plugins, MacPorts, agent dir perms |
 | `bb-sync-fleet` | Pull boblbee + run sync scripts on every host in `hosts/elements.txt` |
+| `bb-update-fleet` | Pull boblbee + update OS packages/tooling on every host (uses `ssh -A` for sudo; `-r` reboots hosts that need it) |
 
 ### Utility Commands
 
 | Command | Description |
 |---------|-------------|
+| `bb-update` | Update OS packages + tooling (MacPorts/apt, recommended macOS updates, Claude Code) on the local host; `-r` reboots if needed |
 | `bb-edit` | Open boblbee directory in your default editor |
 | `prompthelp` | Display shell prompt symbol meanings |
 
@@ -350,6 +352,8 @@ bb-sync-fleet
 |--------|-------------|
 | `status-fleet.sh` | One SSH round-trip per host: checks commit, zshrc type/hash, plugins, MacPorts, agent dir perms |
 | `sync-fleet.sh` | Fetches via HTTPS (no agent forwarding needed), merges, runs sync scripts on each host |
+| `system-update.sh` | Update OS packages + tooling on the local host (MacPorts/apt, recommended macOS updates, Claude Code); `-r` reboots if needed |
+| `update-fleet.sh` | Pull + run `system-update.sh` on each host; uses `ssh -A` so remote sudo authenticates via the forwarded agent (`pam_ssh_agent_auth`) |
 | `run-on-hosts.sh` | Run arbitrary commands across hosts in `hosts/elements.txt` |
 
 ## Fleet Management
@@ -383,6 +387,24 @@ Environment variables:
 - `PARALLEL=1` - Run all hosts concurrently
 - `DRY_RUN=1` - Print what would run without executing
 - `HOSTS_FILE=path` - Override default host list
+
+### Fleet Update
+
+`bb-update-fleet` (or `./scripts/update-fleet.sh`):
+1. SSHs to each host **with agent forwarding (`ssh -A`)** so remote `sudo`
+   authenticates via `pam_ssh_agent_auth` — load your key first (`ssh-add -l`)
+2. Fetches over HTTPS + fast-forward merges (so the newest `system-update.sh` runs)
+3. Runs `system-update.sh`, which on **macOS** does `port selfupdate` +
+   `port upgrade outdated`, recommended `softwareupdate -i -r`, and `claude update`;
+   on **Ubuntu** does `apt-get update`/`upgrade`/`autoremove` and `claude update`
+
+A restart is never forced. Hosts that need one are listed in the summary; pass
+`-r` (e.g. `bb-update-fleet -r`) to reboot those hosts (scheduled 1 minute out
+so the SSH session closes cleanly). `node_exporter` is out of scope — its version
+is pinned in `config.sh` and updated via the normal sync path.
+
+Same `PARALLEL=1` / `DRY_RUN=1` / `HOSTS_FILE=path` / `SSH_OPTS=...` knobs as
+fleet sync.
 
 ## Observability
 

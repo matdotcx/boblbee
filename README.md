@@ -128,7 +128,12 @@ bb-sync-motd     # Sync message of the day
 ```bash
 bb-status-fleet  # Show config status across all hosts (one-line-per-host)
 bb-sync-fleet    # Pull boblbee + run sync on every host in hosts/elements.txt
+bb-update-fleet  # Update OS packages + tooling on every host (-r to reboot if needed)
 ```
+
+`bb-update` runs the same updates on the local host. `bb-update-fleet` needs
+SSH agent forwarding (`ssh -A` / `pam_ssh_agent_auth`) so remote `sudo` is
+passwordless — load your key (`ssh-add -l`) before running.
 
 ### Utilities
 ```bash
@@ -209,6 +214,8 @@ boblbee/
 │   ├── install-collector.sh # node_exporter binary installer
 │   ├── status-fleet.sh      # Fleet status reporting
 │   ├── sync-fleet.sh        # Fleet sync orchestration
+│   ├── system-update.sh     # Update OS packages + tooling (local host)
+│   ├── update-fleet.sh      # Fleet update orchestration
 │   └── run-on-hosts.sh      # Run commands across hosts
 └── templates/
     └── CLAUDE.md            # Project memory template
