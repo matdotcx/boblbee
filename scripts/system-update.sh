@@ -63,27 +63,30 @@ update_macos() {
         log_info "MacPorts: upgrading outdated ports..."
         # `port upgrade outdated` exits non-zero when nothing is outdated —
         # treat that specific case as success.
-        local out rc
-        out=$(sudo /opt/local/bin/port -N upgrade outdated 2>&1)
-        rc=$?
-        echo "$out"
-        if [[ $rc -ne 0 ]] && ! grep -qi "nothing to upgrade" <<< "$out"; then
-            log_warn "port upgrade reported errors"; FAILED=1
-        else
+        if run_with_progress "port upgrade" sudo /opt/local/bin/port -N upgrade outdated; then
             log_success "MacPorts ports up to date"
+        elif grep -qi "nothing to upgrade" "$RWP_LOG" 2>/dev/null; then
+            log_success "MacPorts ports up to date"
+        else
+            log_warn "port upgrade reported errors"
+            if [[ -f "$RWP_LOG" ]]; then
+                echo "  --- last 40 lines of port log ---"
+                tail -n 40 "$RWP_LOG"
+            fi
+            FAILED=1
         fi
+        rm -f "$RWP_LOG"
     else
         log_warn "MacPorts not installed — skipping ports"
     fi
 
     # macOS software updates — recommended only, never auto-reboot here.
     log_info "macOS: installing recommended software updates..."
-    local suout
-    suout=$(sudo softwareupdate -i -r 2>&1)
-    echo "$suout"
-    if grep -qi "restart" <<< "$suout"; then
+    run_with_progress "softwareupdate" sudo softwareupdate -i -r
+    if grep -qi "restart" "$RWP_LOG" 2>/dev/null; then
         RESTART_NEEDED=1
     fi
+    rm -f "$RWP_LOG"
 
     update_claude
 }

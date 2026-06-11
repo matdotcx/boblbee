@@ -33,6 +33,83 @@ log_warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
 
 ###############################################################################
+# Progress spinner (adapted from matdotcx/dropship)
+###############################################################################
+
+# Braille frames, kept as an array so indexing is per-character regardless of
+# the shell's locale (a multibyte string slice can land mid-character).
+PROGRESS_FRAMES=(⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏)
+PROGRESS_QUIET_AFTER=20   # seconds of silence before the "still working" hint
+
+# run_with_progress <label> <command> [args...]
+#
+# Runs the command with combined stdout+stderr captured to a temp log. On an
+# interactive terminal it draws a single self-updating line — braille spinner,
+# label, elapsed time, and the command's most recent output line — so a long
+# quiet build (e.g. compiling rust) never looks hung. If output stalls for
+# PROGRESS_QUIET_AFTER seconds the trailing text switches to "still working".
+#
+# When stdout is NOT a TTY (e.g. fleet runs whose output is captured to a file)
+# it streams the full output via tee instead, so logs stay complete.
+#
+# The full log path is left in RWP_LOG for the caller to inspect (grep for a
+# marker, tail on failure) and remove. Returns the command's exit status.
+RWP_LOG=""
+run_with_progress() {
+    local label="$1"; shift
+
+    # Refresh sudo credentials up front so a backgrounded sudo command never
+    # blocks on a password prompt hidden behind the spinner line.
+    if [[ "${1##*/}" == sudo ]]; then
+        sudo -v 2>/dev/null || true
+    fi
+
+    local log
+    log=$(mktemp "${TMPDIR:-/tmp}/bb-update.XXXXXX") || log="/tmp/bb-update.$$"
+    RWP_LOG="$log"
+
+    # No TTY: stream full output (keeps fleet logs complete) and return.
+    if [[ ! -t 1 ]]; then
+        "$@" 2>&1 | tee "$log"
+        return "${PIPESTATUS[0]}"
+    fi
+
+    "$@" >"$log" 2>&1 &
+    local pid=$!
+
+    local start=$SECONDS i=0 last_size=0 last_change=$SECONDS
+    local frame elapsed mm ss size activity shown cols prefix_len avail
+    while kill -0 "$pid" 2>/dev/null; do
+        frame=${PROGRESS_FRAMES[i++ % ${#PROGRESS_FRAMES[@]}]}
+        elapsed=$((SECONDS - start)); mm=$((elapsed / 60)); ss=$((elapsed % 60))
+
+        # Detect silence by watching the log stop growing.
+        size=$(( $(wc -c <"$log" 2>/dev/null || echo 0) ))
+        if [[ "$size" != "$last_size" ]]; then last_size=$size; last_change=$SECONDS; fi
+
+        activity=$(tail -n1 "$log" 2>/dev/null | tr -d '\r\n\t')
+        if (( SECONDS - last_change >= PROGRESS_QUIET_AFTER )); then
+            shown="still working${activity:+ — $activity}"
+        else
+            shown="$activity"
+        fi
+
+        # Truncate only the plain-text tail so colour codes are never sliced.
+        cols=${COLUMNS:-$(tput cols 2>/dev/null || echo 80)}
+        prefix_len=$(( 1 + 1 + ${#label} + 1 + 5 + 2 ))   # spinner+sp+label+sp+MM:SS+2sp
+        avail=$(( cols - prefix_len - 1 )); (( avail < 0 )) && avail=0
+        shown=${shown:0:avail}
+
+        printf "\r\033[K${BLUE}%s${NC} ${DIM}%s${NC} ${GREEN}%02d:%02d${NC}  %s" \
+            "$frame" "$label" "$mm" "$ss" "$shown"
+        sleep 0.1
+    done
+    wait "$pid"; local rc=$?
+    printf "\r\033[K"   # clear the spinner line
+    return $rc
+}
+
+###############################################################################
 # iCloud detection (directory exists + key files are not evicted)
 ###############################################################################
 
