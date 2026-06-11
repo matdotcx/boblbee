@@ -71,7 +71,11 @@ _detect_domain() {
 
 _DOMAIN=$(_detect_domain)
 
-HELIUM_FQDN="helium.${_DOMAIN:-int.iaconelli.org}"
+# Internal domain resolution order: explicit BOBLBEE_DOMAIN env > auto-detected
+# search domain (resolv.conf) > placeholder. The real internal domain is NOT
+# hardcoded here because this repo is public; set BOBLBEE_DOMAIN on real hosts
+# (e.g. exported from the private ark-config) or rely on auto-detection.
+HELIUM_FQDN="helium.${BOBLBEE_DOMAIN:-${_DOMAIN:-int.example.org}}"
 HELIUM_IP=$(dig +short "$HELIUM_FQDN" 2>/dev/null | head -1)
 HELIUM_REGISTER_SCRIPT="~/observability/scripts/register-host.sh"
 
