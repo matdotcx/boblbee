@@ -732,6 +732,7 @@ alias gco='git checkout'
 alias gb='git branch'
 alias glog='git log --oneline --graph --decorate'
 alias gac='git add -A && git commit -m'
+alias gtc='git commit -am'
 alias gst='git stash'
 alias gsp='git stash pop'
 
