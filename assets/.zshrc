@@ -54,6 +54,26 @@ if [[ -n "$SSH_CONNECTION" || -n "$SSH_TTY" ]] && [[ -z "$TMUX" ]] && command -v
 fi
 
 ###############################################################################
+# Auto-tmux for local terminals (macOS)
+###############################################################################
+# Every fresh local terminal lands in tmux. Uses session groups: the first
+# terminal creates "main"; later ones get a grouped session that shares its
+# windows but starts on a fresh window (grouped sessions otherwise land on
+# the group's current window, mirroring whatever another tab has focused).
+# Grouped extras self-destruct when their terminal closes — the windows live
+# on in the group. Skipped for SSH sessions and IDE-embedded terminals.
+
+if is_macos && [[ -z "$TMUX" && -z "$SSH_CONNECTION" && "$TERM_PROGRAM" != "vscode" && "$TERM_PROGRAM" != "zed" ]] && command -v tmux &>/dev/null; then
+    # '=main' (exact-match target) must be quoted: bare =word triggers zsh's
+    # =command filename expansion, which errors and aborts sourcing the file
+    if tmux has-session -t '=main' 2>/dev/null; then
+        tmux new-session -t main \; new-window \; set-option destroy-unattached on
+    else
+        tmux new-session -s main
+    fi
+fi
+
+###############################################################################
 # History Configuration
 ###############################################################################
 
