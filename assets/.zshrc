@@ -932,6 +932,28 @@ pycalc() {
 }
 
 ###############################################################################
+# Terraform Aliases
+###############################################################################
+
+if command -v terraform > /dev/null; then
+    alias tf='terraform'
+    alias tfi='terraform init'
+    alias tfp='terraform plan'
+    alias tfa='terraform apply'
+    alias tfd='terraform destroy'
+    alias tfv='terraform validate'
+    alias tff='terraform fmt -recursive'
+
+    tfws() {
+        terraform workspace select "$1" || terraform workspace new "$1"
+    }
+
+    tfout() {
+        terraform output -json | jq -r ".$1.value"
+    }
+fi
+
+###############################################################################
 # Network Utilities
 ###############################################################################
 
@@ -1092,7 +1114,7 @@ if is_macos; then
     alias lscleanup="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -kill -r -domain local -domain system -domain user && killall Finder"
     alias launchdb='/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister -kill -r -domain local -domain system -user'
     alias update='sudo softwareupdate -i -a; brew update; brew upgrade; brew cleanup; npm update -g'
-    alias lock="osascript -e 'tell application \"System Events\" to keystroke \"q\" using {command down,control down}'"
+    alias lock="open -a ScreenSaverEngine"
 elif is_ubuntu; then
     alias update='sudo apt update && sudo apt upgrade -y && sudo apt autoremove -y && npm update -g'
     alias install='sudo apt install'
@@ -1121,6 +1143,37 @@ rmc() {
     fi
     command rmc "$@"
 }
+
+###############################################################################
+# Tmux Theme Switching (shell-side twin of prefix + t)
+###############################################################################
+
+tmux-theme() {
+    local theme=$1
+    local tmux_conf="$HOME/.tmux.conf"
+
+    if [[ "$theme" == "dark" ]]; then
+        sed -i.bak 's|tmux-theme-light\.conf|tmux-theme-dark.conf|g' "$tmux_conf"
+        rm -f "${tmux_conf}.bak"
+        if [[ -n "$TMUX" ]]; then
+            tmux source-file "$tmux_conf" 2>/dev/null
+            tmux display-message "Switched to dark theme"
+        fi
+    elif [[ "$theme" == "light" ]]; then
+        sed -i.bak 's|tmux-theme-dark\.conf|tmux-theme-light.conf|g' "$tmux_conf"
+        rm -f "${tmux_conf}.bak"
+        if [[ -n "$TMUX" ]]; then
+            tmux source-file "$tmux_conf" 2>/dev/null
+            tmux display-message "Switched to light theme"
+        fi
+    else
+        echo "Usage: tmux-theme [light|dark]"
+        echo "Current: $(grep 'tmux-theme-' "$tmux_conf" | grep -o 'light\|dark' | head -1)"
+    fi
+}
+
+alias tmux-dark='tmux-theme dark'
+alias tmux-light='tmux-theme light'
 
 ###############################################################################
 # FZF Integration
