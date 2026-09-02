@@ -321,7 +321,7 @@ bb-sync-fleet
 | `ghostty-sync.sh` | macOS | Bidirectional config sync + bidirectional theme sync (Manganese Dark/Light) |
 | `zed-sync.sh` | macOS | Bidirectional sync for Zed `settings.json`, `keymap.json`, and themes |
 | `ssh-sync.sh` | Both | macOS: copy portable files from iCloud, store keys in Keychain. Ubuntu: permissions only |
-| `claude-sync.sh` | Both | Commit Claude memory changes to git |
+| `claude-sync.sh` | Both | Install hooks from `assets/claude-hooks/` to `~/.claude/hooks/`; sync `~/.claude/settings.json` and Claude memory (newest wins, commits to git) |
 | `claude.sh` | Both | Initial Claude Code setup (config dir, symlink to user.md) |
 
 ### Platform Setup

@@ -2,7 +2,7 @@
 
 #########################################################
 # Title: claude-sync
-# Description: Bidirectional sync of Claude memory + user settings (copy strategy)
+# Description: Install Claude hooks; bidirectional sync of memory + user settings (copy strategy)
 # Source: https://github.com/matdotcx/boblbee
 #
 # ~/.config/claude/memory/user.md and ~/.claude/settings.json are real local
@@ -24,6 +24,29 @@ LOCAL_MEMORY="$HOME/.config/claude/memory/user.md"
 REPO_SETTINGS="$DOTFILES_DIR/assets/claude-settings.json"
 LOCAL_SETTINGS="$HOME/.claude/settings.json"
 
+# Hook scripts referenced by claude-settings.json. One-way (repo -> home): they
+# are code, so the repo is the source of truth and local edits are overwritten.
+REPO_HOOKS="$DOTFILES_DIR/assets/claude-hooks"
+LOCAL_HOOKS="$HOME/.claude/hooks"
+
+echo "=== Claude Hooks Install ==="
+echo ""
+
+# Install hooks before settings so the settings never reference a missing hook.
+mkdir -p "$LOCAL_HOOKS"
+for hook in "$REPO_HOOKS"/*; do
+    [ -f "$hook" ] || continue
+    name="$(basename "$hook")"
+    if cmp -s "$hook" "$LOCAL_HOOKS/$name"; then
+        echo -e "${GREEN}✓ $name already up to date${NC}"
+        continue
+    fi
+    cp "$hook" "$LOCAL_HOOKS/$name"
+    chmod +x "$LOCAL_HOOKS/$name"
+    echo -e "${GREEN}✓ Installed $name${NC}"
+done
+
+echo ""
 echo "=== Claude Settings Sync ==="
 echo ""
 
