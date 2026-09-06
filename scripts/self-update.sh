@@ -119,6 +119,7 @@ run_update() {
     run_sync "motd-sync.sh"
     run_sync "ssh-sync.sh"
     is_macos && run_sync "ghostty-sync.sh"
+    is_macos && run_sync "zed-sync.sh"
     run_sync "observability-collector.sh"
 
     log_entry "OK: sync complete ($(git rev-parse --short HEAD))"
