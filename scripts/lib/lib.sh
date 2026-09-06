@@ -163,11 +163,13 @@ get_file_mtime() {
         esac
     fi
     if [ -f "$file" ]; then
-        if is_macos; then
-            stat -f %m "$file" 2>/dev/null || echo "0"
-        else
-            stat -c %Y "$file" 2>/dev/null || echo "0"
-        fi
+        # Probe the BSD form first and fall back to GNU. Deliberately not using
+        # is_macos() here: that lives in detect-os.sh, and a caller sourcing
+        # lib.sh alone would otherwise get 0 for every file — silently making
+        # every mtime comparison a tie and sending syncs the wrong way.
+        stat -f %m "$file" 2>/dev/null \
+            || stat -c %Y "$file" 2>/dev/null \
+            || echo "0"
     else
         echo "0"
     fi
@@ -439,5 +441,138 @@ sync_dotfile() {
         echo -e "${BLUE}Setup: Home (local copy) ↔ iCloud ↔ Dotfiles${NC}"
     else
         echo -e "${BLUE}Setup: Dotfiles ↔ Home (bidirectional sync)${NC}"
+    fi
+}
+
+###############################################################################
+# Two-way sync primitives (no iCloud leg, no per-file commit)
+###############################################################################
+#
+# sync_dotfile() above is the three-way model: home <-> iCloud <-> repo,
+# committing each file as it goes. The helpers below are the simpler shape used
+# by the app-config scripts (tmux, ghostty, zed): a straight repo <-> local
+# comparison with no iCloud participation, leaving the caller to batch a single
+# commit_dotfiles_changes at the end.
+
+# Sync one file two ways between the repo and its installed location, keeping
+# whichever side is newer. A file present on only one side is copied to the
+# other, in whichever direction is needed — same semantics as sync_dir_2way.
+# Returns 1 on copy failure so the caller can decide whether that is fatal.
+sync_file_2way() {
+    local src="$1"      # repo-side file
+    local dst="$2"      # installed location
+    local name="$3"     # display name
+
+    # Neither side has it — nothing to do
+    if [ ! -f "$src" ] && [ ! -f "$dst" ]; then
+        echo -e "${YELLOW}Skipping $name (not found in dotfiles or locally)${NC}"
+        return 0
+    fi
+
+    # Present on one side only — copy it across, in whichever direction
+    if [ ! -f "$src" ]; then
+        echo -e "${YELLOW}Pulling $name to dotfiles${NC}"
+        if cp "$dst" "$src" 2>/dev/null; then
+            echo -e "${GREEN}$name added to dotfiles${NC}"
+        else
+            echo -e "${RED}Failed to pull $name to dotfiles${NC}"
+            return 1
+        fi
+    elif [ ! -f "$dst" ]; then
+        if cp "$src" "$dst" 2>/dev/null; then
+            echo -e "${GREEN}Installed $name${NC}"
+        else
+            echo -e "${RED}Failed to install $name${NC}"
+            return 1
+        fi
+    elif ! diff -q "$src" "$dst" >/dev/null 2>&1; then
+        local src_mtime dst_mtime
+        src_mtime=$(get_file_mtime "$src")
+        dst_mtime=$(get_file_mtime "$dst")
+
+        if [ "$dst_mtime" -gt "$src_mtime" ]; then
+            echo -e "${YELLOW}Local $name is newer — updating dotfiles${NC}"
+            if cp "$dst" "$src" 2>/dev/null; then
+                echo -e "${GREEN}Dotfiles updated for $name${NC}"
+            else
+                echo -e "${RED}Failed to update dotfiles for $name${NC}"
+                return 1
+            fi
+        else
+            echo -e "${YELLOW}Dotfiles $name is newer — updating local${NC}"
+            if cp "$src" "$dst" 2>/dev/null; then
+                echo -e "${GREEN}Local $name updated${NC}"
+            else
+                echo -e "${RED}Failed to update local $name${NC}"
+                return 1
+            fi
+        fi
+    else
+        echo -e "${GREEN}$name is already in sync${NC}"
+    fi
+}
+
+# Sync a whole directory two ways, file by file, keeping whichever side is
+# newer. Files present on only one side are copied to the other. Used for the
+# ghostty/zed theme directories.
+#
+# $3 is a singular display label ("theme"); $4 is its plural form, defaulting
+# to $3 with an "s". Both are printed, not used as paths.
+sync_dir_2way() {
+    local repo_dir="$1"
+    local local_dir="$2"
+    local label="${3:-theme}"
+    local label_plural="${4:-${3:-theme}s}"
+
+    if [ ! -d "$repo_dir" ]; then
+        echo -e "${YELLOW}No $label directory in dotfiles, skipping${NC}"
+        return 0
+    fi
+
+    mkdir -p "$local_dir" 2>/dev/null
+
+    local updated=false
+    local f name counterpart a_mtime b_mtime
+
+    # Repo -> local (install new, or refresh where the repo copy is newer)
+    for f in "$repo_dir"/*; do
+        [ -f "$f" ] || continue
+        name="$(basename "$f")"
+        counterpart="$local_dir/$name"
+
+        if [ ! -f "$counterpart" ]; then
+            cp "$f" "$counterpart" 2>/dev/null && \
+                echo -e "${GREEN}Installed $label: $name${NC}" && updated=true
+        elif ! diff -q "$f" "$counterpart" >/dev/null 2>&1; then
+            a_mtime=$(get_file_mtime "$counterpart")
+            b_mtime=$(get_file_mtime "$f")
+            if [ "$b_mtime" -gt "$a_mtime" ]; then
+                cp "$f" "$counterpart" 2>/dev/null && \
+                    echo -e "${GREEN}Updated local $label: $name${NC}" && updated=true
+            fi
+        fi
+    done
+
+    # Local -> repo (pull back new or newer local files)
+    for f in "$local_dir"/*; do
+        [ -f "$f" ] || continue
+        name="$(basename "$f")"
+        counterpart="$repo_dir/$name"
+
+        if [ ! -f "$counterpart" ]; then
+            cp "$f" "$counterpart" 2>/dev/null && \
+                echo -e "${GREEN}New local $label pulled to dotfiles: $name${NC}" && updated=true
+        elif ! diff -q "$f" "$counterpart" >/dev/null 2>&1; then
+            a_mtime=$(get_file_mtime "$f")
+            b_mtime=$(get_file_mtime "$counterpart")
+            if [ "$a_mtime" -gt "$b_mtime" ]; then
+                cp "$f" "$counterpart" 2>/dev/null && \
+                    echo -e "${GREEN}Updated dotfiles $label: $name${NC}" && updated=true
+            fi
+        fi
+    done
+
+    if [ "$updated" = false ]; then
+        echo -e "${GREEN}${label_plural} are already in sync${NC}"
     fi
 }

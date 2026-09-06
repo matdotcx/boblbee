@@ -40,23 +40,24 @@ no caller in repo: run-on-hosts.sh  (intentional — generic fleet tool)
 
 ---
 
-## Open item 1 — three sync scripts bypass `sync_dotfile()`
+## Open item 1 — RESOLVED: two-way sync primitives extracted
 
-`lib/lib.sh` provides `sync_dotfile()`, and `zshrc-sync.sh`,
-`motd-sync.sh` and `claude-sync.sh` use it. Three others still hand-roll
-the same copy + mtime-compare dance:
+`tmux-sync`, `ghostty-sync` and `zed-sync` each hand-rolled the same
+copy + mtime-compare dance. The ghostty and zed theme loops were
+byte-for-byte identical to each other.
 
-| Script | Why it diverged |
-|---|---|
-| `tmux-sync.sh` | 2-way copy, no iCloud participation |
-| `ghostty-sync.sh` | 2-way for config, plus a theme *directory* loop |
-| `zed-sync.sh` | same shape as ghostty-sync |
+Rather than bend these onto `sync_dotfile()` — which is the three-way
+home/iCloud/repo model and commits each file as it goes — `lib.sh` gained
+two primitives matching the shape these scripts actually use:
 
-`sync_dotfile()` already no-ops its iCloud leg when passed an empty
-`icloud_file`, so tmux-sync is a clean fit. ghostty-sync and zed-sync are
-only a partial fit — neither their theme-directory loops nor a
-`sync_dotdir()` equivalent exist yet. Worth doing tmux-sync first and
-deciding whether the directory case earns its own helper.
+- `sync_file_2way <repo> <local> <name>` — one file, newest side wins,
+  copied across if present on only one side.
+- `sync_dir_2way <repo_dir> <local_dir> <label> <plural>` — the same,
+  file by file across a directory.
+
+All three scripts now batch a single `commit_dotfiles_changes` at the
+end, exactly as before. Net: tmux-sync 116→71 lines, ghostty-sync
+131→58, zed-sync 142→59.
 
 ## Open item 2 — `ssh-sync.sh` runs a deliberate split model
 
@@ -73,13 +74,19 @@ This is correct as-is. It is listed here only so the asymmetry stops
 getting re-flagged as drift — any future `sync_dotfile()` consolidation
 has to preserve the one-way key leg.
 
-## Open item 3 — small leftovers
+## Open item 3 — `dots.sh` colour codes (deliberately left alone)
 
-- `dots.sh` is the only script still defining `RED`/`GREEN`/`BLUE`/`NC`
-  inline instead of sourcing `lib/lib.sh`.
-- Five macOS setup scripts (`dots`, `macports`, `setup-gpg-signing`,
-  `touchid-sudo`, `xcode`) do not source `lib/lib.sh`. Only `dots.sh`
-  actually duplicates anything; the rest simply have no need yet.
+`dots.sh` is the only script still defining `RED`/`GREEN`/`YELLOW`/`NC`
+inline rather than sourcing `lib/lib.sh`. This was considered and
+rejected: `dots.sh` is a `#!/bin/zsh` script that runs early in bootstrap
+under `sudo` and rewrites macOS defaults. Trading four self-contained
+colour lines for a three-file source chain (`detect-os.sh` →
+`lib/config.sh` → `lib/lib.sh`) makes the riskiest script in the repo
+depend on the rest of it for no functional gain.
+
+The other four macOS setup scripts (`macports`, `setup-gpg-signing`,
+`touchid-sudo`, `xcode`) do not source `lib.sh` either, and duplicate
+nothing — they simply have no need for it.
 
 ---
 
@@ -108,3 +115,10 @@ Recorded so these do not get re-opened:
   are all fixed. `new-machine.sh` was deleted.
 - **`has_icloud()`** — removed from `detect-os.sh`; the stale README and
   DOCUMENTATION references were corrected alongside this file.
+- **`get_file_mtime()` hardened** — it called `is_macos()`, which lives in
+  `detect-os.sh`. A script sourcing `lib.sh` alone got `0` back for every
+  file, silently making every mtime comparison a tie and sending syncs the
+  wrong way. It now probes `stat -f` then `stat -c` and needs no
+  platform helper. (`git-config-shared.sh` sources `lib.sh` without
+  `detect-os.sh` today, but touches none of the affected helpers — this
+  was latent, not live.)
