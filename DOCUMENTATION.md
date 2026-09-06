@@ -309,7 +309,7 @@ bb-sync-fleet
 |--------|----------|-------------|
 | `index.sh` | Both | Main installer - runs all setup scripts in dependency order |
 | `upgrade.sh` | Both | Safe upgrade: git pull, re-run syncs, preserve config |
-| `detect-os.sh` | Both | Provides `is_macos()`, `is_ubuntu()`, `has_icloud()` |
+| `detect-os.sh` | Both | Provides `is_macos()`, `is_ubuntu()`, `is_cli_only()`, `get_os_name()`, `get_package_manager()`, `get_user_bin_path()` |
 
 ### Sync Scripts
 
