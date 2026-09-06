@@ -198,7 +198,7 @@ boblbee/
 │   │   └── lib.sh           # Shared helper functions
 │   ├── index.sh             # Main installer (cross-platform)
 │   ├── upgrade.sh           # Upgrade existing installations
-│   ├── detect-os.sh         # OS detection (is_macos, is_ubuntu, has_icloud)
+│   ├── detect-os.sh         # OS detection (is_macos, is_ubuntu, is_cli_only)
 │   ├── *-sync.sh            # Sync scripts (zshrc, tmux, ghostty, motd, claude, ssh)
 │   ├── dots.sh              # macOS system preferences
 │   ├── macports.sh          # macOS MacPorts setup
