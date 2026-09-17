@@ -1,0 +1,7 @@
+# global excludes (boblbee: scripts/git-config-shared.sh installs this on every host)
+.DS_Store
+._*
+.claude/
+.playwright-mcp/
+xcuserdata/
+DerivedData/

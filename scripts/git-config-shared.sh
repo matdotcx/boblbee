@@ -49,6 +49,13 @@ git config --global core.safecrlf true
 git config --global pull.rebase false
 git config --global push.default simple
 
+# Global excludes: OS and tool clutter that should never be committed (.DS_Store, .claude/, .playwright-mcp/, Xcode user data)
+GITIGNORE_GLOBAL_SRC="$(cd "$(dirname "$0")/.." && pwd)/assets/gitignore_global"
+if [ -f "$GITIGNORE_GLOBAL_SRC" ]; then
+    cp "$GITIGNORE_GLOBAL_SRC" "$HOME/.gitignore_global"
+    git config --global core.excludesfile "$HOME/.gitignore_global"
+fi
+
 # Editor: vim if available, else leave alone
 if command -v vim >/dev/null 2>&1; then
     git config --global core.editor vim
