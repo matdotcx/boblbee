@@ -167,6 +167,7 @@ configure_macos_service() {
         <string>${INSTALL_DIR}/node_exporter</string>
         <string>--web.listen-address=${LISTEN_ADDRESS}:${PORT}</string>
         <string>--collector.textfile.directory=${PROMETHEUS_TEXTFILE_DIR}</string>
+        <string>--no-collector.thermal</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
