@@ -43,6 +43,9 @@ main() {
     mkdir -p "$PROMETHEUS_TEXTFILE_DIR"
 
     run_update
+    local rc=$?
+    migrate_legacy_labels
+    return $rc
 }
 
 log_entry() {
@@ -131,6 +134,41 @@ run_update() {
 # Schedule management
 # =========================================================================
 
+# ---------------------------------------------------------------------------
+# One-off label migration (macOS). LaunchAgent labels are the author's
+# reverse-DNS, so com.boblbee.* and com.observability.* become org.iaconelli.*.
+# Safe to run every night: it does nothing once the legacy plists are gone.
+# ---------------------------------------------------------------------------
+migrate_legacy_labels() {
+    is_macos || return 0
+    local uid; uid=$(id -u)
+    local agents="$HOME/Library/LaunchAgents"
+
+    # node_exporter: same plist, new label; restart under the new name.
+    local old_ne="$agents/com.observability.node-exporter.plist"
+    local new_ne="$agents/org.iaconelli.node-exporter.plist"
+    if [ -f "$old_ne" ]; then
+        if [ ! -f "$new_ne" ]; then
+            sed 's#<string>com.observability.node-exporter</string>#<string>org.iaconelli.node-exporter</string>#' "$old_ne" > "$new_ne"
+        fi
+        launchctl bootout "gui/$uid/com.observability.node-exporter" 2>/dev/null || true
+        rm -f "$old_ne"
+        launchctl bootout "gui/$uid/org.iaconelli.node-exporter" 2>/dev/null || true
+        launchctl bootstrap "gui/$uid" "$new_ne" 2>/dev/null || launchctl load "$new_ne" 2>/dev/null || true
+        log_entry "migrated LaunchAgent label: com.observability.node-exporter -> org.iaconelli.node-exporter"
+    fi
+
+    # self-update: write the new agent, then retire the old label *after* this run exits
+    # (booting out the label we are running under would kill this script mid-way).
+    local old_su="$agents/com.boblbee.self-update.plist"
+    if [ -f "$old_su" ]; then
+        install_launchagent > /dev/null
+        rm -f "$old_su"
+        nohup sh -c "sleep 15; launchctl bootout gui/$uid/com.boblbee.self-update" > /dev/null 2>&1 &
+        log_entry "migrated LaunchAgent label: com.boblbee.self-update -> org.iaconelli.boblbee-self-update (old label retired after this run)"
+    fi
+}
+
 install_schedule() {
     mkdir -p "$HOME/logs"
     mkdir -p "$PROMETHEUS_TEXTFILE_DIR"
@@ -154,7 +192,7 @@ uninstall_schedule() {
 }
 
 install_launchagent() {
-    local plist_path="$HOME/Library/LaunchAgents/com.boblbee.self-update.plist"
+    local plist_path="$HOME/Library/LaunchAgents/org.iaconelli.boblbee-self-update.plist"
     mkdir -p "$HOME/Library/LaunchAgents"
 
     cat > "$plist_path" << EOF
@@ -163,7 +201,7 @@ install_launchagent() {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.boblbee.self-update</string>
+    <string>org.iaconelli.boblbee-self-update</string>
     <key>ProgramArguments</key>
     <array>
         <string>${SCRIPT_DIR}/self-update.sh</string>
@@ -189,7 +227,7 @@ EOF
 }
 
 uninstall_launchagent() {
-    local plist_path="$HOME/Library/LaunchAgents/com.boblbee.self-update.plist"
+    local plist_path="$HOME/Library/LaunchAgents/org.iaconelli.boblbee-self-update.plist"
     launchctl unload "$plist_path" 2>/dev/null || true
     rm -f "$plist_path"
     echo -e "${GREEN}Removed LaunchAgent${NC}"

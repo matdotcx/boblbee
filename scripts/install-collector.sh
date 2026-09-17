@@ -148,7 +148,15 @@ download_node_exporter() {
 # ============================================================================
 
 configure_macos_service() {
-    local plist_path="$HOME/Library/LaunchAgents/com.observability.node-exporter.plist"
+    local plist_path="$HOME/Library/LaunchAgents/org.iaconelli.node-exporter.plist"
+    local legacy_plist="$HOME/Library/LaunchAgents/com.observability.node-exporter.plist"
+
+    # Labels are the author's reverse-DNS: retire the old com.observability.* name if present.
+    if [ -f "$legacy_plist" ]; then
+        log_info "Retiring legacy LaunchAgent com.observability.node-exporter"
+        launchctl bootout "gui/$(id -u)/com.observability.node-exporter" 2>/dev/null || launchctl unload "$legacy_plist" 2>/dev/null || true
+        rm -f "$legacy_plist"
+    fi
 
     log_info "Creating LaunchAgent..."
 
@@ -161,7 +169,7 @@ configure_macos_service() {
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.observability.node-exporter</string>
+    <string>org.iaconelli.node-exporter</string>
     <key>ProgramArguments</key>
     <array>
         <string>${INSTALL_DIR}/node_exporter</string>
@@ -330,8 +338,8 @@ main() {
         echo "Commands:"
         if is_macos; then
             echo "  View logs:  tail -f $LOG_DIR/node-exporter.log"
-            echo "  Stop:       launchctl unload ~/Library/LaunchAgents/com.observability.node-exporter.plist"
-            echo "  Start:      launchctl load ~/Library/LaunchAgents/com.observability.node-exporter.plist"
+            echo "  Stop:       launchctl unload ~/Library/LaunchAgents/org.iaconelli.node-exporter.plist"
+            echo "  Start:      launchctl load ~/Library/LaunchAgents/org.iaconelli.node-exporter.plist"
         else
             if [[ $EUID -eq 0 ]]; then
                 echo "  View logs:  journalctl -u node-exporter -f"

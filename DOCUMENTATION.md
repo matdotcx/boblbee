@@ -487,4 +487,4 @@ Which host gets which profile is **data, not code**: `hosts/agent-assignments.tx
 
 Shared pieces used by more than one profile go in `scripts/lib/` (today: `git-safe-sync.sh`, the serialised commit-and-push helper) and the profile's `install.sh` copies them into `~/bin`.
 
-Label convention: `org.iaconelli.<job>` for these per-host agents.
+Label convention: every agent boblbee installs is `org.iaconelli.<job>` — the reverse-DNS prefix names the author. (`com.boblbee.self-update` and `com.observability.node-exporter` were renamed on 17 Sep 2026; `self-update.sh` migrates any host still carrying the old labels.)
