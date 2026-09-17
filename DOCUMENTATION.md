@@ -478,3 +478,13 @@ set +x
 ---
 
 Remember: These are dotfiles. Read, understand, and customise them to your needs.
+
+## Per-host agents (`hosts/agents/`)
+
+Some scheduled jobs belong to one machine rather than the fleet (a vault sync, a downloads sweep, a backup of an app's local state). They live in **profiles** under `hosts/agents/<profile>/` with `bin/` (scripts installed to `~/bin`), `launchd/` (plist templates using `__HOME__`) and an idempotent `install.sh` (`--check` reports drift and unloaded agents without changing anything).
+
+Which host gets which profile is **data, not code**: `hosts/agent-assignments.txt` maps a short hostname to one or more profiles. `scripts/host-agents.sh` reads it and runs the matching installers; `--host NAME` and `--profile NAME` override the lookup, `--list` shows the mapping. It runs at the end of `index.sh` (fresh install) and inside `self-update.sh` every night, so a hand-edited plist or an unloaded agent heals itself on the next tick. Hosts with no line in the assignments file get nothing.
+
+Shared pieces used by more than one profile go in `scripts/lib/` (today: `git-safe-sync.sh`, the serialised commit-and-push helper) and the profile's `install.sh` copies them into `~/bin`.
+
+Label convention: `org.iaconelli.<job>` for these per-host agents.

@@ -121,6 +121,7 @@ run_update() {
     is_macos && run_sync "ghostty-sync.sh"
     is_macos && run_sync "zed-sync.sh"
     run_sync "observability-collector.sh"
+    run_sync "host-agents.sh"          # per-host agents from hosts/agent-assignments.txt (idempotent)
 
     log_entry "OK: sync complete ($(git rev-parse --short HEAD))"
     write_metrics 1

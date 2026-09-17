@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>org.iaconelli.downloads-sweep</string>
+  <key>ProgramArguments</key><array><string>/bin/bash</string><string>__HOME__/bin/downloads-sweep.sh</string></array>
+  <key>EnvironmentVariables</key><dict><key>SWEEP_MODE</key><string>dry-run</string><key>PATH</key><string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/local/bin</string></dict>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>3600</integer>
+  <key>StandardOutPath</key><string>__HOME__/logs/downloads-sweep.launchd.log</string>
+  <key>StandardErrorPath</key><string>__HOME__/logs/downloads-sweep.launchd.log</string>
+</dict></plist>
