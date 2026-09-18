@@ -7,7 +7,7 @@
 #   everything else           -> cobalt:/Volumes/XRAID/Data/Archive/Downloads/<YYYY>/<Www>/<inbox>/  (rsync over ssh, verified)
 # A manifest (name, size, md5, destination) is written locally and beside the files on the NAS.
 # If cobalt is unreachable when a sweep is due, a notification asks you to get it online and run `sweep-now`;
-# the hourly tick retries on its own. Modes: SWEEP_MODE=dry-run (default for the first weeks) | apply.
+# the hourly tick retries on its own. Modes: SWEEP_MODE=apply (set in the LaunchAgent since 2026-09-18) | dry-run; the script itself defaults to dry-run when run by hand.
 set -u
 MODE="${SWEEP_MODE:-dry-run}"; [ "${1:-}" = "--apply" ] && MODE=apply; [ "${1:-}" = "--dry-run" ] && MODE=dry-run
 FORCE=0; [ "${1:-}" = "--force" ] || [ "${2:-}" = "--force" ] && FORCE=1
