@@ -16,7 +16,8 @@ set -u
 HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
 SHARED=("$REPO/scripts/lib/git-safe-sync.sh")   # shared with other hosts; installed into ~/bin like the profile scripts
-EXTERNAL=(org.iaconelli.xo-push org.iaconelli.xo-dispatch org.iaconelli.xo-replies cx.matdot.koboshelfd cx.matdot.cloudflared-kobo cx.mat.rmcd)
+# Each entry lists the acceptable labels for one service, "|"-separated (repos are moving to org.iaconelli.*).
+EXTERNAL=("org.iaconelli.xo-push" "org.iaconelli.xo-dispatch" "org.iaconelli.xo-replies" "org.iaconelli.koboshelfd|cx.matdot.koboshelfd" "org.iaconelli.cloudflared-kobo|cx.matdot.cloudflared-kobo" "org.iaconelli.rmcd|cx.mat.rmcd")
 BIN="$HOME/bin"; AGENTS="$HOME/Library/LaunchAgents"; LOGS="$HOME/logs"
 CHECK=0; LOAD=1
 case "${1:-}" in --check) CHECK=1;; --no-load) LOAD=0;; "") ;; *) sed -n '2,14p' "$0"; exit 1;; esac
@@ -57,9 +58,11 @@ for t in "$HERE"/launchd/*.plist; do
 done
 
 say "== agents owned by other repos (verified only)"
-for label in "${EXTERNAL[@]}"; do
-  if launchctl print "gui/$uid/$label" >/dev/null 2>&1; then say "  loaded   $label"
-  else say "  MISSING  $label (re-run its repo's installer)"; rc=1; fi
+for entry in "${EXTERNAL[@]}"; do
+  found=""
+  IFS="|" read -r -a alts <<< "$entry"
+  for label in "${alts[@]}"; do launchctl print "gui/$uid/$label" >/dev/null 2>&1 && { found="$label"; break; }; done
+  if [ -n "$found" ]; then say "  loaded   $found"; else say "  MISSING  ${alts[0]} (re-run its repo's installer)"; rc=1; fi
 done
 
 say "== prerequisites"
