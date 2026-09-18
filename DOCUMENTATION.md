@@ -485,6 +485,8 @@ Some scheduled jobs belong to one machine rather than the fleet (a vault sync, a
 
 Which host gets which profile is **data, not code**: `hosts/agent-assignments.txt` maps a short hostname to one or more profiles. `scripts/host-agents.sh` reads it and runs the matching installers; `--host NAME` and `--profile NAME` override the lookup, `--list` shows the mapping. It runs at the end of `index.sh` (fresh install) and inside `self-update.sh` every night, so a hand-edited plist or an unloaded agent heals itself on the next tick. Hosts with no line in the assignments file get nothing.
 
+Profiles today: `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO, KoboShelf and rmcd agents are installed by their own repos and the radon profile's `--check` verifies they are loaded without managing them).
+
 Shared pieces used by more than one profile go in `scripts/lib/` (today: `git-safe-sync.sh`, the serialised commit-and-push helper) and the profile's `install.sh` copies them into `~/bin`.
 
 Label convention: every agent boblbee installs is `org.iaconelli.<job>` — the reverse-DNS prefix names the author. (`com.boblbee.self-update` and `com.observability.node-exporter` were renamed on 17 Sep 2026; `self-update.sh` migrates any host still carrying the old labels.)
