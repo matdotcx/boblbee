@@ -485,7 +485,7 @@ Some scheduled jobs belong to one machine rather than the fleet (a vault sync, a
 
 Which host gets which profile is **data, not code**: `hosts/agent-assignments.txt` maps a short hostname to one or more profiles. `scripts/host-agents.sh` reads it and runs the matching installers; `--host NAME` and `--profile NAME` override the lookup, `--list` shows the mapping. It runs at the end of `index.sh` (fresh install) and inside `self-update.sh` every night, so a hand-edited plist or an unloaded agent heals itself on the next tick. Hosts with no line in the assignments file get nothing.
 
-Profiles today: `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO, KoboShelf and rmcd agents are installed by their own repos and the radon profile's `--check` verifies they are loaded without managing them).
+Profiles today: `logtrim` (every Mac: weekly trim of launchd logs over 50 MB in `~/logs` and `~/Library/Logs`, keeping the last 10 MB), `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO, KoboShelf and rmcd agents are installed by their own repos and the radon profile's `--check` verifies they are loaded without managing them).
 
 Shared pieces used by more than one profile go in `scripts/lib/` (today: `git-safe-sync.sh`, the serialised commit-and-push helper) and the profile's `install.sh` copies them into `~/bin`.
 
