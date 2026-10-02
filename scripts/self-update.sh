@@ -80,7 +80,9 @@ run_update() {
     BRANCH=$(get_default_branch)
 
     # Fetch over HTTPS (no SSH key needed for public repo)
-    if ! git fetch -q "$REPO_HTTPS" "$BRANCH" 2>>"$LOG_FILE"; then
+    # GIT_CONFIG_GLOBAL=/dev/null neutralises git-config-shared.sh's url.*.insteadOf
+    # rewrite, which would otherwise turn this into an SSH fetch that fails under launchd/cron
+    if ! GIT_CONFIG_GLOBAL=/dev/null git fetch -q "$REPO_HTTPS" "$BRANCH" 2>>"$LOG_FILE"; then
         log_entry "FAIL: git fetch failed"
         write_metrics 0
         return 1
