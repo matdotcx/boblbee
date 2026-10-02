@@ -169,6 +169,15 @@ migrate_legacy_labels() {
         nohup sh -c "sleep 15; launchctl bootout gui/$uid/com.boblbee.self-update" > /dev/null 2>&1 &
         log_entry "migrated LaunchAgent label: com.boblbee.self-update -> org.iaconelli.boblbee-self-update (old label retired after this run)"
     fi
+
+    # launchd reaps a job's leftover children when it exits, so the deferred bootout above
+    # can die with it, leaving the old label loaded and racing the new one at 00:48.
+    # Retire it from a run under the new label once its plist is gone.
+    if [ ! -f "$old_su" ] && [ "${XPC_SERVICE_NAME:-}" != "com.boblbee.self-update" ] \
+        && launchctl print "gui/$uid/com.boblbee.self-update" >/dev/null 2>&1; then
+        launchctl bootout "gui/$uid/com.boblbee.self-update" 2>/dev/null || true
+        log_entry "retired stale LaunchAgent label com.boblbee.self-update (plist already gone)"
+    fi
 }
 
 install_schedule() {
