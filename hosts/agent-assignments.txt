@@ -3,4 +3,4 @@
 aluminium  aluminium logtrim
 radon      radon logtrim
 cobalt     ha-backup deadline-backup logtrim
-helium     logtrim
+helium     heartbeat logtrim
