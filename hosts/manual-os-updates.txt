@@ -1,0 +1,10 @@
+# Hosts that must not install macOS updates on their own. One short hostname per line.
+# Read by scripts/dots.sh: these get AutomaticallyInstallMacOSUpdates false and keep checking,
+# downloading, critical/security responses and config data on. Install by hand, at a time you pick.
+#
+# helium: observability (Prometheus, ES, Dash), the Actions runner, proxies and exporters
+# hydrogen: Home Assistant (ha Lima VM, HomeKit bridge)
+# cobalt: content cache and backup destination (Backblaze)
+helium
+hydrogen
+cobalt

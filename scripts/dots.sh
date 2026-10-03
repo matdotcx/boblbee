@@ -201,7 +201,13 @@ run_command "sudo nvram StartupMute=%00" "Enable startup chime"
 
 echo ""
 echo "Enabling automatic updates…"
-run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticallyInstallMacOSUpdates -bool true" "Enable automatic macOS updates"
+# Hosts in hosts/manual-os-updates.txt run services that an unattended restart would take down:
+# they still check, download and take security responses, but a person installs macOS updates.
+if grep -qx "$(hostname -s)" "${0:A:h:h}/hosts/manual-os-updates.txt" 2>/dev/null; then
+    run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticallyInstallMacOSUpdates -bool false" "Leave macOS update installs to a person (hosts/manual-os-updates.txt)"
+else
+    run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticallyInstallMacOSUpdates -bool true" "Enable automatic macOS updates"
+fi
 run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticCheckEnabled -bool true" "Enable automatic update check"
 run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist AutomaticDownload -bool true" "Enable automatic update download"
 run_command "sudo defaults write /Library/Preferences/com.apple.SoftwareUpdate.plist CriticalUpdateInstall -bool true" "Enable critical update installation"
