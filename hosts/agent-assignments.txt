@@ -1,6 +1,8 @@
 # host -> agent profile(s) under hosts/agents/. One line per host: <short hostname> <profile> [profile ...]
 # Resolved by scripts/host-agents.sh; override with --host or --profile. Hosts not listed get nothing.
-aluminium  aluminium logtrim
-radon      radon logtrim
-cobalt     ha-backup deadline-backup logtrim
-helium     heartbeat logtrim
+aluminium  aluminium logtrim posture
+radon      radon logtrim posture
+cobalt     ha-backup deadline-backup logtrim posture
+helium     heartbeat logtrim posture
+hydrogen   posture
+krypton    posture
