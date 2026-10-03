@@ -2,5 +2,5 @@
 # Resolved by scripts/host-agents.sh; override with --host or --profile. Hosts not listed get nothing.
 aluminium  aluminium logtrim
 radon      radon logtrim
-cobalt     ha-backup logtrim
+cobalt     ha-backup deadline-backup logtrim
 helium     logtrim
