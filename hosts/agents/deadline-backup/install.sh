@@ -44,6 +44,11 @@ done
 say "== prerequisites"
 C="$HOME/.config/deadline-backup"; H=${DEADLINE_BACKUP_HOST:-100.77.139.21}
 for f in id_ed25519 known_hosts; do [ -f "$C/$f" ] && say "  $C/$f: ok" || { say "  $C/$f: MISSING"; rc=1; }; done
-if rsync -n -e "ssh -F /dev/null -i $C/id_ed25519 -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 -o UserKnownHostsFile=$C/known_hosts -o StrictHostKeyChecking=yes" "bkpull@$H:./STATUS" "$(mktemp -d)/" 2>/dev/null; then
-  say "  bkpull@$H: ok"; else say "  bkpull@$H: CANNOT READ (deadline side not installed yet, or key/address changed)"; rc=1; fi
+# The key is forced to one fixed rsync sender on deadline, so a dry run (-n), which negotiates differently under
+# macOS's openrsync, always fails there. Instead, check that the key is accepted and the forced sender starts: it
+# greets with its 4-byte protocol version. Whether the last pull worked is in deadline_backup.prom.
+greet=$(ssh -F /dev/null -i "$C/id_ed25519" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=10 \
+          -o UserKnownHostsFile="$C/known_hosts" -o StrictHostKeyChecking=yes "bkpull@$H" </dev/null 2>/dev/null | head -c 4 | wc -c | tr -d ' ')
+if [ "$greet" = 4 ]; then
+  say "  bkpull@$H: ok (key accepted, forced rsync sender answers)"; else say "  bkpull@$H: NO ANSWER (deadline side not installed yet, or key/address changed)"; rc=1; fi
 exit $rc
