@@ -15,7 +15,11 @@
 #
 # Works with macOS's bash 3.2: no associative arrays, mapfile or ${var,,}.
 set -u
-VERSION=1
+VERSION=2
+# systemd doesn't set HOME for system services, and set -u would stop at the first $HOME. With HOME unset, bash's
+# ~ falls back to the passwd entry.
+[ -n "${HOME:-}" ] || HOME=$(cd ~ 2>/dev/null && pwd) || HOME=/
+export HOME
 export PATH="$HOME/bin:/opt/homebrew/bin:/usr/local/bin:/opt/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Applications/Tailscale.app/Contents/MacOS:/Applications/UTM.app/Contents/MacOS"
 OS=$(uname -s); ME=$(id -un); ROOT=0; [ "$(id -u)" = 0 ] && ROOT=1
 MODE=file; OUTDIR=""
@@ -139,10 +143,20 @@ check_sudo() {
     local u n
     command -v sudo >/dev/null || return 0
     if [ $ROOT = 1 ]; then
+        # Count only answers sudo actually gave. An error (a sandbox refusing sudo, say) must read as not
+        # evaluable, never as "0 NOPASSWD rules".
+        local out rc failed=0
         for u in $(human_users); do
-            n=$(sudo -n -l -U "$u" 2>/dev/null | grep -c NOPASSWD)
-            put posture_sudo_nopasswd "${n:-0}" "user=\"$(lv "$u")\""
+            out=$(sudo -n -l -U "$u" 2>&1); rc=$?
+            case "$out" in
+                *"is not allowed to run sudo"*) put posture_sudo_nopasswd 0 "user=\"$(lv "$u")\"" ;;
+                *) if [ $rc = 0 ]; then
+                       n=$(printf '%s\n' "$out" | grep -c NOPASSWD)
+                       put posture_sudo_nopasswd "${n:-0}" "user=\"$(lv "$u")\""
+                   else failed=1; fi ;;
+            esac
         done
+        if [ $failed = 1 ]; then ok sudo 0; return; fi
     else
         # With sudo's default listpw=any, -n -l only succeeds without a password when a NOPASSWD rule exists.
         n=$(sudo -n -l 2>/dev/null | grep -c NOPASSWD)

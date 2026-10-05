@@ -91,6 +91,7 @@ After=network-online.target
 
 [Service]
 Type=oneshot
+Environment=HOME=/root
 ExecStart=$DST --textfile $dir
 Nice=10
 IOSchedulingClass=idle
