@@ -15,7 +15,7 @@
 #
 # Works with macOS's bash 3.2: no associative arrays, mapfile or ${var,,}.
 set -u
-VERSION=2
+VERSION=3
 # systemd doesn't set HOME for system services, and set -u would stop at the first $HOME. With HOME unset, bash's
 # ~ falls back to the passwd entry.
 [ -n "${HOME:-}" ] || HOME=$(cd ~ 2>/dev/null && pwd) || HOME=/
@@ -57,6 +57,9 @@ def posture_filevault_on          'macOS FileVault is on.'
 def posture_autologin_set         'macOS automatic login is set (it cannot work while FileVault is on).'
 def posture_autorestart           'macOS restarts automatically after a power failure (pmset autorestart).'
 def posture_unattended_upgrades   'Debian/Ubuntu unattended-upgrades is enabled and scheduled.'
+def posture_services_checked      'Running systemd services whose user was checked.'
+def posture_service_user          'A running system service whose process runs as a human account (uid 1000 and up, with a login shell).'
+def posture_pi_throttled     'vcgencmd get_throttled as a number: 0x1 under-voltage now, 0x4 throttled now, 0x10000 and 0x40000 since boot.'
 def posture_untracked_secret_files 'Secret-looking files in a git repo that are neither tracked nor ignored, so a careless git add would commit them.'
 def posture_age_recipients        'Recipient stanzas, by type, in the newest age file of each backup set.'
 def posture_guest_running         'A VM or container engine on this host is running.'
@@ -187,6 +190,35 @@ check_linux() {
     if [ "$v" = 1 ] && [ "$e" = enabled ]; then put posture_unattended_upgrades 1; else put posture_unattended_upgrades 0; fi
 }
 
+# Services on Linux: a public service running as the login user turns a bug in it into that user's access. List each
+# running system service whose main process runs as a human account. user@<uid>.service is that user's own systemd
+# manager, not a service, so it's skipped. Reads systemctl and ps only.
+check_services() {
+    local unit pid usr humans n=0
+    command -v systemctl >/dev/null || return 0
+    humans=" $(human_users | tr '\n' ' ') "
+    systemctl list-units --type=service --state=running --no-legend --plain 2>/dev/null | awk '{print $1}' > "$TMPD/units" || { ok services 0; return; }
+    while IFS= read -r unit; do
+        case "$unit" in user@*.service|'') continue ;; esac
+        pid=$(systemctl show -p MainPID --value "$unit" 2>/dev/null)
+        case "$pid" in ''|0|*[!0-9]*) continue ;; esac
+        usr=$(ps -o user= -p "$pid" 2>/dev/null | tr -d ' ')
+        [ -n "$usr" ] || continue
+        n=$((n + 1))
+        case "$humans" in *" $usr "*) put posture_service_user 1 "unit=\"$(lv "$unit")\",user=\"$(lv "$usr")\"" ;; esac
+    done < "$TMPD/units"
+    put posture_services_checked "$n"; ok services 1
+}
+
+# Raspberry Pi power: get_throttled's bits, as a number. Needs root or the video group.
+check_throttle() {
+    local out hex
+    command -v vcgencmd >/dev/null || return 0
+    out=$(with_timeout 5 vcgencmd get_throttled 2>/dev/null)
+    hex=${out#throttled=}
+    case "$hex" in 0x[0-9a-fA-F]*) put posture_pi_throttled "$((hex))"; ok throttle 1 ;; *) ok throttle 0 ;; esac
+}
+
 # ── secrets ──
 SECRET_RE='(^|/)(secrets?([-_.][^/]*)?/[^/]+|\.env(\.[^/]+)?|[^/]+\.(pem|key|p12|pfx|token)|id_(rsa|ed25519|ecdsa|dsa)|[^/]*(api[-_]?key|ping-url|credentials|secret)[^/]*)$'
 SAFE_RE='(example|sample|template|\.dist$|\.md$|\.pub$|\.age$|\.(py|js|ts|go|rs|rb|sh|swift|java|kt)$)'   # docs, public keys, ciphertext, code
@@ -295,7 +327,7 @@ check_guests() {
 }
 
 check_tailscale; check_sshd; check_root_keys; check_sudo
-case "$OS" in Darwin) check_macos ;; Linux) check_linux ;; esac
+case "$OS" in Darwin) check_macos ;; Linux) check_linux; check_services; check_throttle ;; esac
 check_secrets; check_age; check_guests
 put posture_collector_info 1 "version=\"$VERSION\",user=\"$(lv "$ME")\",root=\"$ROOT\""
 END=$(date +%s)
