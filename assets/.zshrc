@@ -47,8 +47,10 @@ export BUN_INSTALL="$HOME/.bun"
 ###############################################################################
 # Auto-attach tmux on SSH sessions
 ###############################################################################
+# Neither auto-tmux block runs in a Xenon terminal (XENON_TERMINAL=1, set by its shim): that shell arrives through
+# sudo without the SSH variables, so it would otherwise join the local "main" group as a window of its own.
 
-if [[ -n "$SSH_CONNECTION" || -n "$SSH_TTY" ]] && [[ -z "$TMUX" ]] && command -v tmux &>/dev/null; then
+if [[ -n "$SSH_CONNECTION" || -n "$SSH_TTY" ]] && [[ -z "$TMUX" && -z "$XENON_TERMINAL" ]] && command -v tmux &>/dev/null; then
     # Attach to existing session named 'ssh', or create one rooted in $HOME
     tmux new-session -A -s ssh -c "$HOME"
 fi
@@ -63,7 +65,7 @@ fi
 # Grouped extras self-destruct when their terminal closes — the windows live
 # on in the group. Skipped for SSH sessions and IDE-embedded terminals.
 
-if is_macos && [[ -z "$TMUX" && -z "$SSH_CONNECTION" && "$TERM_PROGRAM" != "vscode" && "$TERM_PROGRAM" != "zed" ]] && command -v tmux &>/dev/null; then
+if is_macos && [[ -z "$TMUX" && -z "$SSH_CONNECTION" && -z "$XENON_TERMINAL" && "$TERM_PROGRAM" != "vscode" && "$TERM_PROGRAM" != "zed" ]] && command -v tmux &>/dev/null; then
     # '=main' (exact-match target) must be quoted: bare =word triggers zsh's
     # =command filename expansion, which errors and aborts sourcing the file
     if tmux has-session -t '=main' 2>/dev/null; then
