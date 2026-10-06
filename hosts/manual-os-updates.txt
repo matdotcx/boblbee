@@ -5,6 +5,8 @@
 # helium: observability (Prometheus, ES, Dash), the Actions runner, proxies and exporters
 # hydrogen: Home Assistant (ha Lima VM, HomeKit bridge)
 # cobalt: content cache and backup destination (Backblaze)
+# krypton: the fleet console (Xenon)
 helium
 hydrogen
 cobalt
+krypton

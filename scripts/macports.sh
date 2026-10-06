@@ -17,7 +17,9 @@ timestamp=$(date +%d-%m-%Y_%H.%M.%S)
 
 # MacPorts version to install (use stable release, not dev/master)
 echo "Fetching latest MacPorts stable release..."
-MACPORTS_VERSION=$(git ls-remote --tags https://github.com/macports/macports-base.git | grep -oE "v[0-9]+\.[0-9]+\.[0-9]+$" | sort -V | tail -1)
+# GIT_CONFIG_GLOBAL=/dev/null: a global url.insteadOf (HTTPS -> SSH) would otherwise turn these public HTTPS fetches
+# into SSH ones that need a key.
+MACPORTS_VERSION=$(GIT_CONFIG_GLOBAL=/dev/null git ls-remote --tags https://github.com/macports/macports-base.git | grep -oE "v[0-9]+\.[0-9]+\.[0-9]+$" | sort -V | tail -1)
 
 # Skip the (slow) build/reinstall when MacPorts is already present and recent,
 # but always fall through to the package install step at the bottom — that way
@@ -60,7 +62,7 @@ if [ -z "$SKIP_BUILD" ]; then
     fi
 
     # Clone the macports-base repo
-    if ! git clone https://github.com/macports/macports-base.git; then
+    if ! GIT_CONFIG_GLOBAL=/dev/null git clone https://github.com/macports/macports-base.git; then
         echo "Error: Failed to clone macports-base repository"
         exit 1
     fi
