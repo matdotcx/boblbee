@@ -28,7 +28,13 @@ say() { printf '%s\n' "$*"; }
 
 exporter_unit() { systemctl list-units --type=service --all --no-legend 2>/dev/null | awk '{print $1}' | grep -E '^(prometheus-)?node[-_]exporter\.service$' | head -1; }
 exporter_dir() {
-    ps -A -o command= | grep -E 'node[_-]exporter' | grep -oE -- '--collector\.textfile\.directory[= ][^ ]+' | head -1 | sed -E 's/^--collector\.textfile\.directory[= ]//'
+    local cmd d root
+    cmd=$(ps -A -o command= | grep -E 'node[_-]exporter' | grep -E -- '--collector\.textfile\.directory' | head -1)
+    d=$(printf '%s\n' "$cmd" | grep -oE -- '--collector\.textfile\.directory[= ][^ ]+' | head -1 | sed -E 's/^--collector\.textfile\.directory[= ]//')
+    # A containerised node_exporter names the directory as it sees it, under --path.rootfs; the host path drops that.
+    root=$(printf '%s\n' "$cmd" | grep -oE -- '--path\.rootfs[= ][^ ]+' | head -1 | sed -E 's/^--path\.rootfs[= ]//')
+    if [ -n "$d" ] && [ -n "$root" ] && [ "$root" != / ] && [ ! -d "$d" ]; then d=${d#"${root%/}"}; fi
+    printf '%s\n' "$d"
 }
 textfile_dir() {
     local d; d=$(exporter_dir)

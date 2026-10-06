@@ -340,7 +340,13 @@ if [ $MODE = stdout ]; then render; exit 0; fi
 textfile_dir() {
     local d
     [ -n "$OUTDIR" ] && { printf '%s\n' "$OUTDIR"; return 0; }
-    d=$(ps -A -o command= 2>/dev/null | grep -E 'node[_-]exporter' | grep -oE -- '--collector\.textfile\.directory[= ][^ ]+' | head -1 | sed -E 's/^--collector\.textfile\.directory[= ]//')
+    local cmd root
+    cmd=$(ps -A -o command= 2>/dev/null | grep -E 'node[_-]exporter' | grep -E -- '--collector\.textfile\.directory' | head -1)
+    d=$(printf '%s\n' "$cmd" | grep -oE -- '--collector\.textfile\.directory[= ][^ ]+' | head -1 | sed -E 's/^--collector\.textfile\.directory[= ]//')
+    # A node_exporter in a container sees the host under --path.rootfs (e.g. /host), and its textfile path starts with
+    # that; on the host itself the directory is the path without it.
+    root=$(printf '%s\n' "$cmd" | grep -oE -- '--path\.rootfs[= ][^ ]+' | head -1 | sed -E 's/^--path\.rootfs[= ]//')
+    if [ -n "$d" ] && [ -n "$root" ] && [ "$root" != / ] && [ ! -d "$d" ]; then d=${d#"${root%/}"}; fi
     [ -n "$d" ] && { printf '%s\n' "$d"; return 0; }
     for d in "$HOME/.local/share/prometheus/textfile" /var/lib/prometheus/node-exporter /var/lib/node_exporter/textfile; do
         [ -d "$d" ] && { printf '%s\n' "$d"; return 0; }
