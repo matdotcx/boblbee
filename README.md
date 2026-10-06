@@ -19,6 +19,8 @@ What makes this particular collection special is its intelligent sync system - i
 - **Encrypted SSH Secrets**: On hosts without iCloud, SSH keys/config come from the private [`ark-config`](#ssh-keys--private-config-ark-config) repo, encrypted at rest with `age` and unlocked by a single vault-held bootstrap key
 - **Claude Code Integration**: Syncs AI assistant preferences across devices
 - **Observability**: Automatic Prometheus node_exporter setup with central registration
+- **Nightly Self-Update**: Each host pulls boblbee at 00:48 and re-runs the syncs when there are new commits
+- **Per-Host Agents**: Scheduled jobs that belong to one machine, assigned by hostname in `hosts/agent-assignments.txt`
 
 ## Quick Start
 
@@ -51,7 +53,7 @@ Both platforms use the same canonical repo path: `~/Developer/workspace/matdotcx
 This will:
 - **macOS**: Configure system preferences, install Xcode tools, set up MacPorts, sync Ghostty config, configure TouchID sudo, set up Tailscale, GPG signing, PAM SSH agent sudo, and FQDN hostname
 - **Ubuntu**: Install essential packages, configure git and SSH, set up npm and Claude Code, install Tailscale and GPG signing
-- **Both**: Sync shell config, tmux, motd, SSH keys, install Claude Code integration, set up observability collector
+- **Both**: Sync shell config, tmux, motd, SSH keys, install Claude Code integration, set up observability collector, install the host's per-host agents and the nightly self-update, then switch the boblbee remote from HTTPS to SSH
 
 ### Upgrading Existing Installation
 
@@ -68,9 +70,10 @@ cd ~/Developer/workspace/matdotcx/boblbee
 > boblbee (`~/Developer/workspace/matdotcx/ark-config`).
 
 On a Mac signed into **iCloud Drive**, SSH material syncs from iCloud as before — no
-extra steps. On any host **without iCloud** (headless/CI/signed-out Macs, Ubuntu),
-`ssh-sync.sh` falls back to `ark-config`, where the private keys are stored **encrypted
-at rest** as `*.age` files. A single passphrase-less ed25519 key — **`id_bootstrap`** —
+extra steps. On a Mac **without iCloud** (headless/CI/signed-out), `ssh-sync.sh` falls
+back to `ark-config`, where the private keys are stored **encrypted at rest** as `*.age`
+files. On Ubuntu, `ssh-sync.sh` only checks `~/.ssh` permissions; run `script/bootstrap`
+yourself to wire the keys and config from `ark-config`. A single passphrase-less ed25519 key — **`id_bootstrap`** —
 unlocks everything: it's both the read-only GitHub **deploy key** that clones the private
 repo and the **`age` identity** that decrypts the keys. Keep it in your vault; seed it
 once per host.
@@ -119,6 +122,7 @@ bb-sync          # Sync all configurations
 bb-sync-zshrc    # Sync shell configuration
 bb-sync-tmux     # Sync tmux configuration and themes
 bb-sync-ghostty  # Sync Ghostty terminal config (macOS only)
+bb-sync-zed      # Sync Zed editor config and themes (macOS only)
 bb-sync-claude   # Sync Claude Code preferences
 bb-sync-ssh      # Sync SSH configuration
 bb-sync-motd     # Sync message of the day
@@ -128,10 +132,14 @@ bb-sync-motd     # Sync message of the day
 ```bash
 bb-status-fleet  # Show config status across all hosts (one-line-per-host)
 bb-sync-fleet    # Pull boblbee + run sync on every host in hosts/elements.txt
+bb-update        # Update OS packages + tooling on this host (-r to reboot if needed)
 bb-update-fleet  # Update OS packages + tooling on every host (-r to reboot if needed)
 ```
 
-`bb-update` runs the same updates on the local host. `bb-update-fleet` needs
+`hosts/elements.txt` is your real host list and is gitignored; copy
+`hosts/elements.example.txt` to start one.
+
+`bb-update-fleet` needs
 SSH agent forwarding (`ssh -A` / `pam_ssh_agent_auth`) so remote `sudo` is
 passwordless — load your key (`ssh-add -l`) before running.
 
@@ -179,27 +187,41 @@ boblbee/
 ├── assets/
 │   ├── .zshrc               # Cross-platform shell configuration
 │   ├── .motd                # Message of the day
+│   ├── claude-settings.json # Claude Code user settings (~/.claude/settings.json)
+│   ├── claude-hooks/        # Claude Code hook scripts (installed to ~/.claude/hooks)
+│   ├── gitignore_global     # Global gitignore (git-config-shared.sh)
 │   ├── ghostty-config       # Ghostty terminal config
 │   ├── ghostty-themes/      # Manganese Dark/Light themes
+│   ├── terminal-themes/     # Manganese Terminal.app profiles
+│   ├── zed/                 # Zed editor settings, keymap and themes
 │   ├── tmux.conf            # Main tmux config
 │   ├── tmux-base.conf       # Shared tmux settings
 │   └── tmux-theme-*.conf    # Manganese tmux themes
 ├── claude/                  # Claude Code integration
 │   └── memory/
 │       └── user.md          # Global AI assistant preferences
+├── docs/                    # Runbooks and task notes
 ├── hosts/
-│   └── elements.txt         # Fleet host list
+│   ├── elements.example.txt # Fleet host list template (copy to elements.txt, which is gitignored)
+│   ├── agent-assignments.txt # Which per-host agent profiles each host gets
+│   ├── agents/              # Per-host agent profiles (bin/, launchd/, install.sh)
+│   └── manual-os-updates.txt # Hosts where macOS updates are installed by hand
 ├── script/
 │   └── bootstrap            # Wire private configs from ark-config into place
 ├── ssh_config.example       # Placeholder SSH config (used when ark-config is absent)
 ├── scripts/
 │   ├── lib/
 │   │   ├── config.sh        # Shared configuration values (incl. ark-config path)
-│   │   └── lib.sh           # Shared helper functions
+│   │   ├── lib.sh           # Shared helper functions
+│   │   └── git-safe-sync.sh # Serialised commit-and-push helper used by agent profiles
 │   ├── index.sh             # Main installer (cross-platform)
 │   ├── upgrade.sh           # Upgrade existing installations
+│   ├── self-update.sh       # Nightly pull + sync (LaunchAgent on macOS, cron on Linux)
+│   ├── host-agents.sh       # Install this host's agent profiles
 │   ├── detect-os.sh         # OS detection (is_macos, is_ubuntu, is_cli_only)
-│   ├── *-sync.sh            # Sync scripts (zshrc, tmux, ghostty, motd, claude, ssh)
+│   ├── *-sync.sh            # Sync scripts (zshrc, tmux, ghostty, zed, motd, claude, ssh)
+│   ├── claude.sh            # Install Claude Code if missing; local copy of claude/memory/user.md
+│   ├── git-config-shared.sh # Shared git config (GitHub HTTPS→SSH rewrite, aliases, global gitignore)
 │   ├── dots.sh              # macOS system preferences
 │   ├── macports.sh          # macOS MacPorts setup
 │   ├── touchid-sudo.sh      # macOS TouchID for sudo
@@ -225,8 +247,10 @@ boblbee/
 
 During setup, boblbee installs a Prometheus `node_exporter` and registers the host with a central monitoring server (helium). Set `SKIP_OBSERVABILITY=1` before running setup to skip this.
 
-- **Linux**: `node_exporter` on port 9100
-- **macOS**: `node_exporter` on port 9100, managed via LaunchAgent
+- **Linux**: `node_exporter` on port 9100, as a systemd user service
+- **macOS**: `node_exporter` on port 9100, as the LaunchAgent `org.iaconelli.node-exporter`
+- It listens on the host's Tailscale address when there is one, otherwise on localhost (never `0.0.0.0`)
+- Its textfile collector reads `~/.local/share/prometheus/textfile`, where the nightly self-update writes `boblbee.prom` and agent profiles write their own `.prom` files
 - Helium registration happens automatically over SSH if reachable
 
 ## What it's not

@@ -38,38 +38,49 @@ flowchart TD
 
     subgraph mac_seq["macOS Sequence"]
         direction TB
-        m1["touchid-sudo.sh ⚡"] --> m2["xcode.sh"]
-        m2 --> m3["macports.sh ⚡"]
-        m3 --> m4["dots.sh 🐚"]
-        m4 --> m5["claude.sh"]
-        m5 --> m6["zshrc-sync.sh"]
-        m6 --> m7["tmux-sync.sh"]
-        m7 --> m8["ghostty-sync.sh"]
-        m8 --> m8b["zed-sync.sh"]
-        m8b --> m9["motd-sync.sh"]
-        m9 --> m10["ssh-sync.sh"]
-        m10 --> m11["tailscale-setup.sh"]
-        m11 --> m12["observability-collector.sh"]
-        m12 --> m13["pam-ssh-agent-sudo.sh"]
-        m13 --> m14["setup-gpg-signing.sh"]
-        m14 --> m15["hostname-fqdn.sh ⚡"]
+        m0["prompt: computer name, git identity"] --> m1["hostname-fqdn.sh ⚡"]
+        m1 --> m2["touchid-sudo.sh ⚡"]
+        m2 --> m3["xcode.sh 🐚"]
+        m3 --> m4["macports.sh ⚡🐚"]
+        m4 --> m5["dots.sh 🐚"]
+        m5 --> m6["git-config-shared.sh"]
+        m6 --> m7["claude.sh"]
+        m7 --> m8["claude-sync.sh"]
+        m8 --> m9["zshrc-sync.sh"]
+        m9 --> m10["tmux-sync.sh"]
+        m10 --> m11["ghostty-sync.sh"]
+        m11 --> m12["zed-sync.sh"]
+        m12 --> m13["motd-sync.sh"]
+        m13 --> m14["ssh-sync.sh"]
+        m14 --> m15["tailscale-setup.sh"]
+        m15 --> m16["observability-collector.sh"]
+        m16 --> m17["pam-ssh-agent-sudo.sh"]
+        m17 --> m18["setup-gpg-signing.sh"]
+        m18 --> m19["host-agents.sh"]
+        m19 --> m20["self-update.sh --install"]
     end
 
     subgraph ubuntu_seq["Ubuntu Sequence"]
         direction TB
-        u1["ubuntu-essentials.sh"] --> u2["ubuntu-git-setup.sh"]
-        u2 --> u3["claude.sh"]
-        u3 --> u4["zshrc-sync.sh"]
-        u4 --> u5["tmux-sync.sh"]
-        u5 --> u6["motd-sync.sh"]
-        u6 --> u7["ssh-sync.sh"]
-        u7 --> u8["tailscale-setup.sh"]
-        u8 --> u9["observability-collector.sh"]
-        u9 --> u10["setup-gpg-signing.sh"]
+        u0["prompt: git identity"] --> u1["ubuntu-essentials.sh"]
+        u1 --> u2["ubuntu-git-setup.sh"]
+        u2 --> u3["git-config-shared.sh"]
+        u3 --> u4["claude.sh"]
+        u4 --> u5["claude-sync.sh"]
+        u5 --> u6["zshrc-sync.sh"]
+        u6 --> u7["tmux-sync.sh"]
+        u7 --> u8["motd-sync.sh"]
+        u8 --> u9["ssh-sync.sh"]
+        u9 --> u10["tailscale-setup.sh"]
+        u10 --> u11["observability-collector.sh"]
+        u11 --> u12["setup-gpg-signing.sh"]
+        u12 --> u13["host-agents.sh"]
+        u13 --> u14["self-update.sh --install"]
     end
 
-    mac_seq --> done(["Setup complete"])
-    ubuntu_seq --> done
+    mac_seq --> remote["switch the boblbee remote<br/>from HTTPS to SSH"]
+    ubuntu_seq --> remote
+    remote --> done(["Setup complete"])
 ```
 
 _⚡ = requires sudo, 🐚 = runs under zsh shebang, all others run under bash_
@@ -184,10 +195,13 @@ flowchart TD
     end
 
     subgraph mac_local["macOS no iCloud"]
-        ml1{"~/.ssh<br/>exists?"} -->|yes| ml2["fix_permissions()"]
-        ml1 -->|no| ml3["Print: local only"]
+        ark{"ark-config<br/>beside boblbee?"} -->|yes| boot["script/bootstrap<br/>decrypt keys (age), link config"]
+        ark -->|no| ml3["Print: local only<br/>(~/.ssh untouched)"]
     end
 ```
+
+On Ubuntu, `ssh-sync.sh` only checks permissions; run `script/bootstrap` directly to wire
+keys and config from ark-config.
 
 ## Fleet Management
 
@@ -201,7 +215,8 @@ flowchart LR
     subgraph per_host["Per Remote Host (via SSH)"]
         direction TB
         fetch["git fetch HTTPS_URL branch"] --> merge["git merge --ff-only"]
-        merge --> run_zshrc["zshrc-sync.sh"]
+        merge --> run_claude["claude-sync.sh"]
+        run_claude --> run_zshrc["zshrc-sync.sh"]
         run_zshrc --> run_ssh["ssh-sync.sh"]
         run_ssh --> run_tmux["tmux-sync.sh"]
         run_tmux --> run_motd["motd-sync.sh"]
@@ -249,12 +264,36 @@ flowchart TD
         r3 --> r4{"macOS?"}
         r4 -->|yes| r5["ghostty-sync.sh"]
         r4 -->|no| r6
-        r5 --> r6["motd-sync.sh"]
+        r5 --> r5b["zed-sync.sh"]
+        r5b --> r6["motd-sync.sh"]
         r6 --> r7["ssh-sync.sh"]
     end
 
     run_scripts --> done(["Upgrade complete"])
 ```
+
+## Nightly Self-Update: `self-update.sh`
+
+Installed by `index.sh` (`--install`): the LaunchAgent `org.iaconelli.boblbee-self-update` on
+macOS, a crontab line on Linux, both at 00:48.
+
+```mermaid
+flowchart TD
+    start(["00:48"]) --> fetch["git fetch over HTTPS<br/>(GIT_CONFIG_GLOBAL=/dev/null, so the<br/>global HTTPS→SSH rewrite can't apply)"]
+    fetch -->|fails| fail["boblbee.prom: success 0"]
+    fetch --> same{"new<br/>commits?"}
+    same -->|no| ok["boblbee.prom: success 1"]
+    same -->|yes| merge["git merge --ff-only<br/>(refuses local edits)"]
+    merge -->|fails| fail
+    merge --> syncs["zshrc, tmux, motd, ssh syncs<br/>+ ghostty, zed on macOS"]
+    syncs --> collector["observability-collector.sh"]
+    collector --> agents["host-agents.sh"]
+    agents --> ok
+```
+
+`boblbee.prom` lands in node_exporter's textfile directory (`~/.local/share/prometheus/textfile`),
+so the last run's time, result and commit are scraped with the host's metrics. The syncs and
+`host-agents.sh` only run on nights that bring new commits.
 
 ## File Locations
 
@@ -262,6 +301,8 @@ flowchart TD
 ~/                                    ~/.config/
 ├── .zshrc         (local copy)       └── claude/memory/
 ├── .motd          (local copy)           └── user.md    (local copy)
+├── .claude/settings.json (local copy) ~/.local/share/prometheus/textfile/
+├── .claude/hooks/ (← assets/claude-hooks)  └── boblbee.prom, <profile>.prom
 ├── .tmux.conf     (local copy)       ~/.config/tmux/
 ├── .ssh/          (local directory)      ├── tmux-base.conf
 │   ├── config  ←→ iCloud (bidir)        ├── tmux-theme-dark.conf
@@ -278,6 +319,7 @@ flowchart TD
 │  ├── assets/zed/keymap.json   ←→ ~/.config/zed/ (2-way)
 │  ├── assets/zed/themes/       ←→ ~/.config/zed/themes/ (2-way)
 │  ├── claude/memory/user.md    ←→ ~/.config/claude/memory (2-way)
+│  ├── assets/claude-settings.json ←→ ~/.claude/settings.json (2-way)
 │  └── scripts/lib/{config,lib}.sh
 │
 │  ~/Library/Mobile Documents/.../Ark/Sync/System/   (iCloud, macOS only)
