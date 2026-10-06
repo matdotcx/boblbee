@@ -47,32 +47,12 @@ export BUN_INSTALL="$HOME/.bun"
 ###############################################################################
 # Auto-attach tmux on SSH sessions
 ###############################################################################
-# Neither auto-tmux block runs in a Xenon terminal (XENON_TERMINAL=1, set by its shim): that shell arrives through
-# sudo without the SSH variables, so it would otherwise join the local "main" group as a window of its own.
+# Only SSH logins get tmux; local terminals stay plain shells. Skipped in a Xenon terminal (XENON_TERMINAL=1, set
+# by its shim), which reaches the login user's shell through sudo and is not an SSH login of its own.
 
 if [[ -n "$SSH_CONNECTION" || -n "$SSH_TTY" ]] && [[ -z "$TMUX" && -z "$XENON_TERMINAL" ]] && command -v tmux &>/dev/null; then
     # Attach to existing session named 'ssh', or create one rooted in $HOME
     tmux new-session -A -s ssh -c "$HOME"
-fi
-
-###############################################################################
-# Auto-tmux for local terminals (macOS)
-###############################################################################
-# Every fresh local terminal lands in tmux. Uses session groups: the first
-# terminal creates "main"; later ones get a grouped session that shares its
-# windows but starts on a fresh window (grouped sessions otherwise land on
-# the group's current window, mirroring whatever another tab has focused).
-# Grouped extras self-destruct when their terminal closes — the windows live
-# on in the group. Skipped for SSH sessions and IDE-embedded terminals.
-
-if is_macos && [[ -z "$TMUX" && -z "$SSH_CONNECTION" && -z "$XENON_TERMINAL" && "$TERM_PROGRAM" != "vscode" && "$TERM_PROGRAM" != "zed" ]] && command -v tmux &>/dev/null; then
-    # '=main' (exact-match target) must be quoted: bare =word triggers zsh's
-    # =command filename expansion, which errors and aborts sourcing the file
-    if tmux has-session -t '=main' 2>/dev/null; then
-        tmux new-session -t main \; new-window \; set-option destroy-unattached on
-    else
-        tmux new-session -s main
-    fi
 fi
 
 ###############################################################################
