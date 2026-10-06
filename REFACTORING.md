@@ -19,16 +19,21 @@ bb-setup ──► index.sh ─┬─ (ubuntu) ubuntu-essentials, ubuntu-git-set
                        │           git-config-shared, claude, claude-sync,
                        │           zshrc-sync, tmux-sync, motd-sync, ssh-sync,
                        │           tailscale-setup, observability-collector,
-                       │           setup-gpg-signing, self-update
+                       │           setup-gpg-signing, host-agents, self-update
                        │
                        └─ (macos)  hostname-fqdn, touchid-sudo, xcode, macports,
                                    dots, git-config-shared, claude, claude-sync,
                                    zshrc-sync, tmux-sync, ghostty-sync, zed-sync,
                                    motd-sync, ssh-sync, tailscale-setup,
                                    observability-collector, pam-ssh-agent-sudo,
-                                   setup-gpg-signing, self-update
+                                   setup-gpg-signing, host-agents, self-update
 
 observability-collector.sh ──► install-collector.sh
+host-agents.sh ──► hosts/agents/<profile>/install.sh  (per hosts/agent-assignments.txt)
+self-update.sh (nightly, 00:48; only when there are new commits)
+               ──► zshrc/tmux/motd/ssh syncs (+ ghostty, zed on macOS),
+                   observability-collector, host-agents
+ssh-sync.sh (macOS, no iCloud) ──► script/bootstrap
 
 bb-sync ────────► the *-sync.sh scripts
 bb-sync-fleet ──► sync-fleet.sh   ──► (syncs run remotely)
@@ -96,7 +101,8 @@ Recorded so these do not get re-opened:
 
 - **`lib.sh` extracted** — `log_*`, colours, `get_file_mtime`,
   `commit_dotfiles_changes`, `check_icloud`, `sync_dotfile` are each
-  defined exactly once and sourced by 23 of 30 scripts.
+  defined exactly once and sourced by 23 of 30 scripts (24 of 31 by
+  6 Oct 2026).
 - **Symlink sync retired** — no script uses `ln -s` any more. `motd-sync`
   moved to the copy-based model, which was the specific failure mode that
   prompted the original note.

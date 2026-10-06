@@ -11,11 +11,13 @@ Complete guide for the boblbee dotfiles management system for macOS and Ubuntu.
 5. [Script Reference](#script-reference)
 6. [Fleet Management](#fleet-management)
 7. [Observability](#observability)
-8. [Troubleshooting](#troubleshooting)
+8. [Nightly self-update](#nightly-self-update)
+9. [Per-host agents](#per-host-agents-hostsagents)
+10. [Troubleshooting](#troubleshooting)
 
 ## Command Reference
 
-All boblbee commands follow the `bb-*` naming convention. They're defined as shell functions in `.zshrc`.
+All boblbee commands follow the `bb-*` naming convention. They're defined in `.zshrc`: most are aliases for a script, and `bb-sync`, `bb-status` and `bb-edit` are shell functions.
 
 ### Core Commands
 
@@ -23,7 +25,7 @@ All boblbee commands follow the `bb-*` naming convention. They're defined as she
 |---------|-------------|
 | `bb-help` | Display all available boblbee commands with descriptions |
 | `bb-status` | Check sync status of all components |
-| `bb-sync` | Sync all configurations (zshrc, tmux, ghostty, motd, claude, ssh) |
+| `bb-sync` | Sync all configurations (zshrc, tmux, ghostty and zed on macOS, motd, claude, ssh), then push any commits the syncs made |
 | `bb-reload` | Reload shell configuration |
 
 ### Setup Commands
@@ -151,7 +153,7 @@ Two-way sync. iCloud is skipped entirely.
 SSH does not use `sync_dotfile()`. `ssh-sync.sh` picks a source in priority order:
 
 1. **iCloud Drive** (preferred) — copies **portable files** (keys, config, authorized_keys) from iCloud to `~/.ssh/` as a local directory. Read-only from iCloud, write to local.
-2. **ark-config fallback** (no iCloud) — when iCloud Drive is absent, `script/bootstrap` symlinks `~/.ssh/config` to `ark-config/boblbee/ssh_config` and **decrypts** the private keys from `ark-config/boblbee/*.age` into `~/.ssh/`. This is the non-iCloud path that keeps headless / signed-out Macs (and any host with the private repo cloned) in sync. See the [ark-config](https://github.com/matdotcx/ark-config) convention.
+2. **ark-config fallback** (no iCloud) — when iCloud Drive is absent, `script/bootstrap` symlinks `~/.ssh/config` to `ark-config/boblbee/ssh_config` and **decrypts** the private keys from `ark-config/boblbee/*.age` into `~/.ssh/`. This is the non-iCloud path that keeps headless / signed-out Macs in sync. On Ubuntu, `ssh-sync.sh` checks permissions only; run `script/bootstrap` directly to use ark-config there. See the [ark-config](https://github.com/matdotcx/ark-config) convention.
 3. **local only** (neither available) — leaves `~/.ssh` untouched apart from fixing permissions.
 
 On macOS it also stores key passphrases in Keychain via `ssh-add --apple-use-keychain` so you're never prompted again. If `~/.ssh` is a symlink (legacy), it's automatically migrated to a real directory.
@@ -224,36 +226,49 @@ source ~/.zshrc    # or: exec zsh
 
 #### macOS (`index.sh` runs, in order)
 
-1. `touchid-sudo.sh` - TouchID for sudo (requires sudo)
-2. `xcode.sh` - Xcode Command Line Tools
-3. `macports.sh` - MacPorts package manager (requires sudo)
-4. `dots.sh` - System preferences (Finder, Dock, UI/UX, security)
-5. `claude.sh` - Claude Code memory integration
-6. `zshrc-sync.sh` - Shell configuration sync
-7. `tmux-sync.sh` - Tmux config and Manganese themes
-8. `ghostty-sync.sh` - Ghostty terminal config and themes
-9. `zed-sync.sh` - Zed editor config and themes
-10. `motd-sync.sh` - Message of the day
-11. `ssh-sync.sh` - SSH keys from iCloud + Keychain storage
-12. `tailscale-setup.sh` - Tailscale VPN
-13. `observability-collector.sh` - Prometheus node_exporter
-14. `pam-ssh-agent-sudo.sh` - SSH agent sudo authentication
-15. `setup-gpg-signing.sh` - Git GPG commit signing
-16. `hostname-fqdn.sh` - Set HostName to FQDN (requires sudo)
+It first asks for the computer name and your git identity, then:
+
+1. `hostname-fqdn.sh` - Set the computer name, and HostName to its FQDN (requires sudo)
+2. `touchid-sudo.sh` - TouchID for sudo (requires sudo)
+3. `xcode.sh` - Xcode Command Line Tools
+4. `macports.sh` - MacPorts package manager (requires sudo)
+5. `dots.sh` - System preferences (Finder, Dock, UI/UX, security, software updates)
+6. `git-config-shared.sh` - Shared git config (GitHub HTTPS→SSH rewrite, aliases, global gitignore)
+7. `claude.sh` - Claude Code (installed if missing) and its memory, a local copy of `claude/memory/user.md`
+8. `claude-sync.sh` - Claude Code hooks, settings and memory
+9. `zshrc-sync.sh` - Shell configuration sync
+10. `tmux-sync.sh` - Tmux config and Manganese themes
+11. `ghostty-sync.sh` - Ghostty terminal config and themes
+12. `zed-sync.sh` - Zed editor config and themes
+13. `motd-sync.sh` - Message of the day
+14. `ssh-sync.sh` - SSH keys from iCloud (or ark-config) + Keychain storage
+15. `tailscale-setup.sh` - Tailscale VPN
+16. `observability-collector.sh` - Prometheus node_exporter
+17. `pam-ssh-agent-sudo.sh` - SSH agent sudo authentication
+18. `setup-gpg-signing.sh` - Git GPG commit signing
+19. `host-agents.sh` - This host's agent profiles, if it has any
+20. `self-update.sh --install` - The nightly self-update
 
 #### Ubuntu (`index.sh` runs, in order)
 
+It first asks for your git identity, then:
+
 1. `ubuntu-essentials.sh` - Essential packages (build-essential, git, curl, zsh, vim, ripgrep, fd-find, htop, tree, npm)
 2. `ubuntu-git-setup.sh` - Git config and SSH key setup
-3. `claude.sh` - Claude Code memory integration
-4. `zshrc-sync.sh` - Shell configuration sync
-5. `tmux-sync.sh` - Tmux config and themes
-6. `motd-sync.sh` - Message of the day
-7. `ssh-sync.sh` - Local SSH management
-8. `tailscale-setup.sh` - Tailscale VPN
-9. `observability-collector.sh` - Prometheus node_exporter
-10. `setup-gpg-signing.sh` - Git GPG commit signing
-11. `hostname-fqdn.sh` - (skips on non-macOS)
+3. `git-config-shared.sh` - Shared git config
+4. `claude.sh` - Claude Code (installed if missing) and its memory
+5. `claude-sync.sh` - Claude Code hooks, settings and memory
+6. `zshrc-sync.sh` - Shell configuration sync
+7. `tmux-sync.sh` - Tmux config and themes
+8. `motd-sync.sh` - Message of the day
+9. `ssh-sync.sh` - Local SSH management
+10. `tailscale-setup.sh` - Tailscale VPN
+11. `observability-collector.sh` - Prometheus node_exporter
+12. `setup-gpg-signing.sh` - Git GPG commit signing
+13. `host-agents.sh` - This host's agent profiles, if it has any
+14. `self-update.sh --install` - The nightly self-update (a crontab line)
+
+On both, `index.sh` ends by switching the boblbee remote from HTTPS to SSH.
 
 ### Upgrading
 
@@ -309,6 +324,8 @@ bb-sync-fleet
 |--------|----------|-------------|
 | `index.sh` | Both | Main installer - runs all setup scripts in dependency order |
 | `upgrade.sh` | Both | Safe upgrade: git pull, re-run syncs, preserve config |
+| `self-update.sh` | Both | Nightly pull + sync at 00:48 (see [Nightly self-update](#nightly-self-update)); `--install` / `--uninstall` |
+| `host-agents.sh` | Both | Install this host's agent profiles from `hosts/agent-assignments.txt` (see [Per-host agents](#per-host-agents-hostsagents)) |
 | `detect-os.sh` | Both | Provides `is_macos()`, `is_ubuntu()`, `is_cli_only()`, `get_os_name()`, `get_package_manager()`, `get_user_bin_path()` |
 
 ### Sync Scripts
@@ -320,15 +337,16 @@ bb-sync-fleet
 | `tmux-sync.sh` | Both | Bidirectional sync for `tmux.conf`, `tmux-base.conf`, and theme files |
 | `ghostty-sync.sh` | macOS | Bidirectional config sync + bidirectional theme sync (Manganese Dark/Light) |
 | `zed-sync.sh` | macOS | Bidirectional sync for Zed `settings.json`, `keymap.json`, and themes |
-| `ssh-sync.sh` | Both | macOS: copy portable files from iCloud, store keys in Keychain. Ubuntu: permissions only |
+| `ssh-sync.sh` | Both | macOS: copy portable files from iCloud (or, without iCloud, wire them from ark-config via `script/bootstrap`) and store keys in Keychain. Ubuntu: permissions only |
 | `claude-sync.sh` | Both | Install hooks from `assets/claude-hooks/` to `~/.claude/hooks/`; sync `~/.claude/settings.json` and Claude memory (newest wins, commits to git) |
-| `claude.sh` | Both | Initial Claude Code setup (config dir, symlink to user.md) |
+| `claude.sh` | Both | Install Claude Code if missing (native installer); copy `claude/memory/user.md` to `~/.config/claude/memory` (migrating an old symlink) |
+| `git-config-shared.sh` | Both | Git config shared by every host: GitHub HTTPS→SSH rewrite, defaults, aliases, global gitignore |
 
 ### Platform Setup
 
 | Script | Platform | Description |
 |--------|----------|-------------|
-| `dots.sh` | macOS | System preferences: Finder, Dock, UI/UX, security |
+| `dots.sh` | macOS | System preferences: Finder, Dock, UI/UX, security, software updates (see [Manual macOS updates](#manual-macos-updates)) |
 | `macports.sh` | macOS | Install MacPorts, configure `/etc/paths.d/macports` |
 | `touchid-sudo.sh` | macOS | Enable TouchID for sudo |
 | `xcode.sh` | macOS | Install Xcode Command Line Tools |
@@ -360,7 +378,7 @@ bb-sync-fleet
 
 ### Host List
 
-Hosts are listed in `hosts/elements.txt`, one per line. Lines starting with `#` are ignored.
+Hosts are listed in `hosts/elements.txt`, one per line. Lines starting with `#` are ignored. The real list is gitignored; copy `hosts/elements.example.txt` to start one.
 
 ### Status Checks
 
@@ -381,7 +399,7 @@ Hosts are listed in `hosts/elements.txt`, one per line. Lines starting with `#` 
 1. SSHs to each host
 2. Fetches over HTTPS (public repo, no agent forwarding dependency)
 3. Fast-forward merges
-4. Runs `zshrc-sync.sh`, `ssh-sync.sh`, `tmux-sync.sh`, `motd-sync.sh`
+4. Runs `claude-sync.sh`, `zshrc-sync.sh`, `ssh-sync.sh`, `tmux-sync.sh`, `motd-sync.sh`
 
 Environment variables:
 - `PARALLEL=1` - Run all hosts concurrently
@@ -413,9 +431,11 @@ fleet sync.
 During `index.sh` setup:
 1. `observability-collector.sh` runs automatically
 2. Installs `node_exporter` for the platform (version pinned in `config.sh`)
-3. Creates a systemd service (Linux) or LaunchAgent (macOS)
-4. Registers with helium via SSH (if reachable)
-5. Helium's Prometheus starts scraping metrics on port 9100
+3. Creates a systemd user service (Linux) or the LaunchAgent `org.iaconelli.node-exporter` (macOS)
+4. Listens on the host's Tailscale address if it has one, otherwise on localhost (never `0.0.0.0`)
+5. Points its textfile collector at `~/.local/share/prometheus/textfile`, where the nightly self-update writes `boblbee.prom` and agent profiles write their own `.prom` files
+6. Registers with helium via SSH (if reachable)
+7. Helium's Prometheus starts scraping metrics on port 9100
 
 Set `SKIP_OBSERVABILITY=1` to skip.
 
@@ -425,6 +445,21 @@ If helium wasn't reachable during setup:
 ```bash
 ssh -A helium '~/observability/scripts/register-host.sh $(hostname) <your-ip>'
 ```
+
+## Nightly self-update
+
+`self-update.sh --install` (run by `index.sh`) schedules a pull every night at 00:48: the LaunchAgent `org.iaconelli.boblbee-self-update` on macOS, a crontab line on Linux. Each run:
+
+1. fetches the default branch over HTTPS with `GIT_CONFIG_GLOBAL=/dev/null`, so `git-config-shared.sh`'s HTTPS→SSH rewrite can't turn it into an SSH fetch that has no key under launchd or cron;
+2. stops there if nothing is new;
+3. otherwise fast-forwards (refusing if there are local edits), then re-runs the zshrc, tmux, motd and ssh syncs (plus ghostty and zed on macOS), `observability-collector.sh` and `host-agents.sh`;
+4. writes `boblbee.prom` (`boblbee_update_timestamp_seconds`, `boblbee_update_success`, `boblbee_update_info{commit,branch}`) to the textfile directory, so Prometheus sees when each host last updated and whether it worked.
+
+The log is `~/logs/boblbee-update.log`. Run it by hand with `scripts/self-update.sh`; remove the schedule with `--uninstall`.
+
+## Manual macOS updates
+
+`dots.sh` turns on automatic macOS update installs, except on hosts named in `hosts/manual-os-updates.txt` (one short hostname per line). Those still check, download and take critical and security responses automatically, but a person installs macOS updates, at a time they choose. Use it for hosts whose services an unattended restart would take down.
 
 ## Troubleshooting
 
@@ -447,6 +482,10 @@ On macOS, run `bb-sync-ssh` - it calls `ssh-add --apple-use-keychain` to store p
 ### Symlink detected where a file should be
 
 The refactored system uses copies, not symlinks. If a sync script finds a symlink at `~/.zshrc` or `~/.motd`, it automatically migrates it to a real file by reading the symlink target and creating a copy.
+
+### An agent is loaded but never runs
+
+If `launchctl print gui/$(id -u)/<label>` shows the job loaded with `runs = 0`, or a count that stops growing, check System Settings → General → Login Items & Extensions → Allow in the Background: macOS can hold back a LaunchAgent it hasn't been allowed to run. `launchctl kickstart gui/$(id -u)/<label>` runs it once by hand. The posture profile's `install.sh --check` flags a job that has never run.
 
 ### Fleet host unreachable
 
@@ -475,17 +514,19 @@ bb-sync
 set +x
 ```
 
----
-
-Remember: These are dotfiles. Read, understand, and customise them to your needs.
-
 ## Per-host agents (`hosts/agents/`)
 
 Some scheduled jobs belong to one machine rather than the fleet (a vault sync, a downloads sweep, a backup of an app's local state). They live in **profiles** under `hosts/agents/<profile>/` with `bin/` (scripts installed to `~/bin`), `launchd/` (plist templates using `__HOME__`) and an idempotent `install.sh` (`--check` reports drift and unloaded agents without changing anything).
 
-Which host gets which profile is **data, not code**: `hosts/agent-assignments.txt` maps a short hostname to one or more profiles. `scripts/host-agents.sh` reads it and runs the matching installers; `--host NAME` and `--profile NAME` override the lookup, `--list` shows the mapping. It runs at the end of `index.sh` (fresh install) and inside `self-update.sh` every night, so a hand-edited plist or an unloaded agent heals itself on the next tick. Hosts with no line in the assignments file get nothing.
+Which host gets which profile is **data, not code**: `hosts/agent-assignments.txt` maps a short hostname to one or more profiles. `scripts/host-agents.sh` reads it and runs the matching installers; `--host NAME` and `--profile NAME` override the lookup, `--list` shows the mapping. It runs at the end of `index.sh` (fresh install) and inside `self-update.sh` on any night that brings new commits, so a hand-edited plist or an unloaded agent heals itself then; run `scripts/host-agents.sh` to heal it now. Hosts with no line in the assignments file get nothing.
 
-Profiles today: `logtrim` (every Mac: weekly trim of launchd logs over 50 MB in `~/logs` and `~/Library/Logs`, keeping the last 10 MB), `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO, KoboShelf and rmcd agents are installed by their own repos and the radon profile's `--check` verifies they are loaded without managing them).
+Profiles today:
+
+- `logtrim`: a weekly trim of launchd logs over 50 MB in `~/logs` and `~/Library/Logs`, keeping the last 10 MB.
+- `posture`: every hour, read-only host posture checks written as `posture.prom` to the textfile directory. On macOS it's a LaunchAgent run as the login user; the installer starts it straight away, and `--check` fails if it has never run. Linux hosts run the same `posture.sh` as root from a systemd timer, installed by hand with `posture/linux/install-root.sh` (self-update doesn't refresh that root-owned copy).
+- `heartbeat`: every 5 minutes, ping an external healthchecks.io check while the monitoring server's Prometheus is healthy.
+- `ha-backup` and `deadline-backup`: nightly pulls of other hosts' backups onto the backup host.
+- `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO, KoboShelf and rmcd agents are installed by their own repos and the radon profile's `--check` verifies they are loaded without managing them).
 
 Shared pieces used by more than one profile go in `scripts/lib/` (today: `git-safe-sync.sh`, the serialised commit-and-push helper) and the profile's `install.sh` copies them into `~/bin`.
 
@@ -494,3 +535,7 @@ Label convention: every agent boblbee installs is `org.iaconelli.<job>` — the 
 ## Rebuild runbook
 
 If a host has to be rebuilt from scratch, `docs/aluminium-rebuild-runbook.md` lists what comes back from where (iCloud, GitHub, the NAS) and in what order, with boblbee's bootstrap as step 3. Keep it current when adding jobs or data locations to a host.
+
+---
+
+Remember: These are dotfiles. Read, understand, and customise them to your needs.

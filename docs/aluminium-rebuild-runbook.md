@@ -1,6 +1,6 @@
 # Aluminium rebuild runbook
 
-If aluminium (Diego's main Mac) dies: what comes back from where, and in what order. Written 17 Sep 2026 after the storage tidy-up; last revised 18 Sep 2026. Assumes a replacement Mac, a fresh macOS install, and that cobalt, radon and deadline are still up.
+If aluminium (Diego's main Mac) dies: what comes back from where, and in what order. Written 17 Sep 2026 after the storage tidy-up; last revised 6 Oct 2026. Assumes a replacement Mac, a fresh macOS install, and that cobalt, radon and deadline are still up.
 
 ## 1. What is safe today (recoverable without aluminium)
 
@@ -49,10 +49,10 @@ If aluminium (Diego's main Mac) dies: what comes back from where, and in what or
    git remote add radon ops@radon:vault-mirror.git 2>/dev/null; git status
    ```
    Expect `git status` to show only files changed since the last push; commit them with the normal sync.
-6. **Aluminium's own agents come with boblbee** (step 3 already installed them: `index.sh` ends with `host-agents.sh`, which reads `hosts/agent-assignments.txt`). Verify with `boblbee/scripts/host-agents.sh --check`. Grant **Full Disk Access to `/bin/zsh`** (xo-mirror, vault-sync). Restore KoboShelf state from `~/Documents/Calibre Library/.koboshelf-backups/state/latest/` after KoboShelf's first launch.
+6. **Aluminium's own agents come with boblbee** (step 3 already installed them: `index.sh` ends with `host-agents.sh`, which reads `hosts/agent-assignments.txt`; aluminium gets the `aluminium`, `logtrim` and `posture` profiles). Verify with `boblbee/scripts/host-agents.sh --check`. If macOS asks, allow the new background items (System Settings → General → Login Items & Extensions → Allow in the Background), or launchd may load the agents but never run them. Grant **Full Disk Access to `/bin/zsh`** (xo-mirror, vault-sync). Restore KoboShelf state from `~/Documents/Calibre Library/.koboshelf-backups/state/latest/` after KoboShelf's first launch.
 7. **Apps and their pointers.** calibre → open `~/Documents/Calibre Library`; KoboShelf → same library, then restore the KoboShelf state folder from its backup; CleanShot X export path → `~/Documents/Screenshots`; Claude Desktop routines pick up `Documents/Claude/Scheduled` automatically.
 8. **Per-machine settings to redo:** Full Disk Access as above; Photos → Settings → iCloud (optimise storage is fine here; cobalt holds originals); Safari download location `~/Downloads`; Messages "Keep messages" preference; Time Machine destination if you add one.
-9. **Verify:** `~/bin/vault-sync.sh` exits 0; `sweep-now --dry-run` reaches cobalt; `curl localhost:9100/metrics` answers; a screenshot lands on media.iaconelli.org; xo-mirror log shows no "operation not permitted".
+9. **Verify:** `~/bin/vault-sync.sh` exits 0; `sweep-now --dry-run` reaches cobalt; `curl "$(tailscale ip -4):9100/metrics"` answers (node_exporter listens on the Tailscale address once Tailscale is up, not on localhost); `posture.prom` appears in `~/.local/share/prometheus/textfile`; a screenshot lands on media.iaconelli.org; xo-mirror log shows no "operation not permitted".
 
 ## 4. Remaining exposure
 

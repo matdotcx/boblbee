@@ -1,5 +1,10 @@
 # Task: wire a Claude Code attention signal into boblbee
 
+> **Status: done** (9–10 Jun 2026). `assets/tmux-base.conf` turns on `monitor-bell`, the
+> tmux themes draw a persistent red dot on a window that rang, and
+> `assets/claude-settings.json` sets `preferredNotifChannel` to `terminal_bell`, synced to
+> `~/.claude/settings.json` by `claude-sync.sh`. Kept as the record of how and why.
+
 ## Goal
 
 When Claude Code runs inside a tmux window, the window should flag itself in the
