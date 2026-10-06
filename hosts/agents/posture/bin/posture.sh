@@ -64,7 +64,7 @@ def posture_untracked_secret_files 'Secret-looking files in a git repo that are 
 def posture_age_recipients        'Recipient stanzas, by type, in the newest age file of each backup set.'
 def posture_guest_running         'A VM or container engine on this host is running.'
 def posture_guest_memory_bytes    'Memory assigned to a guest.'
-def posture_container_unpinned    'A running container whose image reference is not pinned by digest.'
+def posture_container_unpinned    'A running container whose image reference is not pinned by digest (build="local": built here, never pulled; counted as pinned).'
 
 # ── access ──
 check_tailscale() {
@@ -269,8 +269,14 @@ containers() { # guest command-that-is-docker...
     out=$(with_timeout 30 "$@" inspect --format '{{.Name}}{{"\t"}}{{.Config.Image}}' $ids 2>/dev/null) || { ok "containers:$g" 0; return; }
     printf '%s\n' "$out" | while IFS="$TAB" read -r name image; do
         name=${name#/}; [ -n "$name" ] || continue
+        b=registry
         case "$image" in *@sha256:*) u=0 ;; *) u=1 ;; esac
-        put posture_container_unpinned "$u" "guest=\"$(lv "$g")\",container=\"$(lv "$name")\",image=\"$(lv "$image")\""
+        # An image built on this host and never pulled has no registry digest to pin to, and a restart can't change
+        # it: count it as pinned, labelled build="local". (Pin its Dockerfile's FROM to make rebuilds repeatable.)
+        if [ $u = 1 ] && [ "$(with_timeout 15 "$@" image inspect --format '{{len .RepoDigests}}' "$image" 2>/dev/null)" = 0 ]; then
+            u=0; b=local
+        fi
+        put posture_container_unpinned "$u" "guest=\"$(lv "$g")\",container=\"$(lv "$name")\",image=\"$(lv "$image")\",build=\"$b\""
     done
 }
 json_str() { printf '%s' "$2" | sed -n "s/.*\"$1\":\"\([^\"]*\)\".*/\1/p"; }
