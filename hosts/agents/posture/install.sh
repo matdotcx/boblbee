@@ -26,8 +26,10 @@ for t in "$HERE"/launchd/*.plist; do
   if [ -f "$dst" ] && cmp -s "$tmp" "$dst"; then state=same; else state=changed; fi
   if [ $CHECK = 1 ]; then
     loaded=$(launchctl print "gui/$uid/$label" >/dev/null 2>&1 && echo loaded || echo NOT-LOADED)
-    [ "$state" = same ] && [ "$loaded" = loaded ] || rc=1
-    say "  $label: plist $state, $loaded"; rm -f "$tmp"; continue
+    # A job can be loaded and still never have run (seen once after a bootstrap): count that as a failure too.
+    runs=$(launchctl print "gui/$uid/$label" 2>/dev/null | awk '$1 == "runs" { print $3; exit }')
+    [ "$state" = same ] && [ "$loaded" = loaded ] && [ "${runs:-0}" -gt 0 ] || rc=1
+    say "  $label: plist $state, $loaded, runs ${runs:-0}"; rm -f "$tmp"; continue
   fi
   if [ "$state" = changed ]; then install -m 644 "$tmp" "$dst" && say "  wrote    $label"; else say "  same     $label"; fi
   rm -f "$tmp"
@@ -36,6 +38,8 @@ for t in "$HERE"/launchd/*.plist; do
     if [ "$state" = changed ] || [ "$loaded" = no ]; then
       launchctl bootout "gui/$uid/$label" >/dev/null 2>&1 || true
       if launchctl bootstrap "gui/$uid" "$dst" 2>/dev/null; then say "  loaded   $label"; else say "  FAILED to load $label"; rc=1; fi
+      # RunAtLoad should start it, but don't rely on it: start it now so posture.prom appears straight away.
+      launchctl kickstart "gui/$uid/$label" >/dev/null 2>&1 && say "  started  $label"
     else say "  running  $label"; fi
   fi
 done
