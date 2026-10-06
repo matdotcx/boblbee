@@ -6,3 +6,4 @@ cobalt     ha-backup deadline-backup logtrim posture
 helium     heartbeat logtrim posture
 hydrogen   posture
 krypton    posture
+nickel     posture
