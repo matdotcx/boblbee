@@ -534,7 +534,7 @@ Label convention: every agent boblbee installs is `org.iaconelli.<job>` — the 
 
 ## Rebuild runbook
 
-If a host has to be rebuilt from scratch, `docs/aluminium-rebuild-runbook.md` lists what comes back from where (iCloud, GitHub, the NAS) and in what order, with boblbee's bootstrap as step 3. Keep it current when adding jobs or data locations to a host.
+If a host has to be rebuilt from scratch, `docs/aluminium-rebuild-runbook.md` lists what comes back from where (iCloud, GitHub, the NAS) and in what order, with boblbee's bootstrap as step 3. radon has its own, `docs/radon-rebuild-runbook.md`, with `scripts/rebuild-radon.sh` doing the parts that need no person (`--check` reports without changing anything). Keep them current when adding jobs or data locations to a host.
 
 ---
 
