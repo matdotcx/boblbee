@@ -526,7 +526,7 @@ Profiles today:
 - `posture`: every hour, read-only host posture checks written as `posture.prom` to the textfile directory. On macOS it's a LaunchAgent run as the login user; the installer starts it straight away, and `--check` fails if it has never run. Linux hosts run the same `posture.sh` as root from a systemd timer, installed by hand with `posture/linux/install-root.sh` (self-update doesn't refresh that root-owned copy).
 - `heartbeat`: every 5 minutes, ping an external healthchecks.io check while the monitoring server's Prometheus is healthy.
 - `ha-backup` and `deadline-backup`: nightly pulls of other hosts' backups onto the backup host.
-- `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO, KoboShelf and rmcd agents are installed by their own repos and the radon profile's `--check` verifies they are loaded without managing them).
+- `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO and KoboShelf agents are installed by their own repos (rmcd runs on helium) and the radon profile's `--check` verifies they are loaded without managing them).
 
 Shared pieces used by more than one profile go in `scripts/lib/` (today: `git-safe-sync.sh`, the serialised commit-and-push helper) and the profile's `install.sh` copies them into `~/bin`.
 
@@ -534,7 +534,7 @@ Label convention: every agent boblbee installs is `org.iaconelli.<job>` — the 
 
 ## Rebuild runbook
 
-If a host has to be rebuilt from scratch, `docs/aluminium-rebuild-runbook.md` lists what comes back from where (iCloud, GitHub, the NAS) and in what order, with boblbee's bootstrap as step 3. Keep it current when adding jobs or data locations to a host.
+If a host has to be rebuilt from scratch, `docs/aluminium-rebuild-runbook.md` lists what comes back from where (iCloud, GitHub, the NAS) and in what order, with boblbee's bootstrap as step 3. radon has its own, `docs/radon-rebuild-runbook.md`, with `scripts/rebuild-radon.sh` doing the parts that need no person (`--check` reports without changing anything). Keep them current when adding jobs or data locations to a host.
 
 ---
 
