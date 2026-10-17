@@ -526,7 +526,7 @@ Profiles today:
 - `posture`: every hour, read-only host posture checks written as `posture.prom` to the textfile directory. On macOS it's a LaunchAgent run as the login user; the installer starts it straight away, and `--check` fails if it has never run. Linux hosts run the same `posture.sh` as root from a systemd timer, installed by hand with `posture/linux/install-root.sh` (self-update doesn't refresh that root-owned copy).
 - `heartbeat`: every 5 minutes, ping an external healthchecks.io check while the monitoring server's Prometheus is healthy.
 - `ha-backup` and `deadline-backup`: nightly pulls of other hosts' backups onto the backup host.
-- `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO, KoboShelf and rmcd agents are installed by their own repos and the radon profile's `--check` verifies they are loaded without managing them).
+- `aluminium` (vault-sync, xo-mirror, downloads-sweep, koboshelf-backup) and `radon` (vault-sync only; radon's XO and KoboShelf agents are installed by their own repos (rmcd runs on helium) and the radon profile's `--check` verifies they are loaded without managing them).
 
 Shared pieces used by more than one profile go in `scripts/lib/` (today: `git-safe-sync.sh`, the serialised commit-and-push helper) and the profile's `install.sh` copies them into `~/bin`.
 

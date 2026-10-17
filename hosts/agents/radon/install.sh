@@ -8,7 +8,8 @@
 #
 # This profile owns only the vault sync. radon's other jobs are installed by their own repos and
 # are *verified* here, not managed: the XO agents by matdotcx/xo (recovery/install-*-job.sh),
-# koboshelfd + cloudflared-kobo by KoboShelf's installer, rmcd by matdotcx/rmc. If one of those is
+# koboshelfd + cloudflared-kobo by KoboShelf (deploy/rebuild-host.sh). rmcd runs on helium, not
+# here. If one of those is
 # missing, --check fails and the nightly self-update log says which repo to re-run.
 #
 # Requires: ssh alias `deadline-vault` (the vault's origin) and a normal clone at ~/vault.
@@ -17,7 +18,7 @@ HERE="$(cd "$(dirname "$0")" && pwd)"
 REPO="$(cd "$HERE/../../.." && pwd)"
 SHARED=("$REPO/scripts/lib/git-safe-sync.sh")   # shared with other hosts; installed into ~/bin like the profile scripts
 # Each entry lists the acceptable labels for one service, "|"-separated (repos are moving to org.iaconelli.*).
-EXTERNAL=("org.iaconelli.xo-push" "org.iaconelli.xo-dispatch" "org.iaconelli.xo-replies" "org.iaconelli.koboshelfd|cx.matdot.koboshelfd" "org.iaconelli.cloudflared-kobo|cx.matdot.cloudflared-kobo" "org.iaconelli.rmcd|cx.mat.rmcd")
+EXTERNAL=("org.iaconelli.xo-push" "org.iaconelli.xo-dispatch" "org.iaconelli.xo-replies" "org.iaconelli.koboshelfd|cx.matdot.koboshelfd" "org.iaconelli.cloudflared-kobo|cx.matdot.cloudflared-kobo")
 BIN="$HOME/bin"; AGENTS="$HOME/Library/LaunchAgents"; LOGS="$HOME/logs"
 CHECK=0; LOAD=1
 case "${1:-}" in --check) CHECK=1;; --no-load) LOAD=0;; "") ;; *) sed -n '2,14p' "$0"; exit 1;; esac
