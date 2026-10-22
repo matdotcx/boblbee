@@ -26,7 +26,7 @@ WS="$(dirname "$BOBLBEE")"
 ICLOUD_SSH="$HOME/Library/Mobile Documents/com~apple~CloudDocs/Ark/Sync/System/.ssh"
 BOOTSTRAP_KEY="${BOBLBEE_BOOTSTRAP_KEY:-$HOME/.config/boblbee/id_bootstrap}"
 # The repos radon runs things from. Everything else in matdotcx/* can be cloned when it's needed.
-REPOS=(ark-config xenon observability xo imap-mcp KoboShelf)
+REPOS=(ark-config xenon observability xo imap-mcp KoboShelf kohinoor)
 # The user-level boblbee modules index.sh would run. The sudo ones (hostname, Touch ID, MacPorts,
 # PAM, dots.sh) set things outside the home folder, which a lost home folder doesn't take with it.
 MODULES=(git-config-shared.sh zshrc-sync.sh tmux-sync.sh ghostty-sync.sh zed-sync.sh motd-sync.sh claude-sync.sh observability-collector.sh)
@@ -127,7 +127,22 @@ else
     todo "KoboShelf: seed id_bootstrap and re-run, or NEW_TOKEN=1 POINT_KOBO=1 KoboShelf/deploy/rebuild-host.sh with the Kobo plugged in (a new token means re-pointing it)"
 fi
 
-step "8. verify"
+step "8. the cc box (kohinoor)"
+# Its pf anchor and LaunchDaemon live outside the home folder and survive; the start-at-login agent, the
+# container volumes (~/Library/Application Support/com.apple.container) and the box's tailnet identity don't.
+C="$WS/kohinoor/cc.sh"
+if [ ! -x "$C" ]; then say "kohinoor isn't cloned (step 3)"
+elif ! command -v container >/dev/null 2>&1; then
+    say "container: NOT installed"
+    todo "Apple's container: the signed .pkg from github.com/apple/container releases, then container system start --enable-kernel-install (kohinoor README)"
+elif [ $CHECK = 1 ]; then "$C" host 2>&1 | sed 's/^/  /'
+else
+    "$C" host --apply 2>&1 | sed 's/^/  /'
+    "$C" up 2>&1 | sed 's/^/  /'
+    todo "cc box: remove the old cc machine in the Tailscale admin console, make a tag:cc auth key, then kohinoor/cc.sh join"
+fi
+
+step "9. verify"
 for h in "${FLEET[@]}"; do
     if ssh -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=yes "$h" true </dev/null >/dev/null 2>&1; then say "ssh $h: ok"
     else say "ssh $h: FAILED"; fi
