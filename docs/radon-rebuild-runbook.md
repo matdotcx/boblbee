@@ -17,6 +17,8 @@ If radon (the desktop, standby console, and home of XO, KoboShelf and the vault 
 | `~/vault`, its git-only deploy key, `~/vault-mirror.git` | deadline `vault.git`; the key escrowed in ark-config `boblbee/hosts/radon/` | boblbee's radon profile (needs `id_bootstrap`) |
 | koboshelfd, the `koboshelf` tunnel, the Kobo's token | KoboShelf repo; token and tunnel credentials escrowed in ark-config `KoboShelf/` | KoboShelf `deploy/rebuild-host.sh` (needs `id_bootstrap`) |
 | xo's push job | xo repo | the script |
+| The cc box's pf anchor and LaunchDaemon (`/etc/pf.anchors/org.iaconelli.kohinoor`, `org.iaconelli.kohinoor.pf`) | outside the home folder: they survive | the script checks them (`kohinoor/cc.sh host`) |
+| The cc box itself: start-at-login agent, image, volumes, tailnet identity | kohinoor repo; the volumes are in `~/Library` and are lost | the script rebuilds and starts it; you join it to the tailnet |
 | xo's dispatch and replies jobs, MCP config, Routines | xo repo (`recovery/`) and deadline (MCP bearer tokens) | you, at the Mac (§3 step 4) |
 
 ## 2. What doesn't come back by itself
@@ -35,17 +37,18 @@ If radon (the desktop, standby console, and home of XO, KoboShelf and the vault 
 
 ## 3. Rebuild order (about an hour of attention)
 
-1. **macOS, Apple ID, iCloud Drive** (Desktop & Documents on). Tailscale signed in. MacPorts with `age`, `gh`, `cloudflared` (they live outside the home folder, so a lost home folder keeps them).
+1. **macOS, Apple ID, iCloud Drive** (Desktop & Documents on). Tailscale signed in. MacPorts with `age`, `gh`, `cloudflared`, and Apple's `container` from its signed `.pkg` (they live outside the home folder, so a lost home folder keeps them).
 2. **GitHub and boblbee.** `gh auth login --web` (approve the code from your phone), then clone `matdotcx/boblbee` to `~/Developer/workspace/matdotcx/boblbee`. Set your git name and email. Seed `~/.config/boblbee/id_bootstrap` from the vault.
 3. **Run `boblbee/scripts/rebuild-radon.sh`.** In order, it:
     1. runs preflight;
     2. runs `ssh-sync.sh` and adds iCloud's `known_hosts` entries;
-    3. clones `ark-config`, `xenon`, `observability`, `xo`, `imap-mcp` and `KoboShelf`;
+    3. clones `ark-config`, `xenon`, `observability`, `xo`, `imap-mcp`, `KoboShelf` and `kohinoor`;
     4. runs boblbee's user-level modules;
     5. installs xo's push job;
     6. runs `host-agents.sh` (the vault and the mirror) and self-update;
     7. runs KoboShelf's `rebuild-host.sh`;
-    8. checks SSH to the fleet.
+    8. checks the cc box's pf anchor (`kohinoor/cc.sh host --apply`) and starts the box;
+    9. checks SSH to the fleet.
 
     It ends with the list of what's left for you. Unlock the SSH keys when it asks (`ssh-add --apple-use-keychain …`), then re-run it.
 4. **xo, at the Mac.**
@@ -63,6 +66,7 @@ If radon (the desktop, standby console, and home of XO, KoboShelf and the vault 
 - helium's Prometheus: radon's `node` target is up.
 - `curl -s https://kobo.iaconelli.org/health` answers. If the token came back from escrow, the Kobo syncs with no change; if it's new, run `KoboShelf/deploy/point-kobo.sh --apply` with the Kobo plugged in.
 - `tail ~/logs/vault-sync.log ~/logs/xo-push.log`: clean runs.
+- `kohinoor/cc.sh check`: every probe `ok`, and the box is on the tailnet as `tag:cc`.
 
 ## 5. Notes from 15–17 Oct
 
