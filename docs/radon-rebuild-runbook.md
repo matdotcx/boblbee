@@ -18,7 +18,7 @@ If radon (the desktop, standby console, and home of XO, KoboShelf and the vault 
 | koboshelfd, the `koboshelf` tunnel, the Kobo's token | KoboShelf repo; token and tunnel credentials escrowed in ark-config `KoboShelf/` | KoboShelf `deploy/rebuild-host.sh` (needs `id_bootstrap`) |
 | xo's push job | xo repo | the script |
 | The cc box's pf anchor and LaunchDaemon (`/etc/pf.anchors/org.iaconelli.kohinoor`, `org.iaconelli.kohinoor.pf`) | outside the home folder: they survive | the script checks them (`kohinoor/cc.sh host`) |
-| The cc box itself: start-at-login agent, image, volumes, tailnet identity | kohinoor repo; the volumes are in `~/Library` and are lost | the script rebuilds and starts it; you join it to the tailnet |
+| The cc box itself: start-at-login agent, image, volumes, tailnet identity, its Claude login and Remote Control | kohinoor repo; the volumes are in `~/Library` and are lost, and so is Remote Control's on/off setting (`~/.config/kohinoor/remote-control`), which comes back **on** | the script rebuilds and starts it; you join it to the tailnet, log in to Claude in the box and answer Remote Control's two first-run questions (`cc-remote-control attach`) |
 | xo's dispatch and replies jobs, MCP config, Routines | xo repo (`recovery/`) and deadline (MCP bearer tokens) | you, at the Mac (§3 step 4) |
 
 ## 2. What doesn't come back by itself
@@ -47,7 +47,7 @@ If radon (the desktop, standby console, and home of XO, KoboShelf and the vault 
     5. installs xo's push job;
     6. runs `host-agents.sh` (the vault and the mirror) and self-update;
     7. runs KoboShelf's `rebuild-host.sh`;
-    8. checks the cc box's pf anchor (`kohinoor/cc.sh host --apply`) and starts the box;
+    8. checks the cc box's pf anchor (`kohinoor/cc.sh host --apply`) and starts the box, with its Remote Control server waiting for a login;
     9. checks SSH to the fleet.
 
     It ends with the list of what's left for you. Unlock the SSH keys when it asks (`ssh-add --apple-use-keychain …`), then re-run it.
@@ -66,7 +66,8 @@ If radon (the desktop, standby console, and home of XO, KoboShelf and the vault 
 - helium's Prometheus: radon's `node` target is up.
 - `curl -s https://kobo.iaconelli.org/health` answers. If the token came back from escrow, the Kobo syncs with no change; if it's new, run `KoboShelf/deploy/point-kobo.sh --apply` with the Kobo plugged in.
 - `tail ~/logs/vault-sync.log ~/logs/xo-push.log`: clean runs.
-- `kohinoor/cc.sh check`: every probe `ok`, and the box is on the tailnet as `tag:cc`.
+- `kohinoor/cc.sh check`: every probe `ok`, the box is on the tailnet as `tag:cc`, and the last line is `ok   remote control serving`.
+- The Claude app, **Code** tab: the box's session is listed, with a green dot. If you'd turned Remote Control off before, `kohinoor/cc.sh rc off` again.
 
 ## 5. Notes from 15–17 Oct
 
