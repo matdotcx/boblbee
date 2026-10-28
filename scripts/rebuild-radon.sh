@@ -129,7 +129,9 @@ fi
 
 step "8. the cc box (kohinoor)"
 # Its pf anchor and LaunchDaemon live outside the home folder and survive; the start-at-login agent, the
-# container volumes (~/Library/Application Support/com.apple.container) and the box's tailnet identity don't.
+# container volumes (~/Library/Application Support/com.apple.container) and the box's tailnet identity don't. Nor do
+# its Claude login and Remote Control's first-run answers (on cc-home), or the on/off setting
+# (~/.config/kohinoor/remote-control), so Remote Control comes back on, waiting for you to log in.
 C="$WS/kohinoor/cc.sh"
 if [ ! -x "$C" ]; then say "kohinoor isn't cloned (step 3)"
 elif ! command -v container >/dev/null 2>&1; then
@@ -140,6 +142,7 @@ else
     "$C" host --apply 2>&1 | sed 's/^/  /'
     "$C" up 2>&1 | sed 's/^/  /'
     todo "cc box: remove the old cc machine in the Tailscale admin console, make a tag:cc auth key, then kohinoor/cc.sh join"
+    todo "cc box Remote Control: in a plain SSH login to the box (ssh cc@cc), claude (log in with your personal claude.ai account), then cc-remote-control attach, answer y twice, C-b d; kohinoor/cc.sh check should end 'ok   remote control serving' (kohinoor OPERATIONS.md, Remote Control)"
 fi
 
 step "9. verify"
