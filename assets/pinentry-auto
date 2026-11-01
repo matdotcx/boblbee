@@ -1,0 +1,8 @@
+#!/bin/sh
+# gpg-agent runs this. PINENTRY_USER_DATA is forwarded from the calling shell:
+# .zshrc sets it to USE_CURSES in SSH sessions, where the GUI pinentry-mac
+# can't reach the window server and instantly cancels.
+case "$PINENTRY_USER_DATA" in
+    *USE_CURSES*) exec /opt/local/bin/pinentry-curses "$@" ;;
+esac
+exec /Applications/MacPorts/pinentry-mac.app/Contents/MacOS/pinentry-mac "$@"
