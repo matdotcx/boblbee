@@ -2,7 +2,7 @@
 
 #########################################################
 # Title: claude-sync
-# Description: Install Claude hooks; bidirectional sync of memory + user settings (copy strategy)
+# Description: Install Claude hooks + Manganese themes; bidirectional sync of memory + user settings (copy strategy)
 # Source: https://github.com/matdotcx/boblbee
 #
 # ~/.config/claude/memory/user.md and ~/.claude/settings.json are real local
@@ -55,6 +55,32 @@ echo ""
 # Newest-mtime-wins (2-way repo <-> home), matching the memory strategy.
 mkdir -p "$(dirname "$LOCAL_SETTINGS")"
 sync_dotfile "claude-settings.json" "$LOCAL_SETTINGS" "$REPO_SETTINGS" "" "assets/claude-settings.json"
+
+echo ""
+echo "=== Claude Themes (Manganese) ==="
+echo ""
+
+# The Manganese themes live in their own repo (the source of truth), so fetch
+# them from its gold branch rather than vendoring copies here. Runs before the
+# memory sync, which has early-exit branches. Fetch failures warn and move on —
+# themes are cosmetic, setup shouldn't abort offline.
+MANGANESE_RAW="https://raw.githubusercontent.com/matdotcx/manganese/gold/claude-code"
+LOCAL_THEMES="$HOME/.claude/themes"
+mkdir -p "$LOCAL_THEMES"
+for theme in manganese-light.json manganese-dark.json; do
+    tmp="$(mktemp)"
+    if curl -fsSL --max-time 15 "$MANGANESE_RAW/$theme" -o "$tmp" && head -c1 "$tmp" | grep -q '{'; then
+        if cmp -s "$tmp" "$LOCAL_THEMES/$theme"; then
+            echo -e "${GREEN}✓ $theme already up to date${NC}"
+        else
+            mv "$tmp" "$LOCAL_THEMES/$theme"
+            echo -e "${GREEN}✓ Installed $theme${NC}"
+        fi
+    else
+        echo -e "${YELLOW}Could not fetch $theme from manganese — skipping${NC}"
+    fi
+    rm -f "$tmp"
+done
 
 echo ""
 echo "=== Claude Memory Sync ==="
