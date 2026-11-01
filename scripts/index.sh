@@ -182,6 +182,7 @@ elif is_macos; then
     run_script "tailscale-setup.sh"
     run_script "observability-collector.sh"
     run_script "pam-ssh-agent-sudo.sh"
+    run_script "gpg-pinentry.sh"
     run_script "setup-gpg-signing.sh"
     run_script "host-agents.sh"
     run_script "self-update.sh" "" "--install"

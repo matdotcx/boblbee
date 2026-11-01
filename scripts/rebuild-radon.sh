@@ -29,7 +29,7 @@ BOOTSTRAP_KEY="${BOBLBEE_BOOTSTRAP_KEY:-$HOME/.config/boblbee/id_bootstrap}"
 REPOS=(ark-config xenon observability xo imap-mcp KoboShelf kohinoor)
 # The user-level boblbee modules index.sh would run. The sudo ones (hostname, Touch ID, MacPorts,
 # PAM, dots.sh) set things outside the home folder, which a lost home folder doesn't take with it.
-MODULES=(git-config-shared.sh zshrc-sync.sh tmux-sync.sh ghostty-sync.sh zed-sync.sh motd-sync.sh claude-sync.sh observability-collector.sh)
+MODULES=(git-config-shared.sh zshrc-sync.sh tmux-sync.sh ghostty-sync.sh zed-sync.sh motd-sync.sh claude-sync.sh gpg-pinentry.sh observability-collector.sh)
 FLEET=(helium cobalt hydrogen krypton nickel pf-edge deadline timebeat adsb)
 
 TODO=()
