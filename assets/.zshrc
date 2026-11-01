@@ -45,6 +45,17 @@ export BUN_INSTALL="$HOME/.bun"
 [[ -d "$BUN_INSTALL" ]] && export PATH="$BUN_INSTALL/bin:$PATH"
 
 ###############################################################################
+# GPG
+###############################################################################
+# Which terminal gpg's passphrase prompt should use. Over SSH there's no window
+# server, so tell the pinentry-auto wrapper (gpg-agent.conf) to use the curses
+# pinentry; at the console it uses the GUI pinentry-mac.
+export GPG_TTY=$TTY
+if [[ -n "$SSH_CONNECTION" || -n "$SSH_TTY" ]]; then
+    export PINENTRY_USER_DATA=USE_CURSES
+fi
+
+###############################################################################
 # Auto-attach tmux on SSH sessions
 ###############################################################################
 # Only SSH logins get tmux; local terminals stay plain shells. Skipped in a Xenon terminal (XENON_TERMINAL=1, set
