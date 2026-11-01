@@ -81,12 +81,20 @@ run_update() {
 
     # Fetch over HTTPS (no SSH key needed for public repo)
     # GIT_CONFIG_GLOBAL=/dev/null neutralises git-config-shared.sh's url.*.insteadOf
-    # rewrite, which would otherwise turn this into an SSH fetch that fails under launchd/cron
-    if ! GIT_CONFIG_GLOBAL=/dev/null git fetch -q "$REPO_HTTPS" "$BRANCH" 2>>"$LOG_FILE"; then
-        log_entry "FAIL: git fetch failed"
-        write_metrics 0
-        return 1
-    fi
+    # rewrite, which would otherwise turn this into an SSH fetch that fails under launchd/cron.
+    # A Mac often runs this the moment it wakes (launchd runs a missed 00:48 on wake), before
+    # Wi-Fi and DNS are back, so give the network a few minutes before calling it a failure.
+    local attempt max_attempts=6
+    for (( attempt = 1; attempt <= max_attempts; attempt++ )); do
+        GIT_CONFIG_GLOBAL=/dev/null git fetch -q "$REPO_HTTPS" "$BRANCH" 2>>"$LOG_FILE" && break
+        if (( attempt == max_attempts )); then
+            log_entry "FAIL: git fetch failed after $max_attempts attempts"
+            write_metrics 0
+            return 1
+        fi
+        log_entry "  fetch attempt $attempt failed; retrying in 30s"
+        sleep 30
+    done
 
     # Check for changes
     LOCAL=$(git rev-parse HEAD)

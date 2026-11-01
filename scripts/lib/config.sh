@@ -78,6 +78,9 @@ _DOMAIN=$(_detect_domain)
 HELIUM_FQDN="helium.${BOBLBEE_DOMAIN:-${_DOMAIN:-int.example.org}}"
 HELIUM_IP=$(dig +short "$HELIUM_FQDN" 2>/dev/null | head -1)
 HELIUM_REGISTER_SCRIPT="~/observability/scripts/register-host.sh"
+# Every elemental host, helium included, is administered as ops; never fall back to
+# the local login name (diego on the Macs). Override with BOBLBEE_HELIUM_USER if needed.
+HELIUM_SSH_USER="${BOBLBEE_HELIUM_USER:-ops}"
 
 unset _DOMAIN
 

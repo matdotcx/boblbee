@@ -137,8 +137,9 @@ register_with_helium() {
     echo "  IP: $local_ip"
     echo "  Exporter Port: $exporter_port"
 
-    # Use SSH agent forwarding to register
-    if ssh -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "$helium_addr" \
+    # Connect as ops with BatchMode, so a missing key fails fast instead of
+    # prompting for a password in the middle of a self-update run
+    if ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new "${HELIUM_SSH_USER}@${helium_addr}" \
         "$HELIUM_REGISTER_SCRIPT '$hostname' '$local_ip' '$exporter_port'" 2>/dev/null; then
         echo -e "${GREEN}Registered with helium${NC}"
         return 0
@@ -192,7 +193,7 @@ else
     echo "This machine will not be monitored until registered."
     echo ""
     echo "To register later, ensure connectivity to helium and run:"
-    echo "  ssh $HELIUM_FQDN '$HELIUM_REGISTER_SCRIPT \$(hostname) \$(hostname -I | awk \"{print \\\$1}\")'"
+    echo "  ssh ${HELIUM_SSH_USER}@$HELIUM_FQDN '$HELIUM_REGISTER_SCRIPT \$(hostname) \$(hostname -I | awk \"{print \\\$1}\")'"
 fi
 
 echo ""
