@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""vb: send a message to the Vestaboard Note, with the key read from 1Password.
+
+  vb "Recycling day"              centred, word-wrapped, sent over the local API
+  vb "{green} Free {green}"       colour chips: {red} {orange} {yellow} {green}
+                                  {blue} {violet} {white} {black} {filled} {heart}
+  vb -l "Line one" "Line two"     each argument becomes its own row, left-aligned
+  echo "From a pipe" | vb         reads stdin when no text is given
+  vb -n "Test"                    dry run: prints the preview, sends nothing
+  vb --cloud -f "Urgent"          use the Cloud API instead; -f overrides quiet hours
+
+The key is fetched with `op read` at send time and held only in this process.
+Nothing is written to disk or exported.
+"""
+import argparse, json, re, subprocess, sys, textwrap, urllib.request, urllib.error
+
+# 1Password secret references (vault and item by ID, so renames don't break them)
+_OP_ITEM = "op://fupcjodikne4n7c7fxnlu5u6py/xeotao2tpdoztj5h5b7laft5ji"
+OP_LOCAL = f"{_OP_ITEM}/Local API"
+OP_CLOUD = f"{_OP_ITEM}/credential"
+OP_HOST = f"{_OP_ITEM}/hostname"  # board IP or DNS name; falls back to vestaboard.local
+
+LOCAL_URL = "http://{host}:7000/local-api/message"
+CLOUD_URL = "https://cloud.vestaboard.com/"
+ROWS, COLS = 3, 15  # Vestaboard Note
+
+CODES = {" ": 0, "!": 37, "@": 38, "#": 39, "$": 40, "(": 41, ")": 42, "-": 44,
+         "+": 46, "&": 47, "=": 48, ";": 49, ":": 50, "'": 52, '"': 53, "%": 54,
+         ",": 55, ".": 56, "/": 59, "?": 60, "°": 62}
+CODES.update({chr(ord("A") + i): i + 1 for i in range(26)})
+CODES.update({str(d): 27 + (d - 1) for d in range(1, 10)}); CODES["0"] = 36
+# Typographic punctuation that macOS likes to substitute
+CODES.update({"‘": 52, "’": 52, "“": 53, "”": 53, "–": 44, "—": 44})
+TOKENS = {"red": 63, "orange": 64, "yellow": 65, "green": 66, "blue": 67,
+          "violet": 68, "white": 69, "black": 70, "filled": 71, "heart": 62}
+TOKEN_RE = re.compile(r"\{(\w+)\}")
+CHIP = "\x00"  # placeholder so each {token} counts as a single cell when wrapping
+
+
+def encode_line(line):
+    """Return a list of character codes for one line of text."""
+    chips = []
+    def sub(m):
+        name = m.group(1).lower()
+        if name.isdigit() and 0 <= int(name) <= 71:
+            chips.append(int(name))
+        elif name in TOKENS:
+            chips.append(TOKENS[name])
+        else:
+            sys.exit(f"vb: unknown token {{{m.group(1)}}}")
+        return CHIP
+    flat = TOKEN_RE.sub(sub, line)
+    out, bad = [], set()
+    for ch in flat:
+        if ch == CHIP:
+            out.append(chips.pop(0))
+        elif ch.upper() in CODES:
+            out.append(CODES[ch.upper()])
+        else:
+            bad.add(ch)
+    if bad:
+        sys.exit(f"vb: the board has no character for: {' '.join(sorted(bad))}")
+    return out
+
+
+def layout(lines, left=False):
+    """Wrap to the 3x15 grid and centre unless left is set."""
+    rows = []
+    for line in lines:
+        # Wrap on the placeholder form so a {token} takes up one column
+        chips = TOKEN_RE.findall(line)
+        flat = TOKEN_RE.sub(CHIP, line.strip())
+        wrapped = textwrap.wrap(flat, COLS, break_long_words=True) or [""]
+        for w in wrapped:
+            rows.append(re.sub(CHIP, lambda _: "{" + chips.pop(0) + "}", w))
+    if len(rows) > ROWS:
+        sys.exit(f"vb: message needs {len(rows)} rows; the Note has {ROWS}")
+    grid = [encode_line(r) for r in rows]
+    if not left:
+        pad_top = (ROWS - len(grid)) // 2
+        grid = [[0] * ((COLS - len(r)) // 2) + r for r in grid]
+        grid = [[] for _ in range(pad_top)] + grid
+    grid += [[] for _ in range(ROWS - len(grid))]
+    return [r + [0] * (COLS - len(r)) for r in grid]
+
+
+def preview(grid):
+    rev = {v: k for k, v in CODES.items() if len(k) == 1 and ord(k) < 128}
+    glyph = {63: "R", 64: "O", 65: "Y", 66: "G", 67: "B", 68: "V", 69: "W",
+             70: "K", 71: "#", 62: "*"}
+    border = "+" + "-" * COLS + "+"
+    lines = [border]
+    for r in grid:
+        cells = "".join(glyph.get(c) if c >= 62 else rev.get(c, "?") for c in r)
+        lines.append("|" + cells + "|")
+    lines.append(border)
+    return "\n".join(lines)
+
+
+def op_read(ref):
+    try:
+        return subprocess.run(["op", "read", "--no-newline", ref], check=True,
+                              capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        sys.exit("vb: 1Password CLI (op) not found")
+    except subprocess.CalledProcessError as e:
+        sys.exit(f"vb: op read failed for {ref}\n{e.stderr.strip()}")
+
+
+def board_host():
+    """Hostname field from the 1Password item, or vestaboard.local if it is empty."""
+    r = subprocess.run(["op", "read", "--no-newline", OP_HOST], capture_output=True, text=True)
+    return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else "vestaboard.local"
+
+
+def send(grid, cloud=False, forced=False, host=None, strategy=None):
+    if cloud:
+        url, header, key = CLOUD_URL, "X-Vestaboard-Token", op_read(OP_CLOUD)
+        body = {"characters": grid}
+        if forced:
+            body["forced"] = True
+    else:
+        url = LOCAL_URL.format(host=host or board_host())
+        header, key = "X-Vestaboard-Local-Api-Key", op_read(OP_LOCAL)
+        body = {"characters": grid, "strategy": strategy} if strategy else grid
+    req = urllib.request.Request(url, data=json.dumps(body).encode(), method="POST",
+                                 headers={header: key, "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        hint = " (board muted or in quiet hours; try --cloud -f)" if e.code == 423 else ""
+        sys.exit(f"vb: HTTP {e.code}{hint}: {e.read().decode(errors='replace')[:200]}")
+    except urllib.error.URLError as e:
+        sys.exit(f"vb: could not reach {url}: {e.reason}")
+
+
+def main():
+    p = argparse.ArgumentParser(prog="vb", description="Send a message to the Vestaboard Note.")
+    p.add_argument("text", nargs="*", help="message; each argument is a separate line")
+    p.add_argument("-l", "--left", action="store_true", help="left-align instead of centring")
+    p.add_argument("-n", "--dry-run", action="store_true", help="preview only; do not send")
+    p.add_argument("-c", "--cloud", action="store_true", help="use the Cloud API, not the local one")
+    p.add_argument("-f", "--force", action="store_true", help="Cloud API: send during quiet hours")
+    p.add_argument("-t", "--transition", choices=["column", "reverse-column", "edges-to-center",
+                   "row", "diagonal", "random"], help="local API flip animation")
+    p.add_argument("--host", help="board address (default: hostname field in 1Password, else vestaboard.local)")
+    a = p.parse_args()
+
+    lines = a.text or ([] if sys.stdin.isatty() else sys.stdin.read().splitlines())
+    if not any(l.strip() for l in lines):
+        p.error("nothing to send")
+    grid = layout(lines, a.left)
+    print(preview(grid))
+    if a.dry_run:
+        return
+    send(grid, cloud=a.cloud, forced=a.force, host=a.host, strategy=a.transition)
+    print("sent")
+
+
+if __name__ == "__main__":
+    main()
